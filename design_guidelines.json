@@ -1,0 +1,110 @@
+{
+  "theme": "dark",
+  "archetype": "Archetype 5: Jewel & Luxury",
+  "typography": {
+    "fonts": {
+      "heading": "Playfair Display",
+      "body": "Outfit",
+      "mono": "JetBrains Mono"
+    },
+    "scale": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-none",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight",
+      "h3": "text-xl sm:text-2xl tracking-tight",
+      "h4": "text-lg sm:text-xl",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm tracking-wide",
+      "overline": "text-xs tracking-[0.2em] uppercase font-bold"
+    }
+  },
+  "colors": {
+    "background": {
+      "base": "#0A0D14",
+      "surface": "#121621",
+      "surface_hover": "#1C2333"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#9BA3B5",
+      "muted": "#64748B"
+    },
+    "brand": {
+      "primary": "#D4AF37",
+      "primary_hover": "#F0C84B",
+      "accent": "#E5E7EB"
+    },
+    "border": {
+      "default": "rgba(255, 255, 255, 0.1)",
+      "focus": "#D4AF37"
+    }
+  },
+  "spacing_and_layout": {
+    "container_padding": "p-6 md:p-12 lg:p-24",
+    "gap_system": "gap-6 md:gap-8 lg:gap-12",
+    "bento_grid": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8",
+    "card_padding": "p-6 sm:p-8"
+  },
+  "components": {
+    "surfaces": {
+      "glassmorphism": "bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
+      "solid": "bg-[#121621] border border-white/5 shadow-sm rounded-sm"
+    },
+    "buttons": {
+      "primary": "bg-[#D4AF37] text-[#0A0D14] font-medium px-6 py-3 rounded-sm hover:bg-[#F0C84B] transition-all duration-300",
+      "secondary": "bg-transparent border border-white/20 text-white px-6 py-3 rounded-sm hover:bg-white/5 transition-all duration-300",
+      "ghost": "bg-transparent text-white/70 hover:text-white hover:bg-white/5 px-4 py-2 rounded-sm transition-all duration-300"
+    },
+    "inputs": {
+      "default": "bg-[#0A0D14] border border-white/10 text-white placeholder-white/30 rounded-sm focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all px-4 py-3",
+      "search_bar": "bg-white/5 backdrop-blur-xl border border-white/10 rounded-full px-6 py-3 text-white placeholder-white/40 focus:border-white/30 transition-all"
+    },
+    "badges": {
+      "default": "bg-white/10 text-white text-xs px-3 py-1 rounded-full uppercase tracking-widest border border-white/5"
+    }
+  },
+  "motion": {
+    "hover": "transition-all duration-300 ease-out",
+    "page_transition": "animate-in fade-in slide-in-from-bottom-4 duration-700",
+    "list_stagger": "animate-in fade-in slide-in-from-bottom-2 duration-500 stagger-100"
+  },
+  "media": {
+    "icons_library": "@phosphor-icons/react",
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1761437855740-c894da924d79?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGdvbGQlMjBnZW9tZXRyaWMlMjBkYXJrfGVufDB8fHx8MTc3Nzc2NjM0M3ww&ixlib=rb-4.1.0&q=85",
+      "description": "Golden metallic lines against a black background, representing connections."
+    },
+    "empty_state_graphic": {
+      "url": "https://images.pexels.com/photos/13337440/pexels-photo-13337440.png?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Elegant 3D gold geometric sphere, ideal for 'no contacts found' empty states."
+    },
+    "avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1609436132311-e4b0c9370469?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzh8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBkaXZlcnNlJTIwaGVhZHNob3QlMjBwb3J0cmFpdHxlbnwwfHx8fDE3Nzc3NjYzMzN8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Professional female headshot"
+      },
+      {
+        "url": "https://images.pexels.com/photos/34769117/pexels-photo-34769117.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Professional female portrait"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1698650427325-d9c575dd6109?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzh8MHwxfHNlYXJjaHw0fHxwcm9mZXNzaW9uYWwlMjBkaXZlcnNlJTIwaGVhZHNob3QlMjBwb3J0cmFpdHxlbnwwfHx8fDE3Nzc3NjYzMzN8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Professional female portrait"
+      },
+      {
+        "url": "https://images.pexels.com/photos/29852895/pexels-photo-29852895.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Professional female portrait"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Ensure global background color is #0A0D14. Setup dark mode strictly.",
+    "Use Playfair Display for all major headings. Ensure body text uses Outfit.",
+    "Apply 'Crystal Glassmorphism' for the sticky top navigation to overlay smoothly on the hero background.",
+    "For the Profile Directory grid, strictly avoid standard Shadcn 'Cards'. Instead, use flat, solid containers with 1px border (#ffffff 5% opacity), padding p-6, and minimal border-radius (rounded-sm).",
+    "Avatars must be large, high-resolution and maintain aspect-ratio. Avoid small circles; use large squares (aspect-square) with rounded-sm for high-end fashion/luxury vibe.",
+    "Install and use '@phosphor-icons/react' for all app iconography (Duotone weight).",
+    "Ensure empty states and placeholder graphics use the provided abstract geometric images with text overlay.",
+    "Make sure the 'Save Contact' and 'Copy Info' actions are visually prioritized on the profile page using the primary gold color (#D4AF37).",
+    "Remember to add 'data-testid' to all interactive elements for robust testing."
+  ]
+}
