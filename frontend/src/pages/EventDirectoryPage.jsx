@@ -301,7 +301,7 @@ const EventDirectoryPage = () => {
                       size="sm"
                       onClick={() => copyToClipboard(attendee.email, 'Email')}
                       className="text-white/60 hover:text-white hover:bg-white/5"
-                      data-testid={`copy-email-${attendee.id}`}
+                      data-testid={`copy-contact-${attendee.id}`}
                     >
                       <EnvelopeSimple size={18} />
                     </Button>
