@@ -8,6 +8,7 @@ import { CalendarBlank, MapPin, Users, Plus, Link as LinkIcon, Trash, PencilSimp
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -165,6 +166,9 @@ const AdminPage = () => {
             <DialogContent className="bg-[#121621] border-white/10 text-white max-w-md">
               <DialogHeader>
                 <DialogTitle className="font-['Playfair_Display'] text-2xl">Create New Event</DialogTitle>
+                <DialogDescription className="text-white/60">
+                  Fill in the details below to create a new networking event.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreate} className="space-y-4 mt-4">
                 <div className="space-y-2">
@@ -356,6 +360,9 @@ const AdminPage = () => {
           <DialogContent className="bg-[#121621] border-white/10 text-white max-w-md">
             <DialogHeader>
               <DialogTitle className="font-['Playfair_Display'] text-2xl">Edit Event</DialogTitle>
+              <DialogDescription className="text-white/60">
+                Update the event details below.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleUpdate} className="space-y-4 mt-4">
               <div className="space-y-2">
