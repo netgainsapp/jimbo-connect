@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 
@@ -21,64 +22,62 @@ import './App.css';
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="min-h-screen bg-[#0A0D14]">
-          <Navbar />
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/join/:code" element={<JoinEventPage />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <div className="min-h-screen bg-background">
+            <Navbar />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/join/:code" element={<JoinEventPage />} />
 
-            {/* Protected Routes */}
-            <Route path="/events" element={
-              <ProtectedRoute>
-                <EventsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/event/:eventId" element={
-              <ProtectedRoute>
-                <EventDirectoryPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile/:userId" element={
-              <ProtectedRoute>
-                <UserProfilePage />
-              </ProtectedRoute>
-            } />
-            <Route path="/contacts" element={
-              <ProtectedRoute>
-                <SavedContactsPage />
-              </ProtectedRoute>
-            } />
+              {/* Protected Routes */}
+              <Route path="/events" element={
+                <ProtectedRoute>
+                  <EventsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/event/:eventId" element={
+                <ProtectedRoute>
+                  <EventDirectoryPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile/:userId" element={
+                <ProtectedRoute>
+                  <UserProfilePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/contacts" element={
+                <ProtectedRoute>
+                  <SavedContactsPage />
+                </ProtectedRoute>
+              } />
 
-            {/* Admin Routes */}
-            <Route path="/admin" element={
-              <ProtectedRoute requireAdmin>
-                <AdminPage />
-              </ProtectedRoute>
-            } />
-          </Routes>
-          <Toaster 
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: '#121621',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.1)',
-              },
-            }}
-          />
-        </div>
-      </BrowserRouter>
-    </AuthProvider>
+              {/* Admin Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute requireAdmin>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+            </Routes>
+            <Toaster 
+              position="bottom-right"
+              toastOptions={{
+                className: 'bg-popover text-popover-foreground border-border',
+              }}
+            />
+          </div>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

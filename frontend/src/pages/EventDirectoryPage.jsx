@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { MagnifyingGlass, Funnel, BookmarkSimple, Buildings, MapPin, Users, ArrowLeft, X, Copy, EnvelopeSimple, Phone, LinkedinLogo } from '@phosphor-icons/react';
+import { MagnifyingGlass, Funnel, BookmarkSimple, Buildings, MapPin, Users, ArrowLeft, X, EnvelopeSimple, Phone, LinkedinLogo } from '@phosphor-icons/react';
 import {
   Select,
   SelectContent,
@@ -110,19 +110,19 @@ const EventDirectoryPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0D14] pt-24 flex items-center justify-center">
-        <div className="w-12 h-12 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-background pt-24 flex items-center justify-center">
+        <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0D14] pt-24 px-6 pb-12">
+    <div className="min-h-screen bg-background pt-24 px-6 pb-12">
       <div className="max-w-6xl mx-auto">
         {/* Back button */}
         <button
           onClick={() => navigate('/events')}
-          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-6"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
           data-testid="back-to-events"
         >
           <ArrowLeft size={20} />
@@ -131,8 +131,8 @@ const EventDirectoryPage = () => {
 
         {/* Event Header */}
         <div className="mb-8">
-          <h1 className="font-['Playfair_Display'] text-3xl sm:text-4xl text-white mb-2">{event?.name}</h1>
-          <div className="flex flex-wrap gap-4 text-sm text-white/60">
+          <h1 className="text-3xl sm:text-4xl font-semibold text-foreground mb-2">{event?.name}</h1>
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             {event?.date && (
               <span className="flex items-center gap-1">
                 {event.date}
@@ -154,18 +154,18 @@ const EventDirectoryPage = () => {
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="relative flex-1">
-            <MagnifyingGlass size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+            <MagnifyingGlass size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, company, role, or what they're looking for..."
-              className="bg-white/5 border-white/10 text-white pl-12 h-12 rounded-full focus:border-white/30"
+              className="pl-12 h-12 rounded-full"
               data-testid="search-input"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X size={18} />
               </button>
@@ -174,11 +174,11 @@ const EventDirectoryPage = () => {
           
           <div className="flex gap-2">
             <Select value={industryFilter} onValueChange={setIndustryFilter}>
-              <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-white" data-testid="industry-filter">
+              <SelectTrigger className="w-[180px]" data-testid="industry-filter">
                 <Funnel size={16} className="mr-2" />
                 <SelectValue placeholder="Industry" />
               </SelectTrigger>
-              <SelectContent className="bg-[#121621] border-white/10">
+              <SelectContent>
                 <SelectItem value="all">All Industries</SelectItem>
                 {uniqueIndustries.map(ind => (
                   <SelectItem key={ind} value={ind}>{ind}</SelectItem>
@@ -188,10 +188,10 @@ const EventDirectoryPage = () => {
 
             {uniqueTables.length > 0 && (
               <Select value={tableFilter} onValueChange={setTableFilter}>
-                <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-white" data-testid="table-filter">
+                <SelectTrigger className="w-[180px]" data-testid="table-filter">
                   <SelectValue placeholder="Table/Cohort" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#121621] border-white/10">
+                <SelectContent>
                   <SelectItem value="all">All Tables</SelectItem>
                   {uniqueTables.map(table => (
                     <SelectItem key={table} value={table}>{table}</SelectItem>
@@ -205,26 +205,24 @@ const EventDirectoryPage = () => {
         {/* Attendees Grid */}
         {attendees.length === 0 ? (
           <div className="text-center py-16">
-            <img 
-              src="https://images.pexels.com/photos/13337440/pexels-photo-13337440.png?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" 
-              alt="No results"
-              className="w-32 h-32 object-contain mx-auto mb-6 opacity-50"
-            />
-            <h3 className="font-['Playfair_Display'] text-xl text-white mb-2">No attendees found</h3>
-            <p className="text-white/60">Try adjusting your search or filters</p>
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+              <Users size={32} className="text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">No attendees found</h3>
+            <p className="text-muted-foreground">Try adjusting your search or filters</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {attendees.map((attendee, index) => (
               <div
                 key={attendee.id}
-                className="bg-[#121621] border border-white/5 p-6 rounded-sm hover:border-[#D4AF37]/30 transition-all group animate-fade-in"
+                className="bg-card border border-border p-6 rounded-lg hover:border-primary/30 transition-all group animate-fade-in"
                 style={{ animationDelay: `${index * 50}ms` }}
                 data-testid={`attendee-card-${attendee.id}`}
               >
                 <div className="flex gap-4">
                   {/* Avatar */}
-                  <div className="w-20 h-20 rounded-sm overflow-hidden bg-[#0A0D14] flex-shrink-0">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                     {attendee.profile_photo ? (
                       <img
                         src={`${API}/api/files/${attendee.profile_photo}`}
@@ -232,8 +230,8 @@ const EventDirectoryPage = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[#D4AF37]/20">
-                        <span className="font-['Playfair_Display'] text-2xl text-[#D4AF37]">
+                      <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                        <span className="text-2xl font-semibold text-primary">
                           {attendee.name?.charAt(0)?.toUpperCase()}
                         </span>
                       </div>
@@ -244,15 +242,15 @@ const EventDirectoryPage = () => {
                   <div className="flex-1 min-w-0">
                     <Link 
                       to={`/profile/${attendee.id}`}
-                      className="font-['Playfair_Display'] text-lg text-white hover:text-[#D4AF37] transition-colors block truncate"
+                      className="text-lg font-semibold text-foreground hover:text-primary transition-colors block truncate"
                     >
                       {attendee.name}
                     </Link>
                     {attendee.role_title && (
-                      <p className="text-white/60 text-sm truncate">{attendee.role_title}</p>
+                      <p className="text-muted-foreground text-sm truncate">{attendee.role_title}</p>
                     )}
                     {attendee.company && (
-                      <p className="text-white/40 text-sm flex items-center gap-1 truncate">
+                      <p className="text-muted-foreground/70 text-sm flex items-center gap-1 truncate">
                         <Buildings size={14} weight="duotone" />
                         {attendee.company}
                       </p>
@@ -262,33 +260,33 @@ const EventDirectoryPage = () => {
 
                 {/* Looking for */}
                 {attendee.looking_for && (
-                  <p className="text-white/60 text-sm mt-4 line-clamp-2">
-                    <span className="text-[#D4AF37]">Looking for:</span> {attendee.looking_for}
+                  <p className="text-muted-foreground text-sm mt-4 line-clamp-2">
+                    <span className="text-primary font-medium">Looking for:</span> {attendee.looking_for}
                   </p>
                 )}
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2 mt-4">
                   {attendee.industry && (
-                    <span className="bg-white/10 text-white text-xs px-3 py-1 rounded-full">
+                    <span className="bg-muted text-foreground text-xs px-3 py-1 rounded-full">
                       {attendee.industry}
                     </span>
                   )}
                   {attendee.table_cohort && (
-                    <span className="bg-[#D4AF37]/20 text-[#D4AF37] text-xs px-3 py-1 rounded-full">
+                    <span className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full">
                       {attendee.table_cohort}
                     </span>
                   )}
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border">
                   {attendee.id !== user?.id && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleSaveContact(attendee.id)}
-                      className={`flex-1 ${savedContacts.has(attendee.id) ? 'text-[#D4AF37]' : 'text-white/60'} hover:text-[#D4AF37] hover:bg-[#D4AF37]/10`}
+                      className={`flex-1 ${savedContacts.has(attendee.id) ? 'text-primary' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/10`}
                       data-testid={`save-contact-${attendee.id}`}
                     >
                       <BookmarkSimple size={18} weight={savedContacts.has(attendee.id) ? 'fill' : 'duotone'} className="mr-2" />
@@ -300,7 +298,7 @@ const EventDirectoryPage = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => copyToClipboard(attendee.email, 'Email')}
-                      className="text-white/60 hover:text-white hover:bg-white/5"
+                      className="text-muted-foreground hover:text-foreground"
                       data-testid={`copy-contact-${attendee.id}`}
                     >
                       <EnvelopeSimple size={18} />
@@ -311,7 +309,7 @@ const EventDirectoryPage = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => copyToClipboard(attendee.phone, 'Phone')}
-                      className="text-white/60 hover:text-white hover:bg-white/5"
+                      className="text-muted-foreground hover:text-foreground"
                     >
                       <Phone size={18} />
                     </Button>
@@ -321,7 +319,7 @@ const EventDirectoryPage = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => window.open(attendee.linkedin_url, '_blank')}
-                      className="text-white/60 hover:text-white hover:bg-white/5"
+                      className="text-muted-foreground hover:text-foreground"
                     >
                       <LinkedinLogo size={18} />
                     </Button>
