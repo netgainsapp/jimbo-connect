@@ -4,10 +4,11 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { CalendarBlank, MapPin, Users, Link as LinkIcon, ArrowRight, Plus } from '@phosphor-icons/react';
+import { CalendarBlank, MapPin, Users, ArrowRight, Plus } from '@phosphor-icons/react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -62,53 +63,55 @@ const EventsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0D14] pt-24 flex items-center justify-center">
-        <div className="w-12 h-12 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-background pt-24 flex items-center justify-center">
+        <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0D14] pt-24 px-6 pb-12">
+    <div className="min-h-screen bg-background pt-24 px-6 pb-12">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
-            <h1 className="font-['Playfair_Display'] text-3xl text-white mb-2">My Events</h1>
-            <p className="text-white/60">Browse attendees and make connections</p>
+            <h1 className="text-3xl font-semibold text-foreground mb-2">My Events</h1>
+            <p className="text-muted-foreground">Browse attendees and make connections</p>
           </div>
           <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
             <DialogTrigger asChild>
               <Button 
-                className="bg-[#D4AF37] text-[#0A0D14] font-medium px-6 py-3 rounded-sm hover:bg-[#F0C84B] transition-all flex items-center gap-2"
+                className="font-medium px-6 py-3 flex items-center gap-2"
                 data-testid="join-event-btn"
               >
                 <Plus size={20} weight="bold" />
                 Join Event
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#121621] border-white/10 text-white max-w-md">
+            <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle className="font-['Playfair_Display'] text-2xl">Join an Event</DialogTitle>
+                <DialogTitle className="text-2xl font-semibold">Join an Event</DialogTitle>
+                <DialogDescription>
+                  Enter the event code shared by the organizer.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleJoinEvent} className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label className="text-white/80">Event Code</Label>
+                  <Label>Event Code</Label>
                   <Input
                     value={joinCode}
                     onChange={(e) => setJoinCode(e.target.value)}
                     placeholder="Enter the event code or paste the link"
-                    className="bg-[#0A0D14] border-white/10 text-white"
                     data-testid="join-code-input"
                   />
-                  <p className="text-white/40 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     Enter the code shared by the event organizer
                   </p>
                 </div>
                 <Button
                   type="submit"
                   disabled={joining || !joinCode.trim()}
-                  className="w-full bg-[#D4AF37] text-[#0A0D14] font-medium py-3 rounded-sm hover:bg-[#F0C84B] disabled:opacity-50"
+                  className="w-full font-medium py-3"
                   data-testid="submit-join-btn"
                 >
                   {joining ? 'Joining...' : 'Join Event'}
@@ -120,18 +123,13 @@ const EventsPage = () => {
 
         {/* Events List */}
         {events.length === 0 ? (
-          <div className="text-center py-16 bg-[#121621] border border-white/5 rounded-sm">
-            <img 
-              src="https://images.pexels.com/photos/13337440/pexels-photo-13337440.png?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" 
-              alt="No events"
-              className="w-32 h-32 object-contain mx-auto mb-6 opacity-50"
-            />
-            <h3 className="font-['Playfair_Display'] text-xl text-white mb-2">No events yet</h3>
-            <p className="text-white/60 mb-6">Join your first event to start networking</p>
-            <Button
-              onClick={() => setJoinDialogOpen(true)}
-              className="bg-[#D4AF37] text-[#0A0D14]"
-            >
+          <div className="text-center py-16 bg-card border border-border rounded-lg">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+              <Users size={32} className="text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">No events yet</h3>
+            <p className="text-muted-foreground mb-6">Join your first event to start networking</p>
+            <Button onClick={() => setJoinDialogOpen(true)}>
               Join an Event
             </Button>
           </div>
@@ -141,23 +139,23 @@ const EventsPage = () => {
               <Link
                 key={event.id}
                 to={`/event/${event.id}`}
-                className="bg-[#121621] border border-white/5 p-6 rounded-sm hover:border-[#D4AF37]/30 transition-all group animate-fade-in block"
+                className="bg-card border border-border p-6 rounded-lg hover:border-primary/30 transition-all group animate-fade-in block"
                 style={{ animationDelay: `${index * 50}ms` }}
                 data-testid={`event-link-${event.id}`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-['Playfair_Display'] text-xl text-white group-hover:text-[#D4AF37] transition-colors">
+                      <h3 className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
                         {event.name}
                       </h3>
                       {event.is_active && (
-                        <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full">
+                        <span className="bg-green-500/20 text-green-600 dark:text-green-400 text-xs px-2 py-1 rounded-full">
                           Active
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-4 text-sm text-white/60">
+                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <CalendarBlank size={16} weight="duotone" />
                         {event.date}
@@ -174,7 +172,7 @@ const EventsPage = () => {
                       </span>
                     </div>
                   </div>
-                  <ArrowRight size={24} className="text-white/40 group-hover:text-[#D4AF37] group-hover:translate-x-1 transition-all" />
+                  <ArrowRight size={24} className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>
               </Link>
             ))}

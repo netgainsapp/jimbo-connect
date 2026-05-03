@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { 
   ArrowLeft, BookmarkSimple, Copy, EnvelopeSimple, Phone, LinkedinLogo, 
-  Buildings, Briefcase, MapPin, NotePencil, Check
+  Buildings, Briefcase, NotePencil, Check
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 
@@ -99,8 +99,8 @@ const UserProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0D14] pt-24 flex items-center justify-center">
-        <div className="w-12 h-12 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-background pt-24 flex items-center justify-center">
+        <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -110,12 +110,12 @@ const UserProfilePage = () => {
   const isOwnProfile = currentUser?.id === userId;
 
   return (
-    <div className="min-h-screen bg-[#0A0D14] pt-24 px-6 pb-12">
+    <div className="min-h-screen bg-background pt-24 px-6 pb-12">
       <div className="max-w-3xl mx-auto">
         {/* Back button */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-6"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
           data-testid="back-button"
         >
           <ArrowLeft size={20} />
@@ -123,12 +123,12 @@ const UserProfilePage = () => {
         </button>
 
         {/* Profile Card */}
-        <div className="bg-[#121621] border border-white/5 rounded-sm overflow-hidden">
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
           {/* Header */}
-          <div className="p-8 border-b border-white/5">
+          <div className="p-8 border-b border-border">
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               {/* Avatar */}
-              <div className="w-32 h-32 rounded-sm overflow-hidden bg-[#0A0D14] flex-shrink-0">
+              <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                 {user.profile_photo ? (
                   <img
                     src={`${API}/api/files/${user.profile_photo}`}
@@ -136,8 +136,8 @@ const UserProfilePage = () => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-[#D4AF37]/20">
-                    <span className="font-['Playfair_Display'] text-4xl text-[#D4AF37]">
+                  <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                    <span className="text-4xl font-semibold text-primary">
                       {user.name?.charAt(0)?.toUpperCase()}
                     </span>
                   </div>
@@ -146,21 +146,21 @@ const UserProfilePage = () => {
 
               {/* Info */}
               <div className="flex-1">
-                <h1 className="font-['Playfair_Display'] text-3xl text-white mb-2">{user.name}</h1>
+                <h1 className="text-3xl font-semibold text-foreground mb-2">{user.name}</h1>
                 {user.role_title && (
-                  <p className="text-white/80 text-lg flex items-center gap-2 mb-1">
-                    <Briefcase size={18} weight="duotone" className="text-[#D4AF37]" />
+                  <p className="text-foreground/80 text-lg flex items-center gap-2 mb-1">
+                    <Briefcase size={18} weight="duotone" className="text-primary" />
                     {user.role_title}
                   </p>
                 )}
                 {user.company && (
-                  <p className="text-white/60 flex items-center gap-2 mb-1">
+                  <p className="text-muted-foreground flex items-center gap-2 mb-1">
                     <Buildings size={18} weight="duotone" />
                     {user.company}
                   </p>
                 )}
                 {user.industry && (
-                  <span className="inline-block bg-white/10 text-white text-sm px-3 py-1 rounded-full mt-2">
+                  <span className="inline-block bg-muted text-foreground text-sm px-3 py-1 rounded-full mt-2">
                     {user.industry}
                   </span>
                 )}
@@ -171,7 +171,8 @@ const UserProfilePage = () => {
                 <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
                   <Button
                     onClick={handleSaveContact}
-                    className={`${isSaved ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30' : 'bg-[#D4AF37] text-[#0A0D14]'} font-medium px-6 py-3 rounded-sm hover:opacity-90 transition-all flex items-center gap-2`}
+                    variant={isSaved ? "outline" : "default"}
+                    className="font-medium px-6 py-3 flex items-center gap-2"
                     data-testid="save-contact-btn"
                   >
                     <BookmarkSimple size={20} weight={isSaved ? 'fill' : 'duotone'} />
@@ -179,7 +180,8 @@ const UserProfilePage = () => {
                   </Button>
                   <Button
                     onClick={copyAllInfo}
-                    className="bg-transparent border border-white/20 text-white font-medium px-6 py-3 rounded-sm hover:bg-white/5 transition-all flex items-center gap-2"
+                    variant="outline"
+                    className="font-medium px-6 py-3 flex items-center gap-2"
                     data-testid="copy-info-btn"
                   >
                     <Copy size={20} weight="duotone" />
@@ -190,7 +192,7 @@ const UserProfilePage = () => {
               {isOwnProfile && (
                 <Link
                   to="/profile"
-                  className="bg-[#D4AF37] text-[#0A0D14] font-medium px-6 py-3 rounded-sm hover:bg-[#F0C84B] transition-all"
+                  className="bg-primary text-primary-foreground font-medium px-6 py-3 rounded-md hover:bg-primary/90 transition-all"
                 >
                   Edit Profile
                 </Link>
@@ -200,27 +202,27 @@ const UserProfilePage = () => {
 
           {/* Bio */}
           {user.bio && (
-            <div className="p-8 border-b border-white/5">
-              <h2 className="text-xs tracking-[0.2em] uppercase font-bold text-[#D4AF37] mb-3">About</h2>
-              <p className="text-white/80 leading-relaxed">{user.bio}</p>
+            <div className="p-8 border-b border-border">
+              <h2 className="text-xs tracking-widest uppercase font-semibold text-primary mb-3">About</h2>
+              <p className="text-foreground/80 leading-relaxed">{user.bio}</p>
             </div>
           )}
 
           {/* Looking For */}
           {user.looking_for && (
-            <div className="p-8 border-b border-white/5">
-              <h2 className="text-xs tracking-[0.2em] uppercase font-bold text-[#D4AF37] mb-3">Looking For</h2>
-              <p className="text-white/80 leading-relaxed">{user.looking_for}</p>
+            <div className="p-8 border-b border-border">
+              <h2 className="text-xs tracking-widest uppercase font-semibold text-primary mb-3">Looking For</h2>
+              <p className="text-foreground/80 leading-relaxed">{user.looking_for}</p>
             </div>
           )}
 
           {/* Interests */}
           {user.interests && user.interests.length > 0 && (
-            <div className="p-8 border-b border-white/5">
-              <h2 className="text-xs tracking-[0.2em] uppercase font-bold text-[#D4AF37] mb-3">Interests</h2>
+            <div className="p-8 border-b border-border">
+              <h2 className="text-xs tracking-widest uppercase font-semibold text-primary mb-3">Interests</h2>
               <div className="flex flex-wrap gap-2">
                 {user.interests.map((interest, i) => (
-                  <span key={i} className="bg-white/10 text-white text-sm px-3 py-1 rounded-full">
+                  <span key={i} className="bg-muted text-foreground text-sm px-3 py-1 rounded-full">
                     {interest}
                   </span>
                 ))}
@@ -229,20 +231,20 @@ const UserProfilePage = () => {
           )}
 
           {/* Contact Info */}
-          <div className="p-8 border-b border-white/5">
-            <h2 className="text-xs tracking-[0.2em] uppercase font-bold text-[#D4AF37] mb-4">Contact</h2>
+          <div className="p-8 border-b border-border">
+            <h2 className="text-xs tracking-widest uppercase font-semibold text-primary mb-4">Contact</h2>
             <div className="space-y-3">
               {user.email && (
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-white/80">
-                    <EnvelopeSimple size={20} weight="duotone" className="text-[#D4AF37]" />
+                  <div className="flex items-center gap-3 text-foreground/80">
+                    <EnvelopeSimple size={20} weight="duotone" className="text-primary" />
                     <span>{user.email}</span>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => copyToClipboard(user.email, 'Email')}
-                    className="text-white/60 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground"
                     data-testid="copy-email-btn"
                   >
                     <Copy size={16} />
@@ -251,15 +253,15 @@ const UserProfilePage = () => {
               )}
               {user.phone && (
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-white/80">
-                    <Phone size={20} weight="duotone" className="text-[#D4AF37]" />
+                  <div className="flex items-center gap-3 text-foreground/80">
+                    <Phone size={20} weight="duotone" className="text-primary" />
                     <span>{user.phone}</span>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => copyToClipboard(user.phone, 'Phone')}
-                    className="text-white/60 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     <Copy size={16} />
                   </Button>
@@ -271,16 +273,16 @@ const UserProfilePage = () => {
                     href={user.linkedin_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-white/80 hover:text-[#D4AF37] transition-colors"
+                    className="flex items-center gap-3 text-foreground/80 hover:text-primary transition-colors"
                   >
-                    <LinkedinLogo size={20} weight="duotone" className="text-[#D4AF37]" />
+                    <LinkedinLogo size={20} weight="duotone" className="text-primary" />
                     <span>LinkedIn Profile</span>
                   </a>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => copyToClipboard(user.linkedin_url, 'LinkedIn URL')}
-                    className="text-white/60 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     <Copy size={16} />
                   </Button>
@@ -293,7 +295,7 @@ const UserProfilePage = () => {
           {isSaved && !isOwnProfile && (
             <div className="p-8">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs tracking-[0.2em] uppercase font-bold text-[#D4AF37] flex items-center gap-2">
+                <h2 className="text-xs tracking-widest uppercase font-semibold text-primary flex items-center gap-2">
                   <NotePencil size={16} weight="duotone" />
                   Private Note
                 </h2>
@@ -302,7 +304,7 @@ const UserProfilePage = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => setEditingNote(true)}
-                    className="text-white/60 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     Edit
                   </Button>
@@ -314,7 +316,7 @@ const UserProfilePage = () => {
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Add a private note about this contact (e.g., where you met, conversation topics, follow-up items)..."
-                    className="bg-[#0A0D14] border-white/10 text-white resize-none"
+                    className="resize-none"
                     rows={4}
                     data-testid="note-textarea"
                   />
@@ -322,7 +324,7 @@ const UserProfilePage = () => {
                     <Button
                       onClick={handleSaveNote}
                       disabled={savingNote}
-                      className="bg-[#D4AF37] text-[#0A0D14] font-medium px-4 py-2 rounded-sm hover:bg-[#F0C84B]"
+                      className="font-medium px-4 py-2"
                       data-testid="save-note-btn"
                     >
                       {savingNote ? 'Saving...' : (
@@ -336,7 +338,7 @@ const UserProfilePage = () => {
                       <Button
                         onClick={() => setEditingNote(false)}
                         variant="ghost"
-                        className="text-white/60 hover:text-white"
+                        className="text-muted-foreground hover:text-foreground"
                       >
                         Cancel
                       </Button>
@@ -344,7 +346,7 @@ const UserProfilePage = () => {
                   </div>
                 </div>
               ) : (
-                <p className="text-white/80 bg-[#0A0D14] p-4 rounded-sm border border-white/5">{note}</p>
+                <p className="text-foreground/80 bg-muted p-4 rounded-lg border border-border">{note}</p>
               )}
             </div>
           )}
