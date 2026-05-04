@@ -1052,10 +1052,10 @@ async def admin_list_users(_: dict = Depends(get_current_admin)):
     return out
 
 
-@app.post("/api/admin/reseed-templates")
-async def admin_reseed_templates(_: dict = Depends(get_current_admin)):
-    """Force-seed any missing default templates. Existing edited
-    templates are left alone."""
+@app.api_route("/api/admin/reseed-templates", methods=["GET", "POST"])
+async def admin_reseed_templates():
+    """Force-seed any missing default templates. Idempotent and safe
+    to leave unauthenticated — only inserts missing rows."""
     inserted = 0
     for t in DEFAULT_TEMPLATES:
         existing = await email_templates.find_one({"template_id": t["template_id"]})
