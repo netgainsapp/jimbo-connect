@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { authApi } from "../lib/api.js";
+import { authApi, setToken } from "../lib/api.js";
 
 const AuthContext = createContext(null);
 
@@ -24,12 +24,14 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await authApi.login({ email, password });
+    if (res.token) setToken(res.token);
     setUser(res.user);
     return res.user;
   };
 
   const register = async (email, password, name) => {
     const res = await authApi.register({ email, password, name });
+    if (res.token) setToken(res.token);
     setUser(res.user);
     return res.user;
   };
@@ -38,6 +40,7 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout();
     } finally {
+      setToken("");
       setUser(null);
     }
   };
