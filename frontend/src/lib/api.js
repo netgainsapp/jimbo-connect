@@ -76,6 +76,7 @@ export const profileApi = {
   update: (data) => api.put("/api/profile", data),
   uploadPhoto: (photo_data) => api.post("/api/profile/photo", { photo_data }),
   getById: (id) => api.get(`/api/profile/${id}`),
+  deleteSelf: () => api.del("/api/profile"),
 };
 
 export const eventsApi = {
@@ -86,6 +87,9 @@ export const eventsApi = {
   remove: (id) => api.del(`/api/events/${id}`),
   join: (code) => api.post(`/api/events/join/${code}`),
   attendees: (id) => api.get(`/api/events/${id}/attendees`),
+  removeAttendee: (eventId, userId) =>
+    api.del(`/api/events/${eventId}/attendees/${userId}`),
+  leave: (eventId) => api.del(`/api/my-events/${eventId}`),
   myEvents: () => api.get("/api/my-events"),
   allMyAttendees: () => api.get("/api/my-attendees"),
   discover: () => api.get("/api/events/discoverable"),
@@ -124,6 +128,7 @@ export const messagesApi = {
 export const adminApi = {
   stats: () => api.get("/api/admin/stats"),
   listUsers: () => api.get("/api/admin/users"),
+  deleteUser: (id) => api.del(`/api/admin/users/${id}`),
   bulkImport: (rows, event_id, default_password) =>
     api.post("/api/admin/users/bulk-import", {
       rows,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Plus, Users } from "lucide-react";
+import { Calendar, MapPin, Plus, Users, LogOut } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { formatDate } from "../lib/utils.js";
@@ -110,36 +110,53 @@ export default function MyEvents() {
             </div>
           </Link>
           {events.map((e) => (
-            <Link
-              key={e.id}
-              to={`/events/${e.id}`}
-              className="card p-4 hover:border-primary/50 transition"
-            >
-              <div className="font-bold text-text-primary text-lg leading-tight">
-                {e.name}
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary mt-1">
-                <span className="inline-flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" /> {formatDate(e.date)}
-                </span>
-                {e.location && (
+            <div key={e.id} className="card p-4 hover:border-primary/50 transition group relative">
+              <Link to={`/events/${e.id}`} className="block">
+                <div className="font-bold text-text-primary text-lg leading-tight pr-8">
+                  {e.name}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary mt-1">
                   <span className="inline-flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" /> {e.location}
+                    <Calendar className="w-3.5 h-3.5" /> {formatDate(e.date)}
                   </span>
-                )}
-                <span className="inline-flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" /> {e.attendee_count}
-                </span>
-                {e.industry_tags?.map((t) => (
-                  <span
-                    key={t}
-                    className="bg-bg-secondary text-text-secondary px-2 py-0.5 rounded-pill"
-                  >
-                    {t}
+                  {e.location && (
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5" /> {e.location}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" /> {e.attendee_count}
                   </span>
-                ))}
-              </div>
-            </Link>
+                  {e.industry_tags?.map((t) => (
+                    <span
+                      key={t}
+                      className="bg-bg-secondary text-text-secondary px-2 py-0.5 rounded-pill"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </Link>
+              <button
+                onClick={async (ev) => {
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  if (!confirm(`Leave "${e.name}"? You won't see the directory anymore.`))
+                    return;
+                  try {
+                    await eventsApi.leave(e.id);
+                    setEvents((prev) => prev.filter((x) => x.id !== e.id));
+                    toast.show("Left event");
+                  } catch (err) {
+                    toast.show(err.message, "error");
+                  }
+                }}
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-border-default text-text-secondary hover:bg-red-50 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100 transition"
+                title="Leave event"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
           ))}
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Search, Users } from "lucide-react";
+import { ArrowLeft, Search, Users, Trash2 } from "lucide-react";
 import { adminApi, eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import AttendeeCard from "../components/AttendeeCard.jsx";
@@ -103,17 +103,41 @@ export default function AdminUsers() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((u) => (
-            <AttendeeCard
-              key={u.id}
-              attendee={u}
-              hideActions
-              onOpen={setActive}
-              meta={
-                <span>
-                  {u.event_count} event{u.event_count === 1 ? "" : "s"} attended
-                </span>
-              }
-            />
+            <div key={u.id} className="relative group">
+              <AttendeeCard
+                attendee={u}
+                hideActions
+                onOpen={setActive}
+                meta={
+                  <span>
+                    {u.event_count} event{u.event_count === 1 ? "" : "s"} attended
+                  </span>
+                }
+              />
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const name = u.profile?.name || u.email;
+                  if (
+                    !confirm(
+                      `Permanently delete ${name}?\n\nThis removes them from every event, deletes their saved contacts and messages, and frees up their email for re-registration. Cannot be undone.`
+                    )
+                  )
+                    return;
+                  try {
+                    await adminApi.deleteUser(u.id);
+                    setUsers((prev) => prev.filter((x) => x.id !== u.id));
+                    toast.show("User deleted");
+                  } catch (err) {
+                    toast.show(err.message, "error");
+                  }
+                }}
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-border-default text-text-secondary hover:bg-red-50 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100 transition"
+                title="Delete account"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           ))}
         </div>
       )}
