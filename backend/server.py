@@ -429,8 +429,9 @@ app.add_middleware(
     allow_origins=_origins,
     allow_origin_regex=r"https://.*\.(onrender\.com|frontrangedev\.co)",
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],
+    expose_headers=["*"],
 )
 
 
@@ -576,7 +577,7 @@ async def reset_password(payload: ResetPasswordRequest, response: Response):
     token = create_access_token(str(user["_id"]))
     set_auth_cookie(response, token)
     user["password_hash"] = ""  # don't leak
-    return {"ok": True, "user": serialize_user(user)}
+    return {"ok": True, "user": serialize_user(user), "token": token}
 
 
 @app.get("/api/auth/magic/{token}")
@@ -594,7 +595,7 @@ async def magic_login(token: str, response: Response):
         raise HTTPException(status_code=400, detail="Link has expired")
     access = create_access_token(str(user["_id"]))
     set_auth_cookie(response, access)
-    return {"ok": True, "user": serialize_user(user)}
+    return {"ok": True, "user": serialize_user(user), "token": access}
 
 
 # ---------- Profile ----------
