@@ -11,6 +11,7 @@ import {
   UserPlus,
   LayoutGrid,
   List,
+  X,
 } from "lucide-react";
 import { eventsApi, sponsorsApi, adminApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
@@ -92,6 +93,18 @@ export default function AdminEventDetail() {
       await sponsorsApi.remove(id, sp.id);
       setSponsors((prev) => prev.filter((x) => x.id !== sp.id));
       toast.show("Sponsor removed");
+    } catch (err) {
+      toast.show(err.message, "error");
+    }
+  };
+
+  const removeAttendee = async (attendee) => {
+    const name = attendee.profile?.name || attendee.email;
+    if (!confirm(`Remove ${name} from this event? Their account stays.`)) return;
+    try {
+      await eventsApi.removeAttendee(id, attendee.id);
+      setAttendees((prev) => prev.filter((a) => a.id !== attendee.id));
+      toast.show("Removed from event");
     } catch (err) {
       toast.show(err.message, "error");
     }
@@ -340,12 +353,19 @@ export default function AdminEventDetail() {
             return (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {sorted.map((a) => (
-                  <AttendeeCard
-                    key={a.id}
-                    attendee={a}
-                    hideActions
-                    onOpen={setActive}
-                  />
+                  <div key={a.id} className="relative group">
+                    <AttendeeCard attendee={a} hideActions onOpen={setActive} />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeAttendee(a);
+                      }}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-border-default text-text-secondary hover:bg-red-50 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100 transition"
+                      title="Remove from event"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             );
@@ -355,27 +375,38 @@ export default function AdminEventDetail() {
               {sorted.map((a) => {
                 const p = a.profile || {};
                 return (
-                  <button
+                  <div
                     key={a.id}
-                    type="button"
-                    onClick={() => setActive(a)}
-                    className="w-full text-left flex items-center gap-4 px-5 py-3 hover:bg-bg-secondary transition"
+                    className="flex items-center gap-4 px-5 py-3 hover:bg-bg-secondary transition group"
                   >
-                    <Avatar name={p.name} photoUrl={p.photo_url} size={40} />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-text-primary truncate">
-                        {p.name || a.email}
+                    <button
+                      type="button"
+                      onClick={() => setActive(a)}
+                      className="flex-1 flex items-center gap-4 text-left min-w-0"
+                    >
+                      <Avatar name={p.name} photoUrl={p.photo_url} size={40} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-text-primary truncate">
+                          {p.name || a.email}
+                        </div>
+                        <div className="text-sm text-text-secondary truncate">
+                          {p.role}
+                          {p.role && p.company && " · "}
+                          {p.company}
+                        </div>
                       </div>
-                      <div className="text-sm text-text-secondary truncate">
-                        {p.role}
-                        {p.role && p.company && " · "}
-                        {p.company}
+                      <div className="text-sm text-text-muted truncate hidden sm:block">
+                        {a.email}
                       </div>
-                    </div>
-                    <div className="text-sm text-text-muted truncate hidden sm:block">
-                      {a.email}
-                    </div>
-                  </button>
+                    </button>
+                    <button
+                      onClick={() => removeAttendee(a)}
+                      className="p-1.5 rounded-full text-text-muted hover:bg-red-50 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+                      title="Remove from event"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 );
               })}
             </div>

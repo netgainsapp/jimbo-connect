@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
-import { profileApi } from "../lib/api.js";
+import { profileApi, setToken } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import Avatar from "../components/Avatar.jsx";
-import { Camera } from "lucide-react";
+import { Camera, Trash2 } from "lucide-react";
 
 export default function ProfileSetup({ editMode = false }) {
-  const { user, refresh } = useAuth();
+  const { user, refresh, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const fileRef = useRef(null);
@@ -184,6 +184,39 @@ export default function ProfileSetup({ editMode = false }) {
           </button>
         </div>
       </form>
+
+      {editMode && !user?.is_admin && (
+        <div className="mt-10 pt-6 border-t border-border-default">
+          <div className="font-bold text-text-primary mb-1">Danger zone</div>
+          <p className="text-sm text-text-secondary mb-3">
+            Permanently delete your account, every saved contact, every message,
+            and remove yourself from every event. Cannot be undone.
+          </p>
+          <button
+            type="button"
+            className="btn-danger"
+            onClick={async () => {
+              if (
+                !confirm(
+                  "Permanently delete your account?\n\nThis removes everything: saved contacts, messages, event memberships. You'll be logged out and can't log back in."
+                )
+              )
+                return;
+              try {
+                await profileApi.deleteSelf();
+                setToken("");
+                await logout().catch(() => {});
+                toast.show("Account deleted");
+                navigate("/login", { replace: true });
+              } catch (err) {
+                toast.show(err.message, "error");
+              }
+            }}
+          >
+            <Trash2 className="w-4 h-4" /> Delete my account
+          </button>
+        </div>
+      )}
     </div>
   );
 }

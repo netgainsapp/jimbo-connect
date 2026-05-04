@@ -741,6 +741,87 @@ async def delete_event(event_id: str, _: dict = Depends(get_current_admin)):
     return {"ok": True}
 
 
+@app.delete("/api/events/{event_id}/attendees/{user_id}")
+async def admin_remove_attendee(
+    event_id: str, user_id: str, _: dict = Depends(get_current_admin)
+):
+    try:
+        e_oid = ObjectId(event_id)
+        u_oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid id")
+    result = await event_attendees.delete_one(
+        {"event_id": e_oid, "user_id": u_oid}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Attendee not on this event")
+    return {"ok": True}
+
+
+@app.delete("/api/my-events/{event_id}")
+async def leave_event(event_id: str, user: dict = Depends(get_current_user)):
+    try:
+        e_oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    result = await event_attendees.delete_one(
+        {"event_id": e_oid, "user_id": user["_id"]}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Not joined to this event")
+    return {"ok": True}
+
+
+async def _hard_delete_user(user_oid):
+    """Cascade: remove from events, saved contacts (both sides),
+    messages (both sides), then the user record itself."""
+    await event_attendees.delete_many({"user_id": user_oid})
+    await saved_contacts.delete_many(
+        {"$or": [{"owner_id": user_oid}, {"contact_id": user_oid}]}
+    )
+    await messages.delete_many(
+        {"$or": [{"from_user_id": user_oid}, {"to_user_id": user_oid}]}
+    )
+    await users.delete_one({"_id": user_oid})
+
+
+@app.delete("/api/admin/users/{user_id}")
+async def admin_delete_user(
+    user_id: str, admin: dict = Depends(get_current_admin)
+):
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user id")
+    if oid == admin["_id"]:
+        raise HTTPException(status_code=400, detail="Use 'delete my account' for self")
+    target = await users.find_one({"_id": oid})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    await _hard_delete_user(oid)
+    return {"ok": True}
+
+
+@app.delete("/api/profile")
+async def delete_my_account(
+    response: Response, user: dict = Depends(get_current_user)
+):
+    if user.get("is_admin"):
+        # Don't allow the admin user to nuke themselves and lock everyone out
+        raise HTTPException(
+            status_code=400,
+            detail="Admin accounts can't be self-deleted from the app",
+        )
+    await _hard_delete_user(user["_id"])
+    response.delete_cookie(
+        COOKIE_NAME,
+        path="/",
+        samesite="none" if _cookie_secure() else "lax",
+        secure=_cookie_secure(),
+    )
+    return {"ok": True}
+
+
 @app.post("/api/events/join/{code}")
 async def join_event(code: str, user: dict = Depends(get_current_user)):
     e = await events.find_one({"join_code": code.upper()})
