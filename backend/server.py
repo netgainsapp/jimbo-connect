@@ -1,707 +1,638 @@
+import os
+import secrets
+import string
+from datetime import datetime, timezone
+from contextlib import asynccontextmanager
+from typing import List, Optional
+
+from fastapi import FastAPI, HTTPException, Depends, Response, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from bson import ObjectId
 from dotenv import load_dotenv
+
+from database import users, events, event_attendees, saved_contacts, ensure_indexes
+from auth import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    get_current_user,
+    get_current_admin,
+    COOKIE_NAME,
+)
+from models import (
+    Profile,
+    RegisterRequest,
+    LoginRequest,
+    ProfileUpdateRequest,
+    PhotoUploadRequest,
+    UserPublic,
+    AttendeePublic,
+    EventCreateRequest,
+    EventUpdateRequest,
+    EventPublic,
+    SaveContactRequest,
+    NoteUpdateRequest,
+    SavedContactPublic,
+    StatsResponse,
+)
+
 load_dotenv()
 
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, UploadFile, File, Query, Header
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
-import os
-import logging
-import secrets
-import uuid
-import bcrypt
-import jwt
-import requests
-from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
-from datetime import datetime, timezone, timedelta
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@jimboconnect.com")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-# Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+def generate_join_code(length: int = 8) -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
-# JWT Config
-JWT_ALGORITHM = "HS256"
 
-def get_jwt_secret() -> str:
-    return os.environ["JWT_SECRET"]
-
-# Storage Config
-STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
-EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
-APP_NAME = "jimbo-connect"
-storage_key = None
-
-def init_storage():
-    global storage_key
-    if storage_key:
-        return storage_key
-    try:
-        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
-        resp.raise_for_status()
-        storage_key = resp.json()["storage_key"]
-        logger.info("Storage initialized successfully")
-        return storage_key
-    except Exception as e:
-        logger.error(f"Storage init failed: {e}")
-        return None
-
-def put_object(path: str, data: bytes, content_type: str) -> dict:
-    key = init_storage()
-    if not key:
-        raise HTTPException(status_code=500, detail="Storage not initialized")
-    resp = requests.put(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key, "Content-Type": content_type},
-        data=data, timeout=120
-    )
-    resp.raise_for_status()
-    return resp.json()
-
-def get_object(path: str) -> tuple:
-    key = init_storage()
-    if not key:
-        raise HTTPException(status_code=500, detail="Storage not initialized")
-    resp = requests.get(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key}, timeout=60
-    )
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
-
-# Password Hashing
-def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
-    return hashed.decode("utf-8")
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
-
-# JWT Token Management
-def create_access_token(user_id: str, email: str) -> str:
-    payload = {"sub": user_id, "email": email, "exp": datetime.now(timezone.utc) + timedelta(minutes=15), "type": "access"}
-    return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
-
-def create_refresh_token(user_id: str) -> str:
-    payload = {"sub": user_id, "exp": datetime.now(timezone.utc) + timedelta(days=7), "type": "refresh"}
-    return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
-
-# Auth Helper
-async def get_current_user(request: Request) -> dict:
-    token = request.cookies.get("access_token")
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    try:
-        payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "access":
-            raise HTTPException(status_code=401, detail="Invalid token type")
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        user["id"] = str(user["_id"])
-        del user["_id"]
-        user.pop("password_hash", None)
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-async def get_optional_user(request: Request) -> Optional[dict]:
-    try:
-        return await get_current_user(request)
-    except HTTPException:
-        return None
-
-async def require_admin(request: Request) -> dict:
-    user = await get_current_user(request)
-    if user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return user
-
-# Brute Force Protection
-async def check_brute_force(identifier: str):
-    attempt = await db.login_attempts.find_one({"identifier": identifier})
-    if attempt and attempt.get("count", 0) >= 5:
-        lockout_time = attempt.get("locked_until")
-        if lockout_time and datetime.now(timezone.utc) < lockout_time:
-            raise HTTPException(status_code=429, detail="Too many failed attempts. Try again later.")
-        elif lockout_time:
-            await db.login_attempts.delete_one({"identifier": identifier})
-
-async def record_failed_attempt(identifier: str):
-    attempt = await db.login_attempts.find_one({"identifier": identifier})
-    if attempt:
-        new_count = attempt.get("count", 0) + 1
-        update = {"$set": {"count": new_count}}
-        if new_count >= 5:
-            update["$set"]["locked_until"] = datetime.now(timezone.utc) + timedelta(minutes=15)
-        await db.login_attempts.update_one({"identifier": identifier}, update)
-    else:
-        await db.login_attempts.insert_one({"identifier": identifier, "count": 1})
-
-async def clear_failed_attempts(identifier: str):
-    await db.login_attempts.delete_one({"identifier": identifier})
-
-# Pydantic Models
-class UserRegister(BaseModel):
-    email: EmailStr
-    password: str
-    name: str
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-class ProfileUpdate(BaseModel):
-    name: Optional[str] = None
-    role_title: Optional[str] = None
-    company: Optional[str] = None
-    bio: Optional[str] = None
-    looking_for: Optional[str] = None
-    industry: Optional[str] = None
-    interests: Optional[List[str]] = None
-    linkedin_url: Optional[str] = None
-    phone: Optional[str] = None
-    table_cohort: Optional[str] = None
-
-class EventCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-    date: str
-    location: Optional[str] = None
-    industries: Optional[List[str]] = None
-
-class EventUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    date: Optional[str] = None
-    location: Optional[str] = None
-    industries: Optional[List[str]] = None
-    is_active: Optional[bool] = None
-
-class SaveContactRequest(BaseModel):
-    contact_user_id: str
-
-class NoteUpdate(BaseModel):
-    note: str
-
-class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
-
-class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str
-
-# Create the main app
-app = FastAPI()
-
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
-
-# ============ AUTH ENDPOINTS ============
-
-@api_router.post("/auth/register")
-async def register(data: UserRegister, response: Response, request: Request):
-    email = data.email.lower()
-    existing = await db.users.find_one({"email": email})
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    user_doc = {
-        "email": email,
-        "password_hash": hash_password(data.password),
-        "name": data.name,
-        "role": "user",
-        "profile_photo": None,
-        "role_title": None,
-        "company": None,
-        "bio": None,
-        "looking_for": None,
-        "industry": None,
-        "interests": [],
-        "linkedin_url": None,
-        "phone": None,
-        "table_cohort": None,
-        "events": [],
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    result = await db.users.insert_one(user_doc)
-    user_id = str(result.inserted_id)
-    
-    access_token = create_access_token(user_id, email)
-    refresh_token = create_refresh_token(user_id)
-    
-    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=900, path="/")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
-    
-    return {"id": user_id, "email": email, "name": data.name, "role": "user"}
-
-@api_router.post("/auth/login")
-async def login(data: UserLogin, response: Response, request: Request):
-    email = data.email.lower()
-    ip = request.client.host if request.client else "unknown"
-    identifier = f"{ip}:{email}"
-    
-    await check_brute_force(identifier)
-    
-    user = await db.users.find_one({"email": email})
-    if not user or not verify_password(data.password, user["password_hash"]):
-        await record_failed_attempt(identifier)
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    await clear_failed_attempts(identifier)
-    
-    user_id = str(user["_id"])
-    access_token = create_access_token(user_id, email)
-    refresh_token = create_refresh_token(user_id)
-    
-    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=900, path="/")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
-    
+def serialize_user(user: dict) -> dict:
+    profile = user.get("profile") or {}
     return {
-        "id": user_id,
+        "id": str(user["_id"]),
         "email": user["email"],
-        "name": user["name"],
-        "role": user.get("role", "user"),
-        "profile_photo": user.get("profile_photo")
+        "is_admin": bool(user.get("is_admin")),
+        "profile": Profile(**profile).model_dump(),
+        "created_at": user.get("created_at", datetime.now(timezone.utc)),
     }
 
-@api_router.post("/auth/logout")
-async def logout(response: Response):
-    response.delete_cookie("access_token", path="/")
-    response.delete_cookie("refresh_token", path="/")
-    return {"message": "Logged out"}
 
-@api_router.get("/auth/me")
-async def get_me(user: dict = Depends(get_current_user)):
-    return user
-
-@api_router.post("/auth/refresh")
-async def refresh_token(request: Request, response: Response):
-    token = request.cookies.get("refresh_token")
-    if not token:
-        raise HTTPException(status_code=401, detail="No refresh token")
-    try:
-        payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "refresh":
-            raise HTTPException(status_code=401, detail="Invalid token type")
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        
-        access_token = create_access_token(str(user["_id"]), user["email"])
-        response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=900, path="/")
-        return {"message": "Token refreshed"}
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Refresh token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-@api_router.post("/auth/forgot-password")
-async def forgot_password(data: ForgotPasswordRequest):
-    email = data.email.lower()
-    user = await db.users.find_one({"email": email})
-    if user:
-        token = secrets.token_urlsafe(32)
-        await db.password_reset_tokens.insert_one({
-            "token": token,
-            "user_id": str(user["_id"]),
-            "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
-            "used": False
-        })
-        logger.info(f"Password reset link: /reset-password?token={token}")
-    return {"message": "If email exists, reset link was sent"}
-
-@api_router.post("/auth/reset-password")
-async def reset_password(data: ResetPasswordRequest):
-    token_doc = await db.password_reset_tokens.find_one({"token": data.token, "used": False})
-    if not token_doc:
-        raise HTTPException(status_code=400, detail="Invalid or expired token")
-    if datetime.now(timezone.utc) > token_doc["expires_at"]:
-        raise HTTPException(status_code=400, detail="Token expired")
-    
-    await db.users.update_one(
-        {"_id": ObjectId(token_doc["user_id"])},
-        {"$set": {"password_hash": hash_password(data.new_password)}}
-    )
-    await db.password_reset_tokens.update_one({"token": data.token}, {"$set": {"used": True}})
-    return {"message": "Password reset successfully"}
-
-# ============ PROFILE ENDPOINTS ============
-
-@api_router.get("/profile")
-async def get_profile(user: dict = Depends(get_current_user)):
-    return user
-
-@api_router.put("/profile")
-async def update_profile(data: ProfileUpdate, user: dict = Depends(get_current_user)):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    if update_data:
-        await db.users.update_one({"_id": ObjectId(user["id"])}, {"$set": update_data})
-    updated = await db.users.find_one({"_id": ObjectId(user["id"])}, {"_id": 0, "password_hash": 0})
-    updated["id"] = user["id"]
-    return updated
-
-@api_router.post("/profile/photo")
-async def upload_profile_photo(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
-    
-    ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "jpg"
-    path = f"{APP_NAME}/profiles/{user['id']}/{uuid.uuid4()}.{ext}"
-    data = await file.read()
-    
-    result = put_object(path, data, file.content_type or "image/jpeg")
-    
-    await db.users.update_one({"_id": ObjectId(user["id"])}, {"$set": {"profile_photo": result["path"]}})
-    
-    return {"path": result["path"]}
-
-@api_router.get("/files/{path:path}")
-async def get_file(path: str, auth: str = Query(None)):
-    try:
-        data, content_type = get_object(path)
-        return Response(content=data, media_type=content_type)
-    except Exception as e:
-        raise HTTPException(status_code=404, detail="File not found")
-
-@api_router.get("/profile/{user_id}")
-async def get_user_profile(user_id: str, current_user: dict = Depends(get_current_user)):
-    try:
-        user = await db.users.find_one({"_id": ObjectId(user_id)}, {"password_hash": 0})
-    except:
-        raise HTTPException(status_code=404, detail="User not found")
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    user["id"] = str(user["_id"])
-    del user["_id"]
-    return user
-
-# ============ EVENT ENDPOINTS ============
-
-def generate_event_code():
-    return secrets.token_urlsafe(8)
-
-@api_router.post("/events")
-async def create_event(data: EventCreate, admin: dict = Depends(require_admin)):
-    event_doc = {
-        "name": data.name,
-        "description": data.description,
-        "date": data.date,
-        "location": data.location,
-        "industries": data.industries or [],
-        "code": generate_event_code(),
-        "created_by": admin["id"],
-        "is_active": True,
-        "attendees": [],
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    result = await db.events.insert_one(event_doc)
-    event_doc["id"] = str(result.inserted_id)
-    del event_doc["_id"]
-    return event_doc
-
-@api_router.get("/events")
-async def list_events(admin: dict = Depends(require_admin)):
-    events = await db.events.find({}, {"_id": 1, "name": 1, "date": 1, "location": 1, "code": 1, "is_active": 1, "attendees": 1}).to_list(1000)
-    for e in events:
-        e["id"] = str(e["_id"])
-        del e["_id"]
-        e["attendee_count"] = len(e.get("attendees", []))
-    return events
-
-@api_router.get("/events/{event_id}")
-async def get_event(event_id: str, user: dict = Depends(get_current_user)):
-    try:
-        event = await db.events.find_one({"_id": ObjectId(event_id)})
-    except:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    event["id"] = str(event["_id"])
-    del event["_id"]
-    return event
-
-@api_router.put("/events/{event_id}")
-async def update_event(event_id: str, data: EventUpdate, admin: dict = Depends(require_admin)):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    if update_data:
-        await db.events.update_one({"_id": ObjectId(event_id)}, {"$set": update_data})
-    event = await db.events.find_one({"_id": ObjectId(event_id)})
-    event["id"] = str(event["_id"])
-    del event["_id"]
-    return event
-
-@api_router.delete("/events/{event_id}")
-async def delete_event(event_id: str, admin: dict = Depends(require_admin)):
-    await db.events.delete_one({"_id": ObjectId(event_id)})
-    return {"message": "Event deleted"}
-
-@api_router.post("/events/join/{code}")
-async def join_event(code: str, user: dict = Depends(get_current_user)):
-    event = await db.events.find_one({"code": code})
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if not event.get("is_active", True):
-        raise HTTPException(status_code=400, detail="Event is no longer active")
-    
-    user_id = user["id"]
-    event_id = str(event["_id"])
-    
-    # Add user to event attendees if not already
-    if user_id not in event.get("attendees", []):
-        await db.events.update_one({"_id": event["_id"]}, {"$addToSet": {"attendees": user_id}})
-    
-    # Add event to user's events if not already
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$addToSet": {"events": event_id}})
-    
-    return {"event_id": event_id, "name": event["name"]}
-
-@api_router.get("/events/{event_id}/attendees")
-async def get_event_attendees(
-    event_id: str,
-    search: str = Query(None),
-    industry: str = Query(None),
-    interests: str = Query(None),
-    table_cohort: str = Query(None),
-    user: dict = Depends(get_current_user)
-):
-    try:
-        event = await db.events.find_one({"_id": ObjectId(event_id)})
-    except:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    
-    attendee_ids = event.get("attendees", [])
-    if not attendee_ids:
-        return []
-    
-    # Build query
-    query = {"_id": {"$in": [ObjectId(aid) for aid in attendee_ids]}}
-    
-    if search:
-        query["$or"] = [
-            {"name": {"$regex": search, "$options": "i"}},
-            {"company": {"$regex": search, "$options": "i"}},
-            {"role_title": {"$regex": search, "$options": "i"}},
-            {"looking_for": {"$regex": search, "$options": "i"}}
-        ]
-    
-    if industry:
-        query["industry"] = {"$regex": industry, "$options": "i"}
-    
-    if interests:
-        interest_list = [i.strip() for i in interests.split(",")]
-        query["interests"] = {"$in": interest_list}
-    
-    if table_cohort:
-        query["table_cohort"] = {"$regex": table_cohort, "$options": "i"}
-    
-    attendees = await db.users.find(query, {"password_hash": 0}).to_list(1000)
-    
-    for a in attendees:
-        a["id"] = str(a["_id"])
-        del a["_id"]
-    
-    return attendees
-
-@api_router.get("/my-events")
-async def get_my_events(user: dict = Depends(get_current_user)):
-    event_ids = user.get("events", [])
-    if not event_ids:
-        return []
-    
-    events = await db.events.find(
-        {"_id": {"$in": [ObjectId(eid) for eid in event_ids]}},
-        {"_id": 1, "name": 1, "date": 1, "location": 1, "code": 1, "is_active": 1, "attendees": 1}
-    ).to_list(100)
-    
-    for e in events:
-        e["id"] = str(e["_id"])
-        del e["_id"]
-        e["attendee_count"] = len(e.get("attendees", []))
-    
-    return events
-
-# ============ CONTACTS & NOTES ENDPOINTS ============
-
-@api_router.post("/contacts/save")
-async def save_contact(data: SaveContactRequest, user: dict = Depends(get_current_user)):
-    existing = await db.saved_contacts.find_one({
-        "user_id": user["id"],
-        "contact_user_id": data.contact_user_id
-    })
-    if existing:
-        raise HTTPException(status_code=400, detail="Contact already saved")
-    
-    contact_doc = {
-        "user_id": user["id"],
-        "contact_user_id": data.contact_user_id,
-        "note": "",
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.saved_contacts.insert_one(contact_doc)
-    return {"message": "Contact saved"}
-
-@api_router.delete("/contacts/{contact_user_id}")
-async def remove_contact(contact_user_id: str, user: dict = Depends(get_current_user)):
-    await db.saved_contacts.delete_one({
-        "user_id": user["id"],
-        "contact_user_id": contact_user_id
-    })
-    return {"message": "Contact removed"}
-
-@api_router.get("/contacts")
-async def get_saved_contacts(user: dict = Depends(get_current_user)):
-    saved = await db.saved_contacts.find({"user_id": user["id"]}).to_list(1000)
-    
-    if not saved:
-        return []
-    
-    contact_ids = [s["contact_user_id"] for s in saved]
-    users = await db.users.find(
-        {"_id": {"$in": [ObjectId(cid) for cid in contact_ids]}},
-        {"password_hash": 0}
-    ).to_list(1000)
-    
-    users_map = {str(u["_id"]): u for u in users}
-    
-    result = []
-    for s in saved:
-        contact_user = users_map.get(s["contact_user_id"])
-        if contact_user:
-            contact_user["id"] = str(contact_user["_id"])
-            del contact_user["_id"]
-            contact_user["note"] = s.get("note", "")
-            contact_user["saved_at"] = s.get("created_at")
-            result.append(contact_user)
-    
-    return result
-
-@api_router.put("/contacts/{contact_user_id}/note")
-async def update_contact_note(contact_user_id: str, data: NoteUpdate, user: dict = Depends(get_current_user)):
-    result = await db.saved_contacts.update_one(
-        {"user_id": user["id"], "contact_user_id": contact_user_id},
-        {"$set": {"note": data.note}}
-    )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Contact not found")
-    return {"message": "Note updated"}
-
-@api_router.get("/contacts/{contact_user_id}/is-saved")
-async def check_if_saved(contact_user_id: str, user: dict = Depends(get_current_user)):
-    existing = await db.saved_contacts.find_one({
-        "user_id": user["id"],
-        "contact_user_id": contact_user_id
-    })
-    return {"is_saved": existing is not None, "note": existing.get("note", "") if existing else ""}
-
-# ============ ADMIN STATS ============
-
-@api_router.get("/admin/stats")
-async def get_admin_stats(admin: dict = Depends(require_admin)):
-    total_users = await db.users.count_documents({})
-    total_events = await db.events.count_documents({})
-    active_events = await db.events.count_documents({"is_active": True})
-    total_connections = await db.saved_contacts.count_documents({})
-    
+def serialize_attendee(user: dict) -> dict:
+    profile = user.get("profile") or {}
     return {
-        "total_users": total_users,
-        "total_events": total_events,
-        "active_events": active_events,
-        "total_connections": total_connections
+        "id": str(user["_id"]),
+        "email": user["email"],
+        "profile": Profile(**profile).model_dump(),
     }
 
-# ============ STARTUP & SHUTDOWN ============
 
-@app.on_event("startup")
-async def startup():
-    # Create indexes
-    await db.users.create_index("email", unique=True)
-    await db.events.create_index("code", unique=True)
-    await db.login_attempts.create_index("identifier")
-    await db.saved_contacts.create_index([("user_id", 1), ("contact_user_id", 1)], unique=True)
-    
-    # Initialize storage
-    init_storage()
-    
-    # Seed admin
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@jimboconnect.com")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
-    existing = await db.users.find_one({"email": admin_email})
-    if existing is None:
-        hashed = hash_password(admin_password)
-        await db.users.insert_one({
-            "email": admin_email,
-            "password_hash": hashed,
-            "name": "Admin",
-            "role": "admin",
-            "profile_photo": None,
-            "role_title": "Platform Administrator",
+def serialize_event(event: dict, attendee_count: int = 0) -> dict:
+    return {
+        "id": str(event["_id"]),
+        "name": event["name"],
+        "date": event["date"],
+        "location": event.get("location", ""),
+        "industry_tags": event.get("industry_tags", []),
+        "join_code": event["join_code"],
+        "created_by": str(event["created_by"]),
+        "created_at": event["created_at"],
+        "attendee_count": attendee_count,
+    }
+
+
+async def seed_data():
+    """Create admin user and sample data on first run."""
+    admin = await users.find_one({"email": ADMIN_EMAIL})
+    if admin:
+        return
+
+    now = datetime.now(timezone.utc)
+
+    admin_doc = {
+        "email": ADMIN_EMAIL,
+        "password_hash": hash_password(ADMIN_PASSWORD),
+        "is_admin": True,
+        "created_at": now,
+        "profile": {
+            "name": "Jimbo Admin",
+            "role": "Platform Host",
             "company": "Jimbo Connect",
-            "bio": "Platform administrator",
-            "looking_for": None,
-            "industry": "Technology",
-            "interests": [],
-            "linkedin_url": None,
-            "phone": None,
-            "table_cohort": None,
-            "events": [],
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
-        logger.info(f"Admin user created: {admin_email}")
-    elif not verify_password(admin_password, existing["password_hash"]):
-        await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password)}})
-        logger.info("Admin password updated")
-    
-    # Write test credentials
-    Path("/app/memory").mkdir(parents=True, exist_ok=True)
-    with open("/app/memory/test_credentials.md", "w") as f:
-        f.write(f"# Test Credentials\n\n")
-        f.write(f"## Admin Account\n")
-        f.write(f"- Email: {admin_email}\n")
-        f.write(f"- Password: {admin_password}\n")
-        f.write(f"- Role: admin\n\n")
-        f.write(f"## Auth Endpoints\n")
-        f.write(f"- POST /api/auth/register\n")
-        f.write(f"- POST /api/auth/login\n")
-        f.write(f"- POST /api/auth/logout\n")
-        f.write(f"- GET /api/auth/me\n")
-        f.write(f"- POST /api/auth/refresh\n")
+            "industry": "Events",
+            "bio": "Running the show.",
+            "looking_for": "",
+            "phone": "",
+            "linkedin": "",
+            "photo_url": "",
+        },
+    }
+    admin_result = await users.insert_one(admin_doc)
+    admin_id = admin_result.inserted_id
 
-@app.on_event("shutdown")
-async def shutdown():
-    client.close()
+    sample_attendees = [
+        {
+            "email": "ava@example.com",
+            "profile": {
+                "name": "Ava Reynolds",
+                "role": "Founder & CEO",
+                "company": "Trailhead Labs",
+                "industry": "SaaS",
+                "bio": "Building developer tools for outdoor brands.",
+                "looking_for": "Seed investors, design partners",
+                "phone": "303-555-0101",
+                "linkedin": "linkedin.com/in/avareynolds",
+                "photo_url": "",
+            },
+        },
+        {
+            "email": "ben@example.com",
+            "profile": {
+                "name": "Ben Carter",
+                "role": "VP of Engineering",
+                "company": "Summit Robotics",
+                "industry": "Hardware",
+                "bio": "Robotics nerd. Coffee snob.",
+                "looking_for": "Senior engineers",
+                "phone": "303-555-0102",
+                "linkedin": "linkedin.com/in/bencarter",
+                "photo_url": "",
+            },
+        },
+        {
+            "email": "cara@example.com",
+            "profile": {
+                "name": "Cara Liu",
+                "role": "Product Designer",
+                "company": "Aspen Studio",
+                "industry": "Design",
+                "bio": "Designing calm interfaces.",
+                "looking_for": "Freelance projects",
+                "phone": "303-555-0103",
+                "linkedin": "linkedin.com/in/caraliu",
+                "photo_url": "",
+            },
+        },
+        {
+            "email": "diego@example.com",
+            "profile": {
+                "name": "Diego Martinez",
+                "role": "Operating Partner",
+                "company": "Range Capital",
+                "industry": "Venture Capital",
+                "bio": "Backing operators in the mountain west.",
+                "looking_for": "Pre-seed founders",
+                "phone": "303-555-0104",
+                "linkedin": "linkedin.com/in/diegomartinez",
+                "photo_url": "",
+            },
+        },
+        {
+            "email": "elena@example.com",
+            "profile": {
+                "name": "Elena Park",
+                "role": "Head of Marketing",
+                "company": "Foothill Foods",
+                "industry": "CPG",
+                "bio": "Brand and growth in food and beverage.",
+                "looking_for": "Agency referrals",
+                "phone": "303-555-0105",
+                "linkedin": "linkedin.com/in/elenapark",
+                "photo_url": "",
+            },
+        },
+    ]
 
-# Include the router in the main app
-app.include_router(api_router)
+    sample_ids = []
+    for s in sample_attendees:
+        doc = {
+            "email": s["email"],
+            "password_hash": hash_password("password123"),
+            "is_admin": False,
+            "created_at": now,
+            "profile": s["profile"],
+        }
+        result = await users.insert_one(doc)
+        sample_ids.append(result.inserted_id)
 
-# CORS
-frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
-cors_origins = os.environ.get('CORS_ORIGINS', '*')
-origins = [frontend_url] if cors_origins == '*' else cors_origins.split(',')
+    event_doc = {
+        "name": "Denver Founders Dinner",
+        "date": datetime(2026, 6, 15, 18, 30, tzinfo=timezone.utc),
+        "location": "Denver, CO",
+        "industry_tags": ["SaaS", "Hardware", "Venture Capital", "CPG"],
+        "join_code": "DENVER01",
+        "created_by": admin_id,
+        "created_at": now,
+    }
+    event_result = await events.insert_one(event_doc)
+    event_id = event_result.inserted_id
+
+    for uid in sample_ids:
+        await event_attendees.insert_one(
+            {"event_id": event_id, "user_id": uid, "joined_at": now}
+        )
+
+    if len(sample_ids) >= 3:
+        await saved_contacts.insert_one(
+            {
+                "owner_id": sample_ids[0],
+                "contact_id": sample_ids[3],
+                "note": "Great fit for our seed round. Follow up Monday.",
+                "saved_at": now,
+            }
+        )
+        await saved_contacts.insert_one(
+            {
+                "owner_id": sample_ids[1],
+                "contact_id": sample_ids[2],
+                "note": "Interested in design contract for Q3.",
+                "saved_at": now,
+            }
+        )
+        await saved_contacts.insert_one(
+            {
+                "owner_id": sample_ids[2],
+                "contact_id": sample_ids[4],
+                "note": "Wants to swap notes on brand strategy.",
+                "saved_at": now,
+            }
+        )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await ensure_indexes()
+    await seed_data()
+    yield
+
+
+app = FastAPI(title="Jimbo Connect API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[FRONTEND_URL, "http://localhost:3000"],
     allow_credentials=True,
-    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@api_router.get("/")
-async def root():
-    return {"message": "Jimbo Connect API"}
+
+def set_auth_cookie(response: Response, token: str):
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=60 * 60 * 24 * 7,
+        path="/",
+    )
+
+
+# ---------- Auth ----------
+
+@app.post("/api/auth/register")
+async def register(payload: RegisterRequest, response: Response):
+    existing = await users.find_one({"email": payload.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    now = datetime.now(timezone.utc)
+    doc = {
+        "email": payload.email,
+        "password_hash": hash_password(payload.password),
+        "is_admin": False,
+        "created_at": now,
+        "profile": Profile(name=payload.name or "").model_dump(),
+    }
+    result = await users.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    token = create_access_token(str(result.inserted_id))
+    set_auth_cookie(response, token)
+    return {"user": serialize_user(doc), "token": token}
+
+
+@app.post("/api/auth/login")
+async def login(payload: LoginRequest, response: Response):
+    user = await users.find_one({"email": payload.email})
+    if not user or not verify_password(payload.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    token = create_access_token(str(user["_id"]))
+    set_auth_cookie(response, token)
+    return {"user": serialize_user(user), "token": token}
+
+
+@app.post("/api/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie(COOKIE_NAME, path="/")
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+async def me(user: dict = Depends(get_current_user)):
+    return serialize_user(user)
+
+
+@app.post("/api/auth/refresh")
+async def refresh(response: Response, user: dict = Depends(get_current_user)):
+    token = create_access_token(str(user["_id"]))
+    set_auth_cookie(response, token)
+    return {"token": token}
+
+
+# ---------- Profile ----------
+
+@app.get("/api/profile")
+async def get_my_profile(user: dict = Depends(get_current_user)):
+    return serialize_user(user)
+
+
+@app.put("/api/profile")
+async def update_my_profile(
+    payload: ProfileUpdateRequest, user: dict = Depends(get_current_user)
+):
+    current = Profile(**(user.get("profile") or {})).model_dump()
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    current.update(updates)
+    await users.update_one({"_id": user["_id"]}, {"$set": {"profile": current}})
+    user["profile"] = current
+    return serialize_user(user)
+
+
+@app.post("/api/profile/photo")
+async def upload_photo(
+    payload: PhotoUploadRequest, user: dict = Depends(get_current_user)
+):
+    profile = user.get("profile") or {}
+    profile["photo_url"] = payload.photo_data
+    await users.update_one({"_id": user["_id"]}, {"$set": {"profile": profile}})
+    user["profile"] = profile
+    return serialize_user(user)
+
+
+@app.get("/api/profile/{user_id}")
+async def get_profile_by_id(user_id: str, _: dict = Depends(get_current_user)):
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user id")
+    target = await users.find_one({"_id": oid})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    return serialize_attendee(target)
+
+
+# ---------- Events ----------
+
+@app.post("/api/events")
+async def create_event(
+    payload: EventCreateRequest, admin: dict = Depends(get_current_admin)
+):
+    code = generate_join_code()
+    while await events.find_one({"join_code": code}):
+        code = generate_join_code()
+    now = datetime.now(timezone.utc)
+    doc = {
+        "name": payload.name,
+        "date": payload.date,
+        "location": payload.location or "",
+        "industry_tags": payload.industry_tags or [],
+        "join_code": code,
+        "created_by": admin["_id"],
+        "created_at": now,
+    }
+    result = await events.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return serialize_event(doc, 0)
+
+
+@app.get("/api/events")
+async def list_events(_: dict = Depends(get_current_admin)):
+    out = []
+    async for e in events.find().sort("date", -1):
+        count = await event_attendees.count_documents({"event_id": e["_id"]})
+        out.append(serialize_event(e, count))
+    return out
+
+
+@app.get("/api/events/{event_id}")
+async def get_event(event_id: str, user: dict = Depends(get_current_user)):
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not user.get("is_admin"):
+        joined = await event_attendees.find_one(
+            {"event_id": oid, "user_id": user["_id"]}
+        )
+        if not joined:
+            raise HTTPException(status_code=403, detail="Not joined to this event")
+    count = await event_attendees.count_documents({"event_id": oid})
+    return serialize_event(e, count)
+
+
+@app.put("/api/events/{event_id}")
+async def update_event(
+    event_id: str,
+    payload: EventUpdateRequest,
+    _: dict = Depends(get_current_admin),
+):
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if updates:
+        await events.update_one({"_id": oid}, {"$set": updates})
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    count = await event_attendees.count_documents({"event_id": oid})
+    return serialize_event(e, count)
+
+
+@app.delete("/api/events/{event_id}")
+async def delete_event(event_id: str, _: dict = Depends(get_current_admin)):
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    await event_attendees.delete_many({"event_id": oid})
+    await events.delete_one({"_id": oid})
+    return {"ok": True}
+
+
+@app.post("/api/events/join/{code}")
+async def join_event(code: str, user: dict = Depends(get_current_user)):
+    e = await events.find_one({"join_code": code.upper()})
+    if not e:
+        raise HTTPException(status_code=404, detail="Invalid join code")
+    existing = await event_attendees.find_one(
+        {"event_id": e["_id"], "user_id": user["_id"]}
+    )
+    if not existing:
+        await event_attendees.insert_one(
+            {
+                "event_id": e["_id"],
+                "user_id": user["_id"],
+                "joined_at": datetime.now(timezone.utc),
+            }
+        )
+    count = await event_attendees.count_documents({"event_id": e["_id"]})
+    return serialize_event(e, count)
+
+
+@app.get("/api/events/{event_id}/attendees")
+async def get_event_attendees(event_id: str, user: dict = Depends(get_current_user)):
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not user.get("is_admin"):
+        joined = await event_attendees.find_one(
+            {"event_id": oid, "user_id": user["_id"]}
+        )
+        if not joined:
+            raise HTTPException(status_code=403, detail="Not joined to this event")
+    out = []
+    async for link in event_attendees.find({"event_id": oid}):
+        attendee = await users.find_one({"_id": link["user_id"]})
+        if attendee and not attendee.get("is_admin"):
+            out.append(serialize_attendee(attendee))
+    return out
+
+
+@app.get("/api/my-events")
+async def my_events(user: dict = Depends(get_current_user)):
+    out = []
+    async for link in event_attendees.find({"user_id": user["_id"]}).sort("joined_at", -1):
+        e = await events.find_one({"_id": link["event_id"]})
+        if e:
+            count = await event_attendees.count_documents({"event_id": e["_id"]})
+            out.append(serialize_event(e, count))
+    return out
+
+
+# ---------- Contacts ----------
+
+@app.post("/api/contacts/save")
+async def save_contact(
+    payload: SaveContactRequest, user: dict = Depends(get_current_user)
+):
+    try:
+        contact_oid = ObjectId(payload.contact_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid contact id")
+    if contact_oid == user["_id"]:
+        raise HTTPException(status_code=400, detail="Cannot save yourself")
+    target = await users.find_one({"_id": contact_oid})
+    if not target:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    existing = await saved_contacts.find_one(
+        {"owner_id": user["_id"], "contact_id": contact_oid}
+    )
+    if existing:
+        if payload.note is not None:
+            await saved_contacts.update_one(
+                {"_id": existing["_id"]}, {"$set": {"note": payload.note}}
+            )
+            existing["note"] = payload.note
+        return {
+            "id": str(existing["_id"]),
+            "contact_id": str(contact_oid),
+            "note": existing.get("note", ""),
+            "saved_at": existing["saved_at"],
+            "contact": serialize_attendee(target),
+        }
+    now = datetime.now(timezone.utc)
+    doc = {
+        "owner_id": user["_id"],
+        "contact_id": contact_oid,
+        "note": payload.note or "",
+        "saved_at": now,
+    }
+    result = await saved_contacts.insert_one(doc)
+    return {
+        "id": str(result.inserted_id),
+        "contact_id": str(contact_oid),
+        "note": doc["note"],
+        "saved_at": now,
+        "contact": serialize_attendee(target),
+    }
+
+
+@app.delete("/api/contacts/{contact_id}")
+async def delete_saved_contact(
+    contact_id: str, user: dict = Depends(get_current_user)
+):
+    try:
+        contact_oid = ObjectId(contact_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid contact id")
+    result = await saved_contacts.delete_one(
+        {"owner_id": user["_id"], "contact_id": contact_oid}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Saved contact not found")
+    return {"ok": True}
+
+
+@app.get("/api/contacts")
+async def list_saved_contacts(user: dict = Depends(get_current_user)):
+    out = []
+    async for sc in saved_contacts.find({"owner_id": user["_id"]}).sort("saved_at", -1):
+        target = await users.find_one({"_id": sc["contact_id"]})
+        if target:
+            out.append(
+                {
+                    "id": str(sc["_id"]),
+                    "contact_id": str(sc["contact_id"]),
+                    "note": sc.get("note", ""),
+                    "saved_at": sc["saved_at"],
+                    "contact": serialize_attendee(target),
+                }
+            )
+    return out
+
+
+@app.put("/api/contacts/{contact_id}/note")
+async def update_contact_note(
+    contact_id: str,
+    payload: NoteUpdateRequest,
+    user: dict = Depends(get_current_user),
+):
+    try:
+        contact_oid = ObjectId(contact_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid contact id")
+    result = await saved_contacts.update_one(
+        {"owner_id": user["_id"], "contact_id": contact_oid},
+        {"$set": {"note": payload.note}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Saved contact not found")
+    return {"ok": True, "note": payload.note}
+
+
+@app.get("/api/contacts/{contact_id}/is-saved")
+async def is_contact_saved(
+    contact_id: str, user: dict = Depends(get_current_user)
+):
+    try:
+        contact_oid = ObjectId(contact_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid contact id")
+    sc = await saved_contacts.find_one(
+        {"owner_id": user["_id"], "contact_id": contact_oid}
+    )
+    if not sc:
+        return {"saved": False}
+    return {
+        "saved": True,
+        "id": str(sc["_id"]),
+        "note": sc.get("note", ""),
+    }
+
+
+# ---------- Admin ----------
+
+@app.get("/api/admin/stats")
+async def admin_stats(_: dict = Depends(get_current_admin)):
+    total_users = await users.count_documents({"is_admin": {"$ne": True}})
+    total_events = await events.count_documents({})
+    total_connections = await saved_contacts.count_documents({})
+    return {
+        "total_users": total_users,
+        "total_events": total_events,
+        "total_connections": total_connections,
+    }
+
+
+@app.get("/api/health")
+async def health():
+    return {"ok": True}
