@@ -1052,6 +1052,22 @@ async def admin_list_users(_: dict = Depends(get_current_admin)):
     return out
 
 
+@app.post("/api/admin/reseed-templates")
+async def admin_reseed_templates(_: dict = Depends(get_current_admin)):
+    """Force-seed any missing default templates. Existing edited
+    templates are left alone."""
+    inserted = 0
+    for t in DEFAULT_TEMPLATES:
+        existing = await email_templates.find_one({"template_id": t["template_id"]})
+        if existing:
+            continue
+        await email_templates.insert_one(
+            {**t, "updated_at": datetime.now(timezone.utc)}
+        )
+        inserted += 1
+    return {"inserted": inserted}
+
+
 @app.get("/api/admin/stats")
 async def admin_stats(_: dict = Depends(get_current_admin)):
     total_users = await users.count_documents({"is_admin": {"$ne": True}})
