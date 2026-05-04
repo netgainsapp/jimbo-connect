@@ -434,13 +434,18 @@ app.add_middleware(
 )
 
 
+def _cookie_secure() -> bool:
+    return any(o.startswith("https://") for o in _origins)
+
+
 def set_auth_cookie(response: Response, token: str):
+    secure = _cookie_secure()
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
         httponly=True,
-        samesite="lax",
-        secure=False,
+        samesite="none" if secure else "lax",
+        secure=secure,
         max_age=60 * 60 * 24 * 7,
         path="/",
     )
@@ -480,7 +485,13 @@ async def login(payload: LoginRequest, response: Response):
 
 @app.post("/api/auth/logout")
 async def logout(response: Response):
-    response.delete_cookie(COOKIE_NAME, path="/")
+    secure = _cookie_secure()
+    response.delete_cookie(
+        COOKIE_NAME,
+        path="/",
+        samesite="none" if secure else "lax",
+        secure=secure,
+    )
     return {"ok": True}
 
 
