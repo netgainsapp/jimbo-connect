@@ -1,21 +1,36 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Copy, Edit2, Trash2, Calendar, MapPin, Users } from "lucide-react";
+import { Plus, Copy, Edit2, Trash2, Calendar, MapPin, Users, UserPlus, Eye } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { copyToClipboard, formatDate } from "../lib/utils.js";
 import Modal from "../components/Modal.jsx";
+import BulkImportModal from "../components/BulkImportModal.jsx";
 
 const FRONTEND_URL = window.location.origin;
 
-const empty = { name: "", date: "", location: "", industry_tags: "" };
+function defaultStart() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(14, 0, 0, 0);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T14:00`;
+}
+
+const empty = () => ({
+  name: "",
+  date: defaultStart(),
+  location: "",
+  industry_tags: "",
+});
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // { mode: "create" | "edit", event? }
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState(empty());
   const [saving, setSaving] = useState(false);
+  const [importEventId, setImportEventId] = useState(null);
   const toast = useToast();
 
   const load = async () => {
@@ -35,7 +50,7 @@ export default function AdminEvents() {
   }, []);
 
   const openCreate = () => {
-    setForm(empty);
+    setForm(empty());
     setModal({ mode: "create" });
   };
 
@@ -67,12 +82,15 @@ export default function AdminEvents() {
           .filter(Boolean),
       };
       if (modal.mode === "create") {
-        await eventsApi.create(payload);
+        const created = await eventsApi.create(payload);
         toast.show("Event created");
-      } else {
-        await eventsApi.update(modal.event.id, payload);
-        toast.show("Event updated");
+        setModal(null);
+        await load();
+        setImportEventId(created.id);
+        return;
       }
+      await eventsApi.update(modal.event.id, payload);
+      toast.show("Event updated");
       setModal(null);
       await load();
     } catch (e) {
@@ -108,9 +126,17 @@ export default function AdminEvents() {
             Create events and share join links with attendees.
           </p>
         </div>
-        <button onClick={openCreate} className="btn-primary">
-          <Plus className="w-4 h-4" /> New event
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setImportEventId("")}
+            className="btn-outline"
+          >
+            <UserPlus className="w-4 h-4" /> Import attendees
+          </button>
+          <button onClick={openCreate} className="btn-primary">
+            <Plus className="w-4 h-4" /> New event
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -164,6 +190,13 @@ export default function AdminEvents() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      <Link
+                        to={`/admin/events/${e.id}`}
+                        className="p-2 rounded-full hover:bg-bg-secondary text-text-secondary"
+                        title="View event"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => copyJoinLink(e)}
                         className="p-2 rounded-full hover:bg-bg-secondary text-text-secondary"
@@ -210,7 +243,7 @@ export default function AdminEvents() {
               />
             </div>
             <div>
-              <label className="label">Date & time</label>
+              <label className="label">Date & start time</label>
               <input
                 type="datetime-local"
                 className="input"
@@ -218,6 +251,9 @@ export default function AdminEvents() {
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
                 required
               />
+              <div className="text-xs text-text-muted mt-1">
+                Defaults to 2:00 PM tomorrow.
+              </div>
             </div>
             <div>
               <label className="label">Location</label>
@@ -258,6 +294,13 @@ export default function AdminEvents() {
           </form>
         )}
       </Modal>
+
+      <BulkImportModal
+        open={importEventId !== null}
+        onClose={() => setImportEventId(null)}
+        onComplete={load}
+        defaultEventId={importEventId || ""}
+      />
     </div>
   );
 }

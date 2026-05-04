@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
+import { eventsApi } from "../lib/api.js";
 
 export default function Login() {
   const { login } = useAuth();
@@ -16,8 +17,19 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
-      const from = location.state?.from || "/events";
+      const loggedIn = await login(email, password);
+      let fallback = "/events";
+      if (loggedIn?.is_admin) {
+        fallback = "/admin";
+      } else {
+        try {
+          const myEvents = await eventsApi.myEvents();
+          if (myEvents.length > 0) fallback = `/events/${myEvents[0].id}`;
+        } catch {
+          // ignore — fall back to /events
+        }
+      }
+      const from = location.state?.from || fallback;
       navigate(from, { replace: true });
     } catch (err) {
       setError(err.message || "Login failed");
@@ -70,7 +82,12 @@ export default function Login() {
             {loading ? "Logging in…" : "Log in"}
           </button>
         </form>
-        <div className="mt-5 text-sm text-text-secondary text-center">
+        <div className="mt-4 text-sm text-text-secondary text-center">
+          <Link to="/forgot-password" className="hover:text-primary">
+            Forgot your password?
+          </Link>
+        </div>
+        <div className="mt-2 text-sm text-text-secondary text-center">
           New to Jimbo Connect?{" "}
           <Link to="/register" className="text-primary font-semibold">
             Create an account

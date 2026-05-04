@@ -1,9 +1,20 @@
 import { useEffect, useState } from "react";
-import { Bookmark, BookmarkCheck, Copy, Mail, Phone, Linkedin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  Bookmark,
+  BookmarkCheck,
+  Copy,
+  Mail,
+  Phone,
+  Linkedin,
+  Calendar,
+  MessageCircle,
+} from "lucide-react";
 import Modal from "./Modal.jsx";
 import Avatar from "./Avatar.jsx";
-import { contactsApi } from "../lib/api.js";
-import { copyToClipboard } from "../lib/utils.js";
+import { contactsApi, profileApi } from "../lib/api.js";
+import { useAuth } from "../hooks/useAuth.jsx";
+import { copyToClipboard, formatDate } from "../lib/utils.js";
 import { useToast } from "../hooks/useToast.jsx";
 
 export default function AttendeeProfileModal({ attendee, open, onClose, onSavedChange }) {
@@ -11,7 +22,12 @@ export default function AttendeeProfileModal({ attendee, open, onClose, onSavedC
   const [note, setNote] = useState("");
   const [editingNote, setEditingNote] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [events, setEvents] = useState([]);
   const toast = useToast();
+  const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
+  const canMessage =
+    attendee && currentUser && attendee.id !== currentUser.id && !currentUser.is_admin;
 
   useEffect(() => {
     if (!attendee || !open) return;
@@ -21,6 +37,15 @@ export default function AttendeeProfileModal({ attendee, open, onClose, onSavedC
       setSaved(Boolean(res.saved));
       setNote(res.note || "");
     });
+    profileApi
+      .getById(attendee.id)
+      .then((full) => {
+        if (!active) return;
+        setEvents(full.events || []);
+      })
+      .catch(() => {
+        if (active) setEvents([]);
+      });
     return () => {
       active = false;
     };
@@ -88,21 +113,34 @@ export default function AttendeeProfileModal({ attendee, open, onClose, onSavedC
             </div>
             {p.industry && <span className="pill mt-2">{p.industry}</span>}
           </div>
-          <button
-            onClick={toggleSave}
-            disabled={loading}
-            className={saved ? "btn-outline" : "btn-primary"}
-          >
-            {saved ? (
-              <>
-                <BookmarkCheck className="w-4 h-4" /> Saved
-              </>
-            ) : (
-              <>
-                <Bookmark className="w-4 h-4" /> Save
-              </>
+          <div className="flex flex-col gap-2 shrink-0">
+            <button
+              onClick={toggleSave}
+              disabled={loading}
+              className={saved ? "btn-outline" : "btn-primary"}
+            >
+              {saved ? (
+                <>
+                  <BookmarkCheck className="w-4 h-4" /> Saved
+                </>
+              ) : (
+                <>
+                  <Bookmark className="w-4 h-4" /> Save
+                </>
+              )}
+            </button>
+            {canMessage && (
+              <button
+                onClick={() => {
+                  onClose?.();
+                  navigate(`/messages/${attendee.id}`);
+                }}
+                className="btn-outline"
+              >
+                <MessageCircle className="w-4 h-4" /> Message
+              </button>
             )}
-          </button>
+          </div>
         </div>
 
         {p.bio && (
@@ -120,6 +158,35 @@ export default function AttendeeProfileModal({ attendee, open, onClose, onSavedC
             </p>
           </div>
         )}
+
+        <div className="mb-5">
+          <div className="label">Events attended</div>
+          {events.length === 0 ? (
+            <div className="text-sm text-text-muted italic">
+              Not yet attached to any event.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {events.map((ev) => (
+                <div
+                  key={ev.id}
+                  className="flex items-center gap-2 px-3 py-2 rounded-card bg-bg-secondary"
+                >
+                  <Calendar className="w-4 h-4 text-text-secondary" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-text-primary truncate">
+                      {ev.name}
+                    </div>
+                    <div className="text-xs text-text-secondary">
+                      {formatDate(ev.date)}
+                      {ev.location ? ` · ${ev.location}` : ""}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="mb-5">
           <div className="label">Contact</div>

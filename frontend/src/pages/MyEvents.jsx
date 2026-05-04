@@ -97,38 +97,48 @@ export default function MyEvents() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link
+            to="/events/all"
+            className="card p-5 hover:border-primary/50 transition border-dashed flex flex-col justify-center"
+          >
+            <div className="font-bold text-text-primary text-lg mb-1">
+              Everyone (all cohorts)
+            </div>
+            <div className="text-sm text-text-secondary">
+              Browse every attendee from every event you've joined — one
+              combined directory.
+            </div>
+          </Link>
           {events.map((e) => (
             <Link
               key={e.id}
               to={`/events/${e.id}`}
-              className="card p-5 hover:border-primary/50 transition"
+              className="card p-4 hover:border-primary/50 transition"
             >
-              <div className="font-bold text-text-primary text-lg mb-1">
+              <div className="font-bold text-text-primary text-lg leading-tight">
                 {e.name}
               </div>
-              <div className="flex items-center gap-1.5 text-sm text-text-secondary">
-                <Calendar className="w-4 h-4" />
-                {formatDate(e.date)}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary mt-1">
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" /> {formatDate(e.date)}
+                </span>
+                {e.location && (
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5" /> {e.location}
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" /> {e.attendee_count}
+                </span>
+                {e.industry_tags?.map((t) => (
+                  <span
+                    key={t}
+                    className="bg-bg-secondary text-text-secondary px-2 py-0.5 rounded-pill"
+                  >
+                    {t}
+                  </span>
+                ))}
               </div>
-              {e.location && (
-                <div className="flex items-center gap-1.5 text-sm text-text-secondary mt-1">
-                  <MapPin className="w-4 h-4" />
-                  {e.location}
-                </div>
-              )}
-              <div className="flex items-center gap-1.5 text-sm text-text-secondary mt-1">
-                <Users className="w-4 h-4" />
-                {e.attendee_count} attendee{e.attendee_count === 1 ? "" : "s"}
-              </div>
-              {e.industry_tags?.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {e.industry_tags.map((t) => (
-                    <span key={t} className="pill">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
             </Link>
           ))}
         </div>
