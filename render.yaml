@@ -28,7 +28,6 @@ services:
   - type: web
     name: jimbo-connect-web
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: yarn install && yarn build
     staticPublishPath: dist
