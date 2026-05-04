@@ -10,6 +10,7 @@ import {
   Cog,
 } from "lucide-react";
 import { eventsApi, templatesApi } from "../lib/api.js";
+// templatesApi.reseedAll used below when the list is empty
 import { useAuth } from "../hooks/useAuth.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { copyToClipboard, formatDate } from "../lib/utils.js";
@@ -188,6 +189,34 @@ export default function AdminTemplates() {
           mean Jimbo fills them in per-recipient (attendee name, password, etc.).
         </div>
       </div>
+
+      {templates.length === 0 && !loading && (
+        <div className="card p-6 mb-4 flex items-center justify-between gap-4">
+          <div>
+            <div className="font-bold text-text-primary">No templates yet</div>
+            <div className="text-sm text-text-secondary">
+              First-run seed didn't populate. Click to load the defaults.
+            </div>
+          </div>
+          <button
+            className="btn-primary"
+            onClick={async () => {
+              try {
+                await templatesApi.reseedAll();
+                const t = await templatesApi.list();
+                setTemplates(t.templates || []);
+                setCategories(t.categories || []);
+                if (t.templates?.length) setActiveTemplateId(t.templates[0].id);
+                toast.show("Templates loaded");
+              } catch (e) {
+                toast.show(e.message, "error");
+              }
+            }}
+          >
+            Load defaults
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6">
         <div className="flex flex-col gap-4">

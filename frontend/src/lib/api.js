@@ -116,4 +116,5 @@ export const templatesApi = {
   list: () => api.get("/api/email-templates"),
   update: (id, data) => api.put(`/api/email-templates/${id}`, data),
   reset: (id) => api.post(`/api/email-templates/${id}/reset`),
+  reseedAll: () => api.post("/api/admin/reseed-templates"),
 };
