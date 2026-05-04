@@ -420,9 +420,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Jimbo Connect API", lifespan=lifespan)
 
+_origins = [o.strip() for o in FRONTEND_URL.split(",") if o.strip()]
+if "http://localhost:3000" not in _origins:
+    _origins.append("http://localhost:3000")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, "http://localhost:3000"],
+    allow_origins=_origins,
+    allow_origin_regex=r"https://.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
