@@ -1,37 +1,71 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Calendar, MapPin, Search, Users } from "lucide-react";
-import { eventsApi, contactsApi } from "../lib/api.js";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Calendar, MapPin, Search, Users, ChevronDown } from "lucide-react";
+import { eventsApi, contactsApi, sponsorsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { formatDate } from "../lib/utils.js";
 import AttendeeCard from "../components/AttendeeCard.jsx";
 import AttendeeProfileModal from "../components/AttendeeProfileModal.jsx";
+import SponsorTile from "../components/SponsorTile.jsx";
 
 export default function EventDirectory() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
 
   const [event, setEvent] = useState(null);
+  const [myEvents, setMyEvents] = useState([]);
   const [attendees, setAttendees] = useState([]);
+  const [sponsors, setSponsors] = useState([]);
   const [savedSet, setSavedSet] = useState(new Set());
+  const [notesMap, setNotesMap] = useState({});
   const [query, setQuery] = useState("");
   const [industry, setIndustry] = useState("all");
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState(null);
 
+  const isAll = id === "all";
+
   const load = async () => {
     setLoading(true);
     try {
-      const [ev, list, saved] = await Promise.all([
-        eventsApi.get(id),
-        eventsApi.attendees(id),
-        contactsApi.list(),
-      ]);
-      setEvent(ev);
-      setAttendees(list.filter((a) => a.id !== user.id));
-      setSavedSet(new Set(saved.map((s) => s.contact_id)));
+      if (isAll) {
+        const [list, saved, mine] = await Promise.all([
+          eventsApi.allMyAttendees(),
+          contactsApi.list(),
+          eventsApi.myEvents().catch(() => []),
+        ]);
+        setEvent(null);
+        setAttendees(list.filter((a) => a.id !== user.id));
+        setSavedSet(new Set(saved.map((s) => s.contact_id)));
+        const nm = {};
+        saved.forEach((s) => {
+          if (s.note) nm[s.contact_id] = s.note;
+        });
+        setNotesMap(nm);
+        setSponsors([]);
+        setMyEvents(mine);
+      } else {
+        const [ev, list, saved, sp, mine] = await Promise.all([
+          eventsApi.get(id),
+          eventsApi.attendees(id),
+          contactsApi.list(),
+          sponsorsApi.list(id).catch(() => []),
+          eventsApi.myEvents().catch(() => []),
+        ]);
+        setEvent(ev);
+        setAttendees(list.filter((a) => a.id !== user.id));
+        setSavedSet(new Set(saved.map((s) => s.contact_id)));
+        const nm = {};
+        saved.forEach((s) => {
+          if (s.note) nm[s.contact_id] = s.note;
+        });
+        setNotesMap(nm);
+        setSponsors(sp.filter((s) => s.active));
+        setMyEvents(mine);
+      }
     } catch (e) {
       toast.show(e.message, "error");
     } finally {
@@ -90,28 +124,71 @@ export default function EventDirectory() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
-      <Link
-        to="/events"
-        className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-primary mb-4"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to my events
-      </Link>
-
-      {event && (
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-text-primary">{event.name}</h1>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary mt-1">
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="w-4 h-4" /> {formatDate(event.date)}
-            </span>
-            {event.location && (
+      <div className="mb-6">
+        <div className="text-xs uppercase tracking-wider text-text-muted font-semibold mb-1">
+          {isAll ? "Everyone you've met" : "Cohort"}
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {myEvents.length >= 1 ? (
+            <div className="relative inline-block">
+              <select
+                value={isAll ? "all" : id}
+                onChange={(e) => navigate(`/events/${e.target.value}`)}
+                className="appearance-none bg-transparent text-lg font-bold text-text-primary pr-7 hover:text-primary cursor-pointer focus:outline-none"
+              >
+                <option value="all">Everyone (all cohorts)</option>
+                {myEvents.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-text-secondary absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          ) : (
+            <h1 className="text-lg font-bold text-text-primary">
+              {event?.name || "Everyone you've met"}
+            </h1>
+          )}
+          <Link
+            to="/events"
+            className="text-xs font-semibold text-text-secondary hover:text-primary inline-flex items-center gap-1"
+          >
+            <ArrowLeft className="w-3 h-3" /> All cohorts
+          </Link>
+        </div>
+        {isAll ? (
+          <div className="text-sm text-text-secondary mt-2">
+            Everyone from every event you've joined.
+          </div>
+        ) : (
+          event && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary mt-2">
               <span className="inline-flex items-center gap-1.5">
-                <MapPin className="w-4 h-4" /> {event.location}
+                <Calendar className="w-4 h-4" /> {formatDate(event.date)}
               </span>
-            )}
-            <span className="inline-flex items-center gap-1.5">
-              <Users className="w-4 h-4" /> {event.attendee_count} attendees
-            </span>
+              {event.location && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4" /> {event.location}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5">
+                <Users className="w-4 h-4" /> {event.attendee_count} attendees
+              </span>
+            </div>
+          )
+        )}
+      </div>
+
+      {sponsors.length > 0 && (
+        <div className="mb-6">
+          <div className="text-xs uppercase tracking-wider text-text-muted font-semibold mb-2">
+            Brought to you by
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sponsors.map((sp) => (
+              <SponsorTile key={sp.id} sponsor={sp} />
+            ))}
           </div>
         </div>
       )}
@@ -146,7 +223,7 @@ export default function EventDirectory() {
           No attendees match your search.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((a) => (
             <AttendeeCard
               key={a.id}
@@ -154,6 +231,7 @@ export default function EventDirectory() {
               isSaved={savedSet.has(a.id)}
               onToggleSave={toggleSave}
               onOpen={setActive}
+              note={notesMap[a.id]}
             />
           ))}
         </div>
@@ -166,6 +244,11 @@ export default function EventDirectory() {
         onSavedChange={async () => {
           const saved = await contactsApi.list();
           setSavedSet(new Set(saved.map((s) => s.contact_id)));
+          const nm = {};
+          saved.forEach((s) => {
+            if (s.note) nm[s.contact_id] = s.note;
+          });
+          setNotesMap(nm);
         }}
       />
     </div>

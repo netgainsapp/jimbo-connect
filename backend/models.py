@@ -26,6 +26,15 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6)
+
+
 class ProfileUpdateRequest(BaseModel):
     name: Optional[str] = None
     role: Optional[str] = None
@@ -103,3 +112,53 @@ class StatsResponse(BaseModel):
     total_users: int
     total_events: int
     total_connections: int
+
+
+class BulkImportRow(BaseModel):
+    email: EmailStr
+    name: Optional[str] = ""
+    role: Optional[str] = ""
+    company: Optional[str] = ""
+    industry: Optional[str] = ""
+    bio: Optional[str] = ""
+    looking_for: Optional[str] = ""
+    phone: Optional[str] = ""
+    linkedin: Optional[str] = ""
+
+
+class BulkImportRequest(BaseModel):
+    rows: List[BulkImportRow]
+    event_id: Optional[str] = None
+    default_password: Optional[str] = None
+
+
+class SponsorCreateRequest(BaseModel):
+    url: str
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    active: Optional[bool] = True
+
+
+class SponsorUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    active: Optional[bool] = None
+
+
+class SendMessageRequest(BaseModel):
+    to_user_id: str
+    text: str = Field(min_length=1, max_length=4000)
+
+
+class SponsorPublic(BaseModel):
+    id: str
+    event_id: str
+    url: str
+    title: str
+    description: str
+    image_url: str
+    site_name: str
+    active: bool
+    added_at: datetime

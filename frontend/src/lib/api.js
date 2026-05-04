@@ -43,6 +43,10 @@ export const authApi = {
   login: (data) => api.post("/api/auth/login", data),
   logout: () => api.post("/api/auth/logout"),
   me: () => api.get("/api/auth/me"),
+  forgotPassword: (email) => api.post("/api/auth/forgot-password", { email }),
+  resetPassword: (token, new_password) =>
+    api.post("/api/auth/reset-password", { token, new_password }),
+  magicLogin: (token) => api.get(`/api/auth/magic/${token}`),
 };
 
 export const profileApi = {
@@ -61,6 +65,10 @@ export const eventsApi = {
   join: (code) => api.post(`/api/events/join/${code}`),
   attendees: (id) => api.get(`/api/events/${id}/attendees`),
   myEvents: () => api.get("/api/my-events"),
+  allMyAttendees: () => api.get("/api/my-attendees"),
+  discover: () => api.get("/api/events/discoverable"),
+  requestInvite: (id, message = "") =>
+    api.post(`/api/events/${id}/request-invite`, { message }),
 };
 
 export const contactsApi = {
@@ -73,6 +81,39 @@ export const contactsApi = {
   isSaved: (contact_id) => api.get(`/api/contacts/${contact_id}/is-saved`),
 };
 
+export const sponsorsApi = {
+  list: (eventId) => api.get(`/api/events/${eventId}/sponsors`),
+  create: (eventId, data) => api.post(`/api/events/${eventId}/sponsors`, data),
+  update: (eventId, sponsorId, data) =>
+    api.put(`/api/events/${eventId}/sponsors/${sponsorId}`, data),
+  refresh: (eventId, sponsorId) =>
+    api.post(`/api/events/${eventId}/sponsors/${sponsorId}/refresh`),
+  remove: (eventId, sponsorId) =>
+    api.del(`/api/events/${eventId}/sponsors/${sponsorId}`),
+};
+
+export const messagesApi = {
+  send: (to_user_id, text) => api.post("/api/messages", { to_user_id, text }),
+  threads: () => api.get("/api/messages/threads"),
+  with: (userId) => api.get(`/api/messages/with/${userId}`),
+  unreadCount: () => api.get("/api/messages/unread-count"),
+};
+
 export const adminApi = {
   stats: () => api.get("/api/admin/stats"),
+  listUsers: () => api.get("/api/admin/users"),
+  bulkImport: (rows, event_id, default_password) =>
+    api.post("/api/admin/users/bulk-import", {
+      rows,
+      event_id: event_id || null,
+      default_password: default_password || null,
+    }),
+  checkEmails: (emails) =>
+    api.post("/api/admin/users/check-emails", { emails }),
+};
+
+export const templatesApi = {
+  list: () => api.get("/api/email-templates"),
+  update: (id, data) => api.put(`/api/email-templates/${id}`, data),
+  reset: (id) => api.post(`/api/email-templates/${id}/reset`),
 };

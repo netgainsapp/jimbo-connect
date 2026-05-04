@@ -1,11 +1,45 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
-import { LogOut, Calendar, Bookmark, LayoutDashboard, Users } from "lucide-react";
+import {
+  LogOut,
+  Calendar,
+  Bookmark,
+  LayoutDashboard,
+  Users,
+  Mail,
+  MessageCircle,
+  Compass,
+} from "lucide-react";
 import Avatar from "./Avatar.jsx";
+import { messagesApi } from "../lib/api.js";
 
 export default function Nav() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user) {
+      setUnread(0);
+      return;
+    }
+    let cancelled = false;
+    const fetch = () => {
+      messagesApi
+        .unreadCount()
+        .then((r) => {
+          if (!cancelled) setUnread(r.unread || 0);
+        })
+        .catch(() => {});
+    };
+    fetch();
+    const t = setInterval(fetch, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -30,23 +64,7 @@ export default function Nav() {
 
         {user && (
           <div className="flex items-center gap-1">
-            <NavLink
-              to="/events"
-              className={({ isActive }) =>
-                `${navItem} ${isActive ? activeNavItem : ""}`
-              }
-            >
-              <Calendar className="w-4 h-4" /> My Events
-            </NavLink>
-            <NavLink
-              to="/contacts"
-              className={({ isActive }) =>
-                `${navItem} ${isActive ? activeNavItem : ""}`
-              }
-            >
-              <Bookmark className="w-4 h-4" /> Saved
-            </NavLink>
-            {user.is_admin && (
+            {user.is_admin ? (
               <>
                 <NavLink
                   to="/admin"
@@ -63,6 +81,67 @@ export default function Nav() {
                   }
                 >
                   <Users className="w-4 h-4" /> Events
+                </NavLink>
+                <NavLink
+                  to="/admin/templates"
+                  className={({ isActive }) =>
+                    `${navItem} ${isActive ? activeNavItem : ""}`
+                  }
+                >
+                  <Mail className="w-4 h-4" /> Templates
+                </NavLink>
+                <NavLink
+                  to="/messages"
+                  className={({ isActive }) =>
+                    `${navItem} relative ${isActive ? activeNavItem : ""}`
+                  }
+                >
+                  <MessageCircle className="w-4 h-4" /> Messages
+                  {unread > 0 && (
+                    <span className="ml-0.5 bg-primary text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center">
+                      {unread}
+                    </span>
+                  )}
+                </NavLink>
+              </>
+            ) : (
+              <>
+                <NavLink
+                  to="/events"
+                  className={({ isActive }) =>
+                    `${navItem} ${isActive ? activeNavItem : ""}`
+                  }
+                >
+                  <Calendar className="w-4 h-4" /> My Events
+                </NavLink>
+                <NavLink
+                  to="/discover"
+                  className={({ isActive }) =>
+                    `${navItem} ${isActive ? activeNavItem : ""}`
+                  }
+                >
+                  <Compass className="w-4 h-4" /> Discover
+                </NavLink>
+                <NavLink
+                  to="/contacts"
+                  className={({ isActive }) =>
+                    `${navItem} ${isActive ? activeNavItem : ""}`
+                  }
+                >
+                  <Bookmark className="w-4 h-4" /> Saved
+                </NavLink>
+                <NavLink
+                  to="/messages"
+                  className={({ isActive }) =>
+                    `${navItem} relative ${isActive ? activeNavItem : ""}`
+                  }
+                >
+                  <MessageCircle className="w-4 h-4" /> Messages
+                  {unread > 0 && (
+                    <span className="ml-0.5 bg-primary text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center">
+                      {unread}
+                    </span>
+                  )}
                 </NavLink>
               </>
             )}
