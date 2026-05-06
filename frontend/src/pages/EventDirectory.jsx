@@ -123,7 +123,7 @@ export default function EventDirectory() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="mb-6">
         <div className="text-xs uppercase tracking-wider text-text-muted font-semibold mb-1">
           {isAll ? "Everyone you've met" : "Cohort"}

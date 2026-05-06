@@ -40,7 +40,7 @@ export default function Discover() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <h1 className="text-2xl font-bold text-text-primary inline-flex items-center gap-2">
         <Compass className="w-6 h-6 text-primary" /> Discover events
       </h1>

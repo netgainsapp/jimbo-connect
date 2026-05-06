@@ -118,7 +118,7 @@ export default function AdminEvents() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="flex items-end justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">Events</h1>
@@ -146,8 +146,8 @@ export default function AdminEvents() {
           No events yet. Create your first one.
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="card overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-bg-secondary text-text-secondary">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold">Event</th>

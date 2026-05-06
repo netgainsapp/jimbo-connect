@@ -15,11 +15,11 @@ export default function Modal({ open, onClose, children, maxWidth = "max-w-2xl" 
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className={`bg-white rounded-card shadow-card w-full ${maxWidth} max-h-[90vh] overflow-y-auto relative`}
+        className={`bg-white rounded-t-card sm:rounded-card shadow-card w-full ${maxWidth} max-h-[92vh] sm:max-h-[90vh] overflow-y-auto relative`}
         onClick={(e) => e.stopPropagation()}
       >
         <button

@@ -49,7 +49,7 @@ export default function MyEvents() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="flex items-end justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">My events</h1>

@@ -43,7 +43,7 @@ export default function AdminUsers() {
   }, [users, query, eventFilter]);
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <Link
         to="/admin"
         className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-primary mb-4"
