@@ -35,7 +35,7 @@ export default function Messages() {
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <h1 className="text-2xl font-bold text-text-primary mb-1 inline-flex items-center gap-2">
         <MessageCircle className="w-6 h-6 text-primary" /> Messages
       </h1>
@@ -43,13 +43,15 @@ export default function Messages() {
         Direct conversations with people you've met.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-4 min-h-[480px]">
-        <ThreadList
-          threads={threads}
-          loading={loadingThreads}
-          activeId={userId}
-          onPick={(id) => navigate(`/messages/${id}`)}
-        />
-        <div className="card flex flex-col">
+        <div className={userId ? "hidden md:block" : ""}>
+          <ThreadList
+            threads={threads}
+            loading={loadingThreads}
+            activeId={userId}
+            onPick={(id) => navigate(`/messages/${id}`)}
+          />
+        </div>
+        <div className={`card flex flex-col ${userId ? "" : "hidden md:flex"}`}>
           {userId ? (
             <Conversation
               key={userId}
@@ -58,10 +60,10 @@ export default function Messages() {
               onSent={loadThreads}
             />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-text-secondary text-sm">
+            <div className="flex-1 flex items-center justify-center text-text-secondary text-sm p-6 text-center">
               {threads.length === 0
                 ? "No conversations yet. Open someone's profile to start one."
-                : "Pick a conversation on the left."}
+                : "Pick a conversation."}
             </div>
           )}
         </div>

@@ -73,7 +73,7 @@ export default function ProfileSetup({ editMode = false }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-10">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <h1 className="text-2xl font-bold text-text-primary mb-1">
         {editMode ? "Edit your profile" : "Set up your profile"}
       </h1>

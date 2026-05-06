@@ -160,7 +160,7 @@ export default function AdminEventDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-10 text-text-muted">Loading…</div>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 text-text-muted">Loading…</div>
     );
   }
   if (!event) return null;
@@ -177,7 +177,7 @@ export default function AdminEventDetail() {
     : "";
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="card p-5 mb-6">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="min-w-0 flex-1">
