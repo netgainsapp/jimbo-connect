@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Calendar, MapPin, Plus, Users, LogOut } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
 import { formatDateTime } from "../lib/utils.js";
 
 export default function MyEvents() {
@@ -13,6 +14,7 @@ export default function MyEvents() {
   const [joining, setJoining] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -141,7 +143,14 @@ export default function MyEvents() {
                 onClick={async (ev) => {
                   ev.preventDefault();
                   ev.stopPropagation();
-                  if (!confirm(`Leave "${e.name}"? You won't see the directory anymore.`))
+                  if (
+                    !(await confirm({
+                      title: `Leave "${e.name}"?`,
+                      body: "You won't see the directory anymore.",
+                      confirmLabel: "Leave event",
+                      destructive: true,
+                    }))
+                  )
                     return;
                   try {
                     await eventsApi.leave(e.id);
