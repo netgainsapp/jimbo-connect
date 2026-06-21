@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  background: #ffffff;
+  color: #0D1B2A;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-pill bg-primary text-white text-[15px] font-bold hover:bg-primary-hover transition shadow-lift;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-pill border border-ink/15 text-ink text-[15px] font-bold hover:bg-ink/5 transition;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-pill text-stone text-sm font-semibold hover:bg-cream transition;
+  }
+  .card {
+    @apply bg-white border border-line rounded-card shadow-card;
+  }
+  .container-prose {
+    @apply max-w-6xl mx-auto px-4 sm:px-6;
+  }
+  .eyebrow {
+    @apply inline-flex items-center text-xs uppercase tracking-[0.18em] font-bold text-primary;
+  }
+}
