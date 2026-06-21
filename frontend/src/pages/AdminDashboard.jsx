@@ -11,7 +11,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { adminApi, eventsApi } from "../lib/api.js";
-import { formatDate } from "../lib/utils.js";
+import { formatDateTime } from "../lib/utils.js";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import WelcomeModal, { shouldShowWelcome } from "../components/WelcomeModal.jsx";
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-text-secondary mt-0.5">
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
-                  {formatDate(nextEvent.date)}
+                  {formatDateTime(nextEvent.date)}
                 </span>
                 {nextEvent.location && (
                   <span className="inline-flex items-center gap-1">

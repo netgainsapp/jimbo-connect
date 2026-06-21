@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Calendar, MapPin, Users, Compass, Send, Check } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
-import { formatDate } from "../lib/utils.js";
+import { formatDateTime } from "../lib/utils.js";
 import Modal from "../components/Modal.jsx";
 
 export default function Discover() {
@@ -66,7 +66,7 @@ export default function Discover() {
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary">
                   <span className="inline-flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" /> {formatDate(e.date)}
+                    <Calendar className="w-3.5 h-3.5" /> {formatDateTime(e.date)}
                   </span>
                   {e.location && (
                     <span className="inline-flex items-center gap-1">
