@@ -1,4 +1,6 @@
 import os
+import secrets
+import sys
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import HTTPException, Request, status
@@ -11,7 +13,19 @@ from database import users
 
 load_dotenv()
 
-JWT_SECRET = os.getenv("JWT_SECRET", "***REMOVED***")
+# Never ship a hardcoded fallback secret: a known signing key lets anyone forge
+# tokens for any account. In production JWT_SECRET is provided by the platform
+# (render.yaml generateValue). If it is somehow unset, fall back to a random
+# per-process secret (sessions reset on restart) rather than a guessable literal.
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    JWT_SECRET = secrets.token_urlsafe(64)
+    print(
+        "WARNING: JWT_SECRET is not set; using a random per-process secret. "
+        "Sessions will be invalidated on restart. Set JWT_SECRET in the "
+        "environment for stable, secure tokens.",
+        file=sys.stderr,
+    )
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
