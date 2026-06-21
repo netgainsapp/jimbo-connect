@@ -4,7 +4,7 @@ import { ArrowLeft, Calendar, MapPin, Search, Users, ChevronDown } from "lucide-
 import { eventsApi, contactsApi, sponsorsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
-import { formatDate } from "../lib/utils.js";
+import { formatDateTime } from "../lib/utils.js";
 import AttendeeCard from "../components/AttendeeCard.jsx";
 import AttendeeProfileModal from "../components/AttendeeProfileModal.jsx";
 import SponsorTile from "../components/SponsorTile.jsx";
@@ -165,7 +165,7 @@ export default function EventDirectory() {
           event && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary mt-2">
               <span className="inline-flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" /> {formatDate(event.date)}
+                <Calendar className="w-4 h-4" /> {formatDateTime(event.date)}
               </span>
               {event.location && (
                 <span className="inline-flex items-center gap-1.5">

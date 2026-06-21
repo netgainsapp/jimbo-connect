@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Calendar, MapPin, Plus, Users, LogOut } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
-import { formatDate } from "../lib/utils.js";
+import { formatDateTime } from "../lib/utils.js";
 
 export default function MyEvents() {
   const [events, setEvents] = useState([]);
@@ -117,7 +117,7 @@ export default function MyEvents() {
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary mt-1">
                   <span className="inline-flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" /> {formatDate(e.date)}
+                    <Calendar className="w-3.5 h-3.5" /> {formatDateTime(e.date)}
                   </span>
                   {e.location && (
                     <span className="inline-flex items-center gap-1">

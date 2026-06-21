@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Plus, Copy, Edit2, Trash2, Calendar, MapPin, Users, UserPlus, Eye } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
-import { copyToClipboard, formatDate } from "../lib/utils.js";
+import { copyToClipboard, formatDateTime } from "../lib/utils.js";
 import Modal from "../components/Modal.jsx";
 import BulkImportModal from "../components/BulkImportModal.jsx";
 
@@ -175,7 +175,7 @@ export default function AdminEvents() {
                   </td>
                   <td className="px-4 py-3 text-text-secondary">
                     <div className="inline-flex items-center gap-1">
-                      <Calendar className="w-4 h-4" /> {formatDate(e.date)}
+                      <Calendar className="w-4 h-4" /> {formatDateTime(e.date)}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-text-secondary">
