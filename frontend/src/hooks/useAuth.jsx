@@ -22,6 +22,15 @@ export function AuthProvider({ children }) {
     refresh().finally(() => setLoading(false));
   }, [refresh]);
 
+  // The API layer dispatches "auth:expired" when a request with a token comes
+  // back 401. Reset the user so protected routes redirect to /login instead of
+  // stranding the user on a dead screen.
+  useEffect(() => {
+    const onExpired = () => setUser(null);
+    window.addEventListener("auth:expired", onExpired);
+    return () => window.removeEventListener("auth:expired", onExpired);
+  }, []);
+
   const login = async (email, password) => {
     const res = await authApi.login({ email, password });
     if (res.token) setToken(res.token);

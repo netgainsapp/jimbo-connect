@@ -34,6 +34,16 @@ async function request(path, options = {}) {
     headers,
   });
   if (!res.ok) {
+    if (res.status === 401 && token) {
+      // We sent a token and it was rejected: the session expired or is invalid.
+      // Clear it and tell the app so AuthProvider can reset the user, which
+      // makes RequireAuth bounce to /login. (No token sent => this is a normal
+      // login/auth failure, so we leave it to the caller.)
+      setToken("");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth:expired"));
+      }
+    }
     let detail = "Request failed";
     try {
       const data = await res.json();
