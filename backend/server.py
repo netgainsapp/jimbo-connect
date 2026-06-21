@@ -450,7 +450,10 @@ if "http://localhost:3000" not in _origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
-    allow_origin_regex=r"https://.*\.(onrender\.com|frontrangedev\.co)",
+    # Scope to this project's own Render services and the frontrangedev.co
+    # domain only. The previous `.*\.onrender\.com` matched EVERY Render
+    # tenant's app, which with allow_credentials=True is a cross-origin risk.
+    allow_origin_regex=r"https://(jimbo-connect-[a-z0-9-]+\.onrender\.com|([a-z0-9-]+\.)?frontrangedev\.co)",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],
@@ -605,9 +608,9 @@ async def reset_password(payload: ResetPasswordRequest, response: Response):
 
 @app.get("/api/auth/magic/{token}")
 async def magic_login(token: str, response: Response):
-    """One-tap login via reset token. Same token works for password
-    reset; if used here, it logs the user in but does NOT clear the
-    token, so they can still set a password if they want."""
+    """One-tap login via a reset token. Single-use: the token is cleared
+    after a successful login so the link cannot be replayed if it leaks
+    (e.g. via referrer headers, logs, or shared history)."""
     user = await users.find_one({"reset_token": token})
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired link")
@@ -616,6 +619,11 @@ async def magic_login(token: str, response: Response):
         expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires
     ) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Link has expired")
+    # Invalidate the token now that it has been consumed.
+    await users.update_one(
+        {"_id": user["_id"]},
+        {"$unset": {"reset_token": "", "reset_token_expires": ""}},
+    )
     access = create_access_token(str(user["_id"]))
     set_auth_cookie(response, access)
     return {"ok": True, "user": serialize_user(user), "token": access}
@@ -760,6 +768,7 @@ async def delete_event(event_id: str, _: dict = Depends(get_current_admin)):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid event id")
     await event_attendees.delete_many({"event_id": oid})
+    await event_sponsors.delete_many({"event_id": oid})
     await events.delete_one({"_id": oid})
     return {"ok": True}
 
@@ -1158,9 +1167,9 @@ async def admin_list_users(_: dict = Depends(get_current_admin)):
 
 
 @app.api_route("/api/admin/reseed-templates", methods=["GET", "POST"])
-async def admin_reseed_templates():
-    """Force-seed any missing default templates. Idempotent and safe
-    to leave unauthenticated — only inserts missing rows."""
+async def admin_reseed_templates(_: dict = Depends(get_current_admin)):
+    """Force-seed any missing default templates. Idempotent: only inserts
+    missing rows. Admin-only (it writes to the DB)."""
     inserted = 0
     for t in DEFAULT_TEMPLATES:
         existing = await email_templates.find_one({"template_id": t["template_id"]})
