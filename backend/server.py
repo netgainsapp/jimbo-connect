@@ -1,6 +1,8 @@
+import ipaddress
 import os
 import re
 import secrets
+import socket
 import string
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
@@ -24,6 +26,7 @@ from database import (
     ensure_indexes,
 )
 import email_send
+import rate_limit
 from template_seeds import DEFAULT_TEMPLATES, CATEGORIES as TEMPLATE_CATEGORIES
 from auth import (
     hash_password,
@@ -77,6 +80,51 @@ _OG_RE = re.compile(
 _TITLE_RE = re.compile(r"<title[^>]*>([^<]+)</title>", re.IGNORECASE)
 
 
+def _assert_public_url(url: str) -> None:
+    """Raise ValueError if the URL points at a non-public address. Prevents the
+    server-side fetch from being abused to reach internal services (SSRF), e.g.
+    cloud metadata endpoints (169.254.169.254) or localhost/private ranges."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("unsupported scheme")
+    host = parsed.hostname
+    if not host:
+        raise ValueError("missing host")
+    # Resolve every address the host maps to and reject any non-public one.
+    infos = socket.getaddrinfo(host, None)
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            raise ValueError(f"blocked non-public address: {ip}")
+
+
+async def _safe_fetch_html(url: str, max_redirects: int = 3) -> str:
+    """Fetch HTML while validating the target (and each redirect hop) is a
+    public host. Redirects are followed manually so an internal target cannot
+    be reached via a 3xx bounce."""
+    async with httpx.AsyncClient(
+        follow_redirects=False,
+        timeout=8.0,
+        headers={"User-Agent": "Mozilla/5.0 (compatible; JimboConnectBot/1.0)"},
+    ) as client:
+        for _ in range(max_redirects + 1):
+            _assert_public_url(url)
+            resp = await client.get(url)
+            location = resp.headers.get("location")
+            if resp.is_redirect and location:
+                url = urljoin(url, location)
+                continue
+            return resp.text[:300_000]  # cap
+    raise ValueError("too many redirects")
+
+
 async def fetch_og_metadata(url: str) -> dict:
     """Fetch a URL and return open-graph-ish metadata. Best-effort, never raises."""
     if not url.startswith(("http://", "https://")):
@@ -88,15 +136,7 @@ async def fetch_og_metadata(url: str) -> dict:
         "site_name": "",
     }
     try:
-        async with httpx.AsyncClient(
-            follow_redirects=True,
-            timeout=8.0,
-            headers={
-                "User-Agent": "Mozilla/5.0 (compatible; JimboConnectBot/1.0)"
-            },
-        ) as client:
-            resp = await client.get(url)
-            html = resp.text[:300_000]  # cap
+        html = await _safe_fetch_html(url)
     except Exception:
         host = urlparse(url).hostname or url
         out["title"] = host
@@ -480,8 +520,15 @@ def set_auth_cookie(response: Response, token: str):
 
 # ---------- Auth ----------
 
+# A bcrypt hash to verify against when an email is unknown, so the login path
+# takes the same time whether or not the account exists (defeats the timing
+# oracle that would otherwise reveal which emails are registered).
+_DUMMY_PW_HASH = hash_password("not-a-real-password-timing-equalizer")
+
+
 @app.post("/api/auth/register")
-async def register(payload: RegisterRequest, response: Response):
+async def register(payload: RegisterRequest, response: Response, request: Request):
+    rate_limit.guard(request, "register", limit=10, window_seconds=3600)
     existing = await users.find_one({"email": payload.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -501,9 +548,17 @@ async def register(payload: RegisterRequest, response: Response):
 
 
 @app.post("/api/auth/login")
-async def login(payload: LoginRequest, response: Response):
+async def login(payload: LoginRequest, response: Response, request: Request):
+    rate_limit.guard(
+        request, "login", limit=10, window_seconds=300, identifier=payload.email
+    )
     user = await users.find_one({"email": payload.email})
-    if not user or not verify_password(payload.password, user["password_hash"]):
+    if not user:
+        # Run a dummy verify so the unknown-email path costs the same as a
+        # wrong-password path (no user-enumeration timing signal).
+        verify_password(payload.password, _DUMMY_PW_HASH)
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token(str(user["_id"]))
     set_auth_cookie(response, token)
@@ -542,11 +597,14 @@ def _new_reset_token() -> str:
 
 
 @app.post("/api/auth/forgot-password")
-async def forgot_password(payload: ForgotPasswordRequest):
+async def forgot_password(payload: ForgotPasswordRequest, request: Request):
     """Generate a one-time reset token. Always returns success
     (even if the email is unknown) to avoid account enumeration.
     Sends a real email if RESEND_API_KEY is configured; otherwise
     returns the reset_url so the user can copy it."""
+    rate_limit.guard(
+        request, "forgot", limit=5, window_seconds=900, identifier=payload.email
+    )
     user = await users.find_one({"email": payload.email.lower().strip()})
     if not user:
         return {"ok": True, "sent": False}
@@ -584,7 +642,8 @@ async def forgot_password(payload: ForgotPasswordRequest):
 
 
 @app.post("/api/auth/reset-password")
-async def reset_password(payload: ResetPasswordRequest, response: Response):
+async def reset_password(payload: ResetPasswordRequest, response: Response, request: Request):
+    rate_limit.guard(request, "reset", limit=15, window_seconds=900)
     user = await users.find_one({"reset_token": payload.token})
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired link")
