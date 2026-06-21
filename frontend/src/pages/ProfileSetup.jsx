@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { profileApi, setToken } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
 import Avatar from "../components/Avatar.jsx";
 import { Camera, Trash2 } from "lucide-react";
 
@@ -10,6 +11,7 @@ export default function ProfileSetup({ editMode = false }) {
   const { user, refresh, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const confirm = useConfirm();
   const fileRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -27,7 +29,7 @@ export default function ProfileSetup({ editMode = false }) {
 
   useEffect(() => {
     if (user?.profile) {
-      setForm({ ...form, ...user.profile });
+      setForm((f) => ({ ...f, ...user.profile }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -197,9 +199,12 @@ export default function ProfileSetup({ editMode = false }) {
             className="btn-danger"
             onClick={async () => {
               if (
-                !confirm(
-                  "Permanently delete your account?\n\nThis removes everything: saved contacts, messages, event memberships. You'll be logged out and can't log back in."
-                )
+                !(await confirm({
+                  title: "Permanently delete your account?",
+                  body: "This removes everything: saved contacts, messages, event memberships. You'll be logged out and can't log back in.",
+                  confirmLabel: "Delete account",
+                  destructive: true,
+                }))
               )
                 return;
               try {
