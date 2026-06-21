@@ -41,3 +41,15 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+  - type: web
+    name: jimbo-connect-marketing
+    runtime: static
+    rootDir: marketing
+    buildCommand: yarn install && yarn build
+    staticPublishPath: dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
