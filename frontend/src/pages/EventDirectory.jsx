@@ -74,6 +74,10 @@ export default function EventDirectory() {
   };
 
   useEffect(() => {
+    // Reset filters when switching cohorts so a stale industry/search from the
+    // previous directory doesn't silently hide everyone in the new one.
+    setIndustry("all");
+    setQuery("");
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -199,12 +203,14 @@ export default function EventDirectory() {
           <input
             className="input pl-9"
             placeholder="Search by name, company, role…"
+            aria-label="Search attendees"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
         <select
           className="input sm:w-56"
+          aria-label="Filter by industry"
           value={industry}
           onChange={(e) => setIndustry(e.target.value)}
         >

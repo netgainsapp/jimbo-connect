@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Search, Users, Trash2 } from "lucide-react";
 import { adminApi, eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
 import AttendeeCard from "../components/AttendeeCard.jsx";
 import AttendeeProfileModal from "../components/AttendeeProfileModal.jsx";
 
@@ -14,6 +15,7 @@ export default function AdminUsers() {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(null);
   const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     Promise.all([adminApi.listUsers(), eventsApi.list().catch(() => [])])
@@ -74,12 +76,14 @@ export default function AdminUsers() {
           <input
             className="input pl-9"
             placeholder="Search by name, company, role, industry…"
+            aria-label="Search members"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
         <select
           className="input sm:w-64"
+          aria-label="Filter by event"
           value={eventFilter}
           onChange={(e) => setEventFilter(e.target.value)}
         >
@@ -119,9 +123,12 @@ export default function AdminUsers() {
                   e.stopPropagation();
                   const name = u.profile?.name || u.email;
                   if (
-                    !confirm(
-                      `Permanently delete ${name}?\n\nThis removes them from every event, deletes their saved contacts and messages, and frees up their email for re-registration. Cannot be undone.`
-                    )
+                    !(await confirm({
+                      title: `Permanently delete ${name}?`,
+                      body: "This removes them from every event, deletes their saved contacts and messages, and frees up their email for re-registration. Cannot be undone.",
+                      confirmLabel: "Delete user",
+                      destructive: true,
+                    }))
                   )
                     return;
                   try {
