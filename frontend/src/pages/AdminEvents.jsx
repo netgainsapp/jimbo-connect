@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Plus, Copy, Edit2, Trash2, Calendar, MapPin, Users, UserPlus, Eye } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
 import { copyToClipboard, formatDateTime } from "../lib/utils.js";
 import Modal from "../components/Modal.jsx";
 import BulkImportModal from "../components/BulkImportModal.jsx";
@@ -32,6 +33,7 @@ export default function AdminEvents() {
   const [saving, setSaving] = useState(false);
   const [importEventId, setImportEventId] = useState(null);
   const toast = useToast();
+  const confirm = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -101,7 +103,15 @@ export default function AdminEvents() {
   };
 
   const remove = async (e) => {
-    if (!confirm(`Delete "${e.name}"? This cannot be undone.`)) return;
+    if (
+      !(await confirm({
+        title: `Delete "${e.name}"?`,
+        body: "This cannot be undone.",
+        confirmLabel: "Delete event",
+        destructive: true,
+      }))
+    )
+      return;
     try {
       await eventsApi.remove(e.id);
       toast.show("Event deleted");

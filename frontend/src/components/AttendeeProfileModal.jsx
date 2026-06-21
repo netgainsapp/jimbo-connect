@@ -31,6 +31,12 @@ export default function AttendeeProfileModal({ attendee, open, onClose, onSavedC
 
   useEffect(() => {
     if (!attendee || !open) return;
+    // Clear state from the previously-viewed attendee so we never show their
+    // save status, note, or events while the newly-selected profile loads.
+    setSaved(false);
+    setNote("");
+    setEditingNote(false);
+    setEvents([]);
     let active = true;
     contactsApi.isSaved(attendee.id).then((res) => {
       if (!active) return;

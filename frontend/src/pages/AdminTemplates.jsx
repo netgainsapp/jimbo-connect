@@ -13,6 +13,7 @@ import { eventsApi, templatesApi } from "../lib/api.js";
 // templatesApi.reseedAll used below when the list is empty
 import { useAuth } from "../hooks/useAuth.jsx";
 import { useToast } from "../hooks/useToast.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
 import { copyToClipboard, formatDate } from "../lib/utils.js";
 
 function mergeVars(text, ctx) {
@@ -25,6 +26,7 @@ function mergeVars(text, ctx) {
 export default function AdminTemplates() {
   const { user } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
   const [events, setEvents] = useState([]);
   const [eventId, setEventId] = useState("");
   const [templates, setTemplates] = useState([]);
@@ -109,7 +111,14 @@ export default function AdminTemplates() {
   };
 
   const resetEdit = async () => {
-    if (!confirm("Reset this template to the default copy?")) return;
+    if (
+      !(await confirm({
+        title: "Reset this template?",
+        body: "This restores the default copy and discards your edits.",
+        confirmLabel: "Reset",
+      }))
+    )
+      return;
     try {
       const updated = await templatesApi.reset(activeTemplateId);
       setTemplates((prev) =>
@@ -170,8 +179,11 @@ export default function AdminTemplates() {
 
       <div className="card p-4 mb-6 flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
-          <label className="label">Event (for auto-fill)</label>
+          <label className="label" htmlFor="template-event-select">
+            Event (for auto-fill)
+          </label>
           <select
+            id="template-event-select"
             className="input"
             value={eventId}
             onChange={(e) => setEventId(e.target.value)}

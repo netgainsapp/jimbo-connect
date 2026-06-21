@@ -16,13 +16,17 @@ export default function Messages() {
   const toast = useToast();
   const [threads, setThreads] = useState([]);
   const [loadingThreads, setLoadingThreads] = useState(true);
+  const [threadsError, setThreadsError] = useState(false);
 
   const loadThreads = async () => {
     try {
       const t = await messagesApi.threads();
       setThreads(t);
+      setThreadsError(false);
     } catch (e) {
-      // swallow
+      // Don't blow away already-loaded threads on a transient poll failure;
+      // surface the error only when we have nothing to show.
+      setThreadsError(true);
     } finally {
       setLoadingThreads(false);
     }
@@ -47,6 +51,7 @@ export default function Messages() {
           <ThreadList
             threads={threads}
             loading={loadingThreads}
+            error={threadsError}
             activeId={userId}
             onPick={(id) => navigate(`/messages/${id}`)}
           />
@@ -72,11 +77,15 @@ export default function Messages() {
   );
 }
 
-function ThreadList({ threads, loading, activeId, onPick }) {
+function ThreadList({ threads, loading, error, activeId, onPick }) {
   return (
     <div className="card divide-y divide-border-default overflow-hidden self-start">
       {loading ? (
         <div className="p-4 text-text-muted text-sm">Loading…</div>
+      ) : error && threads.length === 0 ? (
+        <div className="p-4 text-text-secondary text-sm">
+          Couldn't load conversations. Retrying…
+        </div>
       ) : threads.length === 0 ? (
         <div className="p-4 text-text-secondary text-sm">No threads yet.</div>
       ) : (

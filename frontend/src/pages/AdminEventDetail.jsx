@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { eventsApi, sponsorsApi, adminApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
 import { copyToClipboard, formatDate, formatDateTime } from "../lib/utils.js";
 import Avatar from "../components/Avatar.jsx";
 import AttendeeCard from "../components/AttendeeCard.jsx";
@@ -35,6 +36,7 @@ export default function AdminEventDetail() {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState(null);
   const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     Promise.all([
@@ -88,7 +90,15 @@ export default function AdminEventDetail() {
   };
 
   const deleteSponsor = async (sp) => {
-    if (!confirm(`Remove sponsor "${sp.title || sp.url}"?`)) return;
+    if (
+      !(await confirm({
+        title: "Remove sponsor?",
+        body: `Remove "${sp.title || sp.url}" from this event?`,
+        confirmLabel: "Remove",
+        destructive: true,
+      }))
+    )
+      return;
     try {
       await sponsorsApi.remove(id, sp.id);
       setSponsors((prev) => prev.filter((x) => x.id !== sp.id));
@@ -100,7 +110,15 @@ export default function AdminEventDetail() {
 
   const removeAttendee = async (attendee) => {
     const name = attendee.profile?.name || attendee.email;
-    if (!confirm(`Remove ${name} from this event? Their account stays.`)) return;
+    if (
+      !(await confirm({
+        title: `Remove ${name}?`,
+        body: "Remove them from this event? Their account stays.",
+        confirmLabel: "Remove",
+        destructive: true,
+      }))
+    )
+      return;
     try {
       await eventsApi.removeAttendee(id, attendee.id);
       setAttendees((prev) => prev.filter((a) => a.id !== attendee.id));
@@ -279,6 +297,7 @@ export default function AdminEventDetail() {
             type="email"
             className="input flex-1"
             placeholder="Add attendee by email"
+            aria-label="Add attendee by email"
             value={attendeeEmail}
             onChange={(e) => setAttendeeEmail(e.target.value)}
           />
@@ -294,6 +313,7 @@ export default function AdminEventDetail() {
             <span>Sort by</span>
             <select
               className="border border-border-default rounded-card px-2 py-1 text-text-primary bg-white"
+              aria-label="Sort attendees"
               value={attendeeSort}
               onChange={(e) => setAttendeeSort(e.target.value)}
             >
