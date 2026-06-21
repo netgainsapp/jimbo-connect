@@ -246,9 +246,32 @@ def serialize_event(event: dict, attendee_count: int = 0) -> dict:
 
 
 async def seed_data():
-    """Create admin user and sample data on first run."""
+    """Reconcile the canonical admin from env (the source of truth), then
+    seed sample data on first run only.
+
+    ADMIN_EMAIL / ADMIN_PASSWORD define the single platform admin. On every
+    boot we (1) demote any other lingering admin accounts so old or default
+    credentials cannot retain access, and (2) force-set the configured
+    admin's password so it can be rotated from the dashboard. Accounts are
+    demoted, never deleted, so their history is preserved.
+    """
+    # Retire any stale admins (e.g. a previous default admin) without deleting.
+    await users.update_many(
+        {"is_admin": True, "email": {"$ne": ADMIN_EMAIL}},
+        {"$set": {"is_admin": False}},
+    )
+
     admin = await users.find_one({"email": ADMIN_EMAIL})
     if admin:
+        # Env is authoritative: keep the admin flag and rotate the password
+        # on every boot so credentials are managed from the dashboard.
+        await users.update_one(
+            {"_id": admin["_id"]},
+            {"$set": {
+                "is_admin": True,
+                "password_hash": hash_password(ADMIN_PASSWORD),
+            }},
+        )
         return
 
     now = datetime.now(timezone.utc)
