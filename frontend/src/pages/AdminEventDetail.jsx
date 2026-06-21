@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { eventsApi, sponsorsApi, adminApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
-import { copyToClipboard, formatDate } from "../lib/utils.js";
+import { copyToClipboard, formatDate, formatDateTime } from "../lib/utils.js";
 import Avatar from "../components/Avatar.jsx";
 import AttendeeCard from "../components/AttendeeCard.jsx";
 import AttendeeProfileModal from "../components/AttendeeProfileModal.jsx";
@@ -126,12 +126,16 @@ export default function AdminEventDetail() {
       if (res.created > 0) {
         const acct = res.accounts?.[0];
         if (acct?.password) {
-          await navigator.clipboard?.writeText(
-            `Email: ${acct.email}\nPassword: ${acct.password}\nLogin: ${window.location.origin}`
-          );
-          toast.show(
-            `Created new account — credentials copied to clipboard`
-          );
+          const creds = `Email: ${acct.email}\nPassword: ${acct.password}\nLogin: ${window.location.origin}`;
+          try {
+            await copyToClipboard(creds);
+            toast.show("Created new account — credentials copied to clipboard");
+          } catch {
+            // Clipboard can fail (insecure context, permissions). Never claim
+            // success, and surface the credentials so the admin doesn't lose
+            // the only copy of the generated password.
+            toast.show(`Account created. Copy now:\n${creds}`, "error");
+          }
         } else {
           toast.show("New account created and added to event");
         }
@@ -192,7 +196,7 @@ export default function AdminEventDetail() {
             </h1>
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-text-secondary mt-1">
               <span className="inline-flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" /> {formatDate(event.date)}
+                <Calendar className="w-3.5 h-3.5" /> {formatDateTime(event.date)}
               </span>
               {event.location && (
                 <span className="inline-flex items-center gap-1">
