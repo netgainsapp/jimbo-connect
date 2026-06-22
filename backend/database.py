@@ -17,6 +17,9 @@ saved_contacts = db["saved_contacts"]
 event_sponsors = db["event_sponsors"]
 messages = db["messages"]
 email_templates = db["email_templates"]
+blog_post = db["blog_post"]
+blog_topic = db["blog_topic"]
+app_flags = db["app_flags"]
 
 
 async def ensure_indexes():
@@ -28,3 +31,5 @@ async def ensure_indexes():
     await messages.create_index([("thread_id", 1), ("sent_at", 1)])
     await messages.create_index([("to_user_id", 1), ("read_at", 1)])
     await email_templates.create_index("template_id", unique=True)
+    await blog_post.create_index("slug")
+    await blog_post.create_index([("status", 1), ("published_at", -1)])
