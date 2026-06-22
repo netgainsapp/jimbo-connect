@@ -27,6 +27,14 @@ export default function Problem() {
             <p className="mt-5 text-lg font-extrabold text-ink leading-tight">
               Intro Connect fixes that.
             </p>
+            <div className="mt-8 overflow-hidden rounded-card border border-line shadow-lift">
+              <img
+                src="/images/networking-group.jpg"
+                alt="Professionals talking at a networking event"
+                loading="lazy"
+                className="w-full object-cover aspect-[16/10]"
+              />
+            </div>
           </div>
         </div>
 

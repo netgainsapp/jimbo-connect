@@ -3,6 +3,13 @@ import { ArrowRight } from "lucide-react";
 export default function CTA() {
   return (
     <section className="py-24 sm:py-32 bg-ink text-white relative overflow-hidden">
+      <img
+        src="/images/networking-mixer.jpg"
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        className="absolute inset-0 w-full h-full object-cover opacity-30"
+      />
       <div
         className="absolute inset-0 opacity-30"
         style={{
