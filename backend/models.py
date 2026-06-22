@@ -162,3 +162,8 @@ class SponsorPublic(BaseModel):
     site_name: str
     active: bool
     added_at: datetime
+
+
+class BlogFlagRequest(BaseModel):
+    name: str
+    value: bool

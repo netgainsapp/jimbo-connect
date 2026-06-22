@@ -1,3 +1,4 @@
+import hmac
 import ipaddress
 import os
 import re
@@ -61,6 +62,7 @@ from models import (
     SponsorUpdateRequest,
     SponsorPublic,
     SendMessageRequest,
+    BlogFlagRequest,
 )
 
 load_dotenv()
@@ -1753,3 +1755,98 @@ async def blog_post(slug: str):
     if not doc:
         return HTMLResponse(blog_render.render_404(), status_code=404)
     return HTMLResponse(blog_render.render_post(doc))
+
+
+# ---------- Blog pipeline: cron tick + admin controls ----------
+
+def _tick_authorized(provided) -> bool:
+    """The tick runs only with the configured shared secret (the GitHub Actions
+    cron sends it). Disabled entirely when no secret is set."""
+    secret = os.getenv("BLOG_TICK_SECRET")
+    if not secret or not provided:
+        return False
+    return hmac.compare_digest(provided, secret)
+
+
+def _serialize_blog_post(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "slug": doc.get("slug", ""),
+        "title": doc.get("title", ""),
+        "summary": doc.get("summary", ""),
+        "status": doc.get("status", "draft"),
+        "guardrail_reasons": doc.get("guardrail_reasons", []),
+        "topic_id": doc.get("topic_id"),
+        "created_at": doc.get("created_at"),
+        "published_at": doc.get("published_at"),
+    }
+
+
+@app.post("/api/blog/tick")
+async def blog_tick(request: Request):
+    """Run the blog pipeline once. Secret-gated for the scheduled cron."""
+    if not _tick_authorized(request.headers.get("x-tick-secret")):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    from blog.generate import run_once
+
+    return await run_once()
+
+
+@app.post("/api/admin/blog/run")
+async def admin_blog_run(_: dict = Depends(get_current_admin)):
+    from blog.generate import run_once
+
+    return await run_once()
+
+
+@app.get("/api/admin/blog/flags")
+async def admin_blog_flags(_: dict = Depends(get_current_admin)):
+    from blog.flags import get_flags
+
+    return await get_flags()
+
+
+@app.put("/api/admin/blog/flags")
+async def admin_blog_set_flag(
+    payload: BlogFlagRequest, _: dict = Depends(get_current_admin)
+):
+    from blog.flags import set_flag, get_flags
+
+    try:
+        await set_flag(payload.name, payload.value)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Unknown flag")
+    return await get_flags()
+
+
+@app.get("/api/admin/blog/posts")
+async def admin_blog_posts(_: dict = Depends(get_current_admin)):
+    from blog.store import list_all
+
+    posts = await list_all()
+    return [_serialize_blog_post(p) for p in posts]
+
+
+@app.post("/api/admin/blog/posts/{post_id}/publish")
+async def admin_blog_publish(post_id: str, _: dict = Depends(get_current_admin)):
+    from blog.store import publish_post
+
+    res = await publish_post(post_id)
+    if res is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if res.get("error"):
+        raise HTTPException(
+            status_code=400,
+            detail={"error": res["error"], "reasons": res.get("reasons", [])},
+        )
+    return _serialize_blog_post(res)
+
+
+@app.post("/api/admin/blog/posts/{post_id}/unpublish")
+async def admin_blog_unpublish(post_id: str, _: dict = Depends(get_current_admin)):
+    from blog.store import unpublish_post
+
+    res = await unpublish_post(post_id)
+    if res is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return _serialize_blog_post(res)

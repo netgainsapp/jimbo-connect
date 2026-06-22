@@ -1,0 +1,29 @@
+name: Blog tick
+
+# Runs the blog pipeline once per fire: pick the next evergreen topic, generate
+# a post, store it. The endpoint is secret-gated, so set BLOG_TICK_SECRET as a
+# repo secret here AND as the same env var on the jimbo-connect-api Render
+# service. Posts only publish once blog_autopublish is on; otherwise they land
+# as drafts for review. Generation also needs ANTHROPIC_API_KEY on the backend;
+# until it is set the tick is a harmless no-op.
+
+on:
+  schedule:
+    - cron: "0 15 * * 1,3,5" # Mon, Wed, Fri at 15:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: blog-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run the blog pipeline once
+        run: |
+          curl -fsS -X POST \
+            https://jimbo-connect-api.onrender.com/api/blog/tick \
+            -H "X-Tick-Secret: ${{ secrets.BLOG_TICK_SECRET }}" \
+            --max-time 150 --retry 3 --retry-delay 15 --retry-all-errors
