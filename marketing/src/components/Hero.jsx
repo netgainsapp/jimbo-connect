@@ -16,9 +16,9 @@ export default function Hero() {
         <div className="lg:col-span-7">
           <div className="eyebrow">For event hosts</div>
           <h1 className="mt-4 text-5xl sm:text-6xl font-extrabold text-ink leading-[1.02] tracking-tight">
-            Better events.
+            The room shouldn't disappear
             <br />
-            <span className="text-primary">Stronger connections.</span>
+            <span className="text-primary">by Monday.</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-stone max-w-xl leading-relaxed">
             Intro Connect turns every event you host into a private,
