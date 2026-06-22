@@ -25,7 +25,7 @@ const TIERS = [
     period: "/month",
     annual: "$390 billed yearly",
     blurb: "For hosts who outgrew the free plan and want a permanent directory.",
-    cta: "Start free trial",
+    cta: "Choose Starter",
     href: REGISTER,
     features: [
       "Up to 3 active events",
@@ -43,7 +43,7 @@ const TIERS = [
     period: "/month",
     annual: "$990 billed yearly",
     blurb: "For hosts who want their events to build a lasting network.",
-    cta: "Start free trial",
+    cta: "Choose Pro",
     href: REGISTER,
     highlighted: true,
     features: [
@@ -120,7 +120,7 @@ export default function Pricing() {
         </div>
 
         <p className="mt-8 text-center text-xs text-stone tracking-wide">
-          Free plan, no credit card. Paid plans include a 14-day trial.
+          Free plan, no credit card. Upgrade when you're ready.
         </p>
       </div>
     </section>
