@@ -2,6 +2,12 @@ const BACKEND_URL =
   (typeof process !== "undefined" && process.env && process.env.REACT_APP_BACKEND_URL) ||
   "http://localhost:8001";
 
+// Public blog pages are server-rendered by the backend (and proxied onto the
+// marketing domain). Used for the admin "View" link on published posts.
+export function blogPublicUrl(slug) {
+  return `${BACKEND_URL}/blog/${slug}`;
+}
+
 const TOKEN_KEY = "jimbo_token";
 
 export function getToken() {
@@ -154,4 +160,13 @@ export const templatesApi = {
   update: (id, data) => api.put(`/api/email-templates/${id}`, data),
   reset: (id) => api.post(`/api/email-templates/${id}/reset`),
   reseedAll: () => api.post("/api/admin/reseed-templates"),
+};
+
+export const blogApi = {
+  flags: () => api.get("/api/admin/blog/flags"),
+  setFlag: (name, value) => api.put("/api/admin/blog/flags", { name, value }),
+  posts: () => api.get("/api/admin/blog/posts"),
+  publish: (id) => api.post(`/api/admin/blog/posts/${id}/publish`),
+  unpublish: (id) => api.post(`/api/admin/blog/posts/${id}/unpublish`),
+  run: () => api.post("/api/admin/blog/run"),
 };

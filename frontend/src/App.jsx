@@ -17,6 +17,7 @@ import AdminEvents from "./pages/AdminEvents.jsx";
 import AdminEventDetail from "./pages/AdminEventDetail.jsx";
 import AdminTemplates from "./pages/AdminTemplates.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
+import AdminBlog from "./pages/AdminBlog.jsx";
 import JoinEvent from "./pages/JoinEvent.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 
@@ -145,6 +146,14 @@ export default function App() {
             element={
               <RequireAuth adminOnly allowIncompleteProfile>
                 <AdminUsers />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/blog"
+            element={
+              <RequireAuth adminOnly allowIncompleteProfile>
+                <AdminBlog />
               </RequireAuth>
             }
           />
