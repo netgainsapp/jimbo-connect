@@ -4,7 +4,7 @@ export default function CTA() {
   return (
     <section className="py-24 sm:py-32 bg-ink text-white relative overflow-hidden">
       <img
-        src="/images/networking-mixer.jpg"
+        src="/images/networking-conference.jpg"
         alt=""
         aria-hidden="true"
         loading="lazy"

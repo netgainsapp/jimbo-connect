@@ -1,26 +1,33 @@
 import { ArrowRight, Calendar, Users, Bookmark, MessageCircle } from "lucide-react";
-import { Mark } from "./Logo.jsx";
 
 export default function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Soft brand wash background */}
+      {/* Full-bleed networking photo, darkened so the headline stays crisp */}
+      <img
+        src="/images/networking-mixer.jpg"
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
       <div
-        className="absolute inset-0 -z-10"
+        className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(60% 60% at 20% 0%, #E6EEFF 0%, transparent 60%), radial-gradient(50% 50% at 85% 10%, rgba(37,99,235,0.07) 0%, transparent 60%)",
+            "linear-gradient(90deg, rgba(13,27,42,0.93) 0%, rgba(13,27,42,0.80) 38%, rgba(13,27,42,0.52) 100%)",
         }}
       />
-      <div className="container-prose pt-16 sm:pt-24 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <div className="container-prose pt-16 sm:pt-24 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative">
         <div className="lg:col-span-7">
-          <div className="eyebrow">For event hosts</div>
-          <h1 className="mt-4 text-5xl sm:text-6xl font-extrabold text-ink leading-[1.02] tracking-tight">
+          <div className="text-[11px] uppercase tracking-[0.22em] font-extrabold text-wash">
+            For event hosts
+          </div>
+          <h1 className="mt-4 text-5xl sm:text-6xl font-extrabold text-white leading-[1.02] tracking-tight">
             The room shouldn't disappear
             <br />
-            <span className="text-primary">by Monday.</span>
+            <span className="text-[#7AA7F7]">by Monday.</span>
           </h1>
-          <p className="mt-6 text-lg sm:text-xl text-stone max-w-xl leading-relaxed">
+          <p className="mt-6 text-lg sm:text-xl text-white/80 max-w-xl leading-relaxed">
             Intro Connect turns every event you host into a private,
             searchable directory of everyone who came. Real introductions.
             Real follow-up. A network that compounds.
@@ -29,11 +36,14 @@ export default function Hero() {
             <a href="#pricing" className="btn-primary">
               Start for free <ArrowRight className="w-4 h-4" />
             </a>
-            <a href="#how" className="btn-outline">
+            <a
+              href="#how"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-pill border border-white/30 text-white font-bold hover:bg-white/10 transition"
+            >
               See how it works
             </a>
           </div>
-          <p className="mt-4 text-xs text-stone tracking-wide">
+          <p className="mt-4 text-xs text-white/70 tracking-wide">
             Free plan · No credit card · Free for guests, forever
           </p>
         </div>
