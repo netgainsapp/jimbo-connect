@@ -84,24 +84,35 @@ export default function ProfileSetup({ editMode = false }) {
       </p>
 
       <form onSubmit={submit} className="card p-6 flex flex-col gap-5">
-        <div className="flex items-center gap-4">
-          <Avatar name={form.name} photoUrl={form.photo_url} size={80} />
+        <div className="flex flex-col items-center text-center gap-3 pb-1">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="relative rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            aria-label={form.photo_url ? "Change profile photo" : "Add a profile photo"}
+          >
+            <Avatar name={form.name} photoUrl={form.photo_url} size={96} />
+            <span className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center border-2 border-white shadow">
+              <Camera className="w-4 h-4" />
+            </span>
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhoto}
+          />
           <div>
-            <button
-              type="button"
-              className="btn-outline"
-              onClick={() => fileRef.current?.click()}
-            >
-              <Camera className="w-4 h-4" /> Upload photo
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhoto}
-            />
-            <div className="text-xs text-text-muted mt-1">PNG or JPG, up to 2MB</div>
+            <div className="text-sm font-bold text-text-primary">
+              {form.photo_url
+                ? "Looking good. Tap to change your photo."
+                : "Add a photo so people remember you"}
+            </div>
+            <div className="text-xs text-text-secondary mt-0.5 max-w-xs">
+              The directory feels personal when people can put a face to the
+              name. PNG or JPG, up to 2MB.
+            </div>
           </div>
         </div>
 
