@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { eventsApi } from "../lib/api.js";
+import { Mark } from "../components/Logo.jsx";
 
 export default function Login() {
   const { login } = useAuth();
@@ -42,10 +43,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center px-4 bg-bg-secondary">
       <div className="card p-8 w-full max-w-md">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-10 h-10 rounded-card bg-primary text-white flex items-center justify-center font-bold text-lg">
-            J
-          </div>
-          <div className="text-2xl font-bold tracking-tight">Jimbo Connect</div>
+          <Mark size={40} />
+          <div className="text-2xl font-bold tracking-tight">Intro Connect</div>
         </div>
         <h1 className="text-xl font-bold text-text-primary mb-1">Welcome back</h1>
         <p className="text-sm text-text-secondary mb-6">
@@ -88,7 +87,7 @@ export default function Login() {
           </Link>
         </div>
         <div className="mt-2 text-sm text-text-secondary text-center">
-          New to Jimbo Connect?{" "}
+          New to Intro Connect?{" "}
           <Link to="/register" className="text-primary font-semibold">
             Create an account
           </Link>

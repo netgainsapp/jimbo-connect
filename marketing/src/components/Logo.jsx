@@ -1,13 +1,23 @@
 /**
- * Intro Connect mark — two stylized figures, primary blue + deep navy,
- * interlocking via negative space. Inline SVG so it scales cleanly and
- * inherits color when needed. To swap in the official asset, drop your
- * SVG export at /public/logo.svg and reference it as an <img />.
+ * Intro Connect mark — two stylized figures interlocking through the negative
+ * space between their bodies. Inline SVG so it scales cleanly and travels with
+ * the code. To swap in an official export, drop an SVG at /public/logo.svg.
+ *
+ * variant:
+ *   "primary"  — brand blue + deep navy, for light surfaces
+ *   "reversed" — light blue + white, for dark surfaces
+ *   "mono"     — single ink (one figure solid, one at 45%), one-color contexts
  */
-export function Mark({ size = 40, primary = "#2563EB", deep = "#0D1B2A" }) {
-  // Designed on a 64x64 grid. Two figures, each with a circular head and
-  // a rounded-square body. Bodies are notched on the inner side so the
-  // negative space between them reads as a chat-bubble / connector.
+const PALETTE = {
+  primary: { a: "#2563EB", b: "#0D1B2A", bOpacity: 1 },
+  reversed: { a: "#4F8DF7", b: "#FFFFFF", bOpacity: 1 },
+  mono: { a: "currentColor", b: "currentColor", bOpacity: 0.45 },
+};
+
+export function Mark({ size = 40, variant = "primary", primary, deep }) {
+  const p = PALETTE[variant] || PALETTE.primary;
+  const aFill = primary || p.a;
+  const bFill = deep || p.b;
   return (
     <svg
       width={size}
@@ -17,13 +27,11 @@ export function Mark({ size = 40, primary = "#2563EB", deep = "#0D1B2A" }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      {/* Left figure (primary blue) */}
-      <g fill={primary}>
+      <g fill={aFill}>
         <circle cx="18" cy="14" r="7" />
         <path d="M8 28 a4 4 0 0 1 4 -4 h12 a4 4 0 0 1 4 4 v6 h-6 v8 h6 v6 a4 4 0 0 1 -4 4 h-12 a4 4 0 0 1 -4 -4 z" />
       </g>
-      {/* Right figure (deep navy) */}
-      <g fill={deep}>
+      <g fill={bFill} opacity={p.bOpacity}>
         <circle cx="46" cy="14" r="7" />
         <path d="M56 28 a4 4 0 0 0 -4 -4 h-12 a4 4 0 0 0 -4 4 v6 h6 v8 h-6 v6 a4 4 0 0 0 4 4 h12 a4 4 0 0 0 4 -4 z" />
       </g>
@@ -31,24 +39,32 @@ export function Mark({ size = 40, primary = "#2563EB", deep = "#0D1B2A" }) {
   );
 }
 
-export function Lockup({ size = "lg", monochrome = false }) {
+export function Lockup({ size = "lg", variant = "primary", monochrome = false }) {
   const isLarge = size === "lg";
   const markSize = isLarge ? 56 : 32;
-  const primary = monochrome ? "#0D1B2A" : "#2563EB";
-  const deep = "#0D1B2A";
+  const v = monochrome ? "mono" : variant;
+  const reversed = v === "reversed";
+  const wordColor = reversed ? "#FFFFFF" : v === "mono" ? "currentColor" : "#0D1B2A";
+  const connectColor = reversed ? "#C9D6E5" : null;
+  const taglineColor = reversed ? "#7FB0FF" : "#2563EB";
   return (
     <div className="inline-flex items-center gap-3">
-      <Mark size={markSize} primary={primary} deep={deep} />
+      <Mark size={markSize} variant={v} />
       <div className="leading-none">
         <div
-          className={`font-extrabold text-ink tracking-tight ${
-            isLarge ? "text-3xl" : "text-lg"
-          }`}
+          className={`font-extrabold tracking-tight ${isLarge ? "text-3xl" : "text-lg"}`}
+          style={{ color: wordColor }}
         >
-          Intro <span className="font-medium">Connect</span>
+          Intro{" "}
+          <span className="font-medium" style={connectColor ? { color: connectColor } : undefined}>
+            Connect
+          </span>
         </div>
         {isLarge && (
-          <div className="text-[10px] uppercase tracking-[0.22em] font-bold text-primary mt-2">
+          <div
+            className="text-[10px] uppercase tracking-[0.22em] font-bold mt-2"
+            style={{ color: taglineColor }}
+          >
             Better events. Stronger connections.
           </div>
         )}
