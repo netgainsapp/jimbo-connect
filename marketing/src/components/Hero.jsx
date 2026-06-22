@@ -27,14 +27,14 @@ export default function Hero() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href="#pricing" className="btn-primary">
-              Start free trial <ArrowRight className="w-4 h-4" />
+              Start for free <ArrowRight className="w-4 h-4" />
             </a>
             <a href="#how" className="btn-outline">
               See how it works
             </a>
           </div>
           <p className="mt-4 text-xs text-stone tracking-wide">
-            14-day free trial · No credit card · Free for guests, forever
+            Free plan · No credit card · Free for guests, forever
           </p>
         </div>
 

@@ -12,8 +12,8 @@ export default function Problem() {
             <p className="mt-5 text-lg text-stone leading-relaxed">
               <span className="font-extrabold text-ink">
                 The one that happens that night
-              </span>{" "}
-              — and{" "}
+              </span>
+              {", and "}
               <span className="font-extrabold text-ink">
                 the one that should happen for the next six months
               </span>{" "}
@@ -77,7 +77,7 @@ function PullQuote({ text, who, where }) {
           {text}
         </p>
         <figcaption className="mt-4 flex items-baseline gap-3 text-[11px] uppercase tracking-[0.22em] font-bold">
-          <span className="text-ink">— {who}</span>
+          <span className="text-ink">{who}</span>
           <span className="h-px flex-1 bg-line max-w-[60px]" />
           <span className="text-stone normal-case tracking-normal font-semibold">
             {where}

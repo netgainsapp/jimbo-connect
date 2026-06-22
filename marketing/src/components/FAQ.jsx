@@ -4,7 +4,7 @@ import { Plus, Minus } from "lucide-react";
 const FAQS = [
   {
     q: "Is it really free for attendees?",
-    a: "Yes — forever. Attendees never pay, never see ads, never get tracked or marketed to. Hosts pay so the platform can exist. That's the deal.",
+    a: "Yes, forever. Attendees never pay, never see ads, never get tracked or marketed to. Hosts pay so the platform can exist. That's the deal.",
   },
   {
     q: "How is this different from LinkedIn?",
@@ -12,7 +12,7 @@ const FAQS = [
   },
   {
     q: "What stops attendees from spamming each other?",
-    a: "Directories are scoped to single events — only people who came to your dinner see each other. Anyone can mute or hide their profile. No mass-message tools.",
+    a: "Directories are scoped to single events, so only people who came to your dinner see each other. Anyone can mute or hide their profile. No mass-message tools.",
   },
   {
     q: "Can I import my guest list from Meetup or Eventbrite?",
@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: "Who owns the data?",
-    a: "Hosts own their event data. Attendees own their profiles and can delete their account anytime. We don't sell data, ever — written into our terms.",
+    a: "Hosts own their event data. Attendees own their profiles and can delete their account anytime. We don't sell data, ever. It's written into our terms.",
   },
   {
     q: "What happens to the directory if I cancel?",
@@ -28,11 +28,11 @@ const FAQS = [
   },
   {
     q: "Can I bring my own domain?",
-    a: "On Pro and Enterprise, yes — your-name.com or app.your-name.com. We handle the SSL and DNS guidance.",
+    a: "On Pro and Enterprise, yes. Use your-name.com or app.your-name.com, and we handle the SSL and DNS guidance.",
   },
   {
     q: "Do you have an iPhone or Android app?",
-    a: "Not yet. The web app is fully mobile-optimized — add it to your home screen and it behaves like a native app. Native apps are on the roadmap once we have 50+ paying hosts.",
+    a: "Not yet. The web app is fully mobile-optimized, so add it to your home screen and it behaves like a native app. Native apps are on the roadmap once we have 50+ paying hosts.",
   },
 ];
 
