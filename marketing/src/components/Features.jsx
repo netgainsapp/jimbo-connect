@@ -132,10 +132,10 @@ function PreviewFrame({ children }) {
 
 function DirectoryPreview() {
   const people = [
-    { name: "Ava Reynolds", role: "Founder · Trailhead Labs", saved: true },
-    { name: "Ben Carter", role: "VP Eng · Summit Robotics", saved: false },
-    { name: "Cara Liu", role: "Designer · Aspen Studio", saved: true },
-    { name: "Diego Martinez", role: "Partner · Range Capital", saved: false },
+    { name: "Ava Reynolds", role: "Founder · Trailhead Labs", img: "/images/avatars/avatar-4.jpg", saved: true },
+    { name: "Ben Carter", role: "VP Eng · Summit Robotics", img: "/images/avatars/avatar-3.jpg", saved: false },
+    { name: "Cara Liu", role: "Designer · Aspen Studio", img: "/images/avatars/avatar-5.jpg", saved: true },
+    { name: "Diego Martinez", role: "Partner · Range Capital", img: "/images/avatars/avatar-1.jpg", saved: false },
   ];
   return (
     <PreviewFrame>
@@ -152,9 +152,12 @@ function DirectoryPreview() {
             className="flex items-center justify-between gap-2 border border-line rounded-card p-2.5"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-wash text-primary text-[10px] font-bold flex items-center justify-center">
-                {p.name.split(" ").map((s) => s[0]).join("")}
-              </div>
+              <img
+                src={p.img}
+                alt={p.name}
+                loading="lazy"
+                className="w-7 h-7 rounded-full object-cover"
+              />
               <div className="min-w-0">
                 <div className="text-[13px] font-bold text-ink truncate">
                   {p.name}
@@ -225,9 +228,12 @@ function MessagesPreview() {
   return (
     <PreviewFrame>
       <div className="flex items-center gap-2 pb-3 mb-3 border-b border-line">
-        <div className="w-8 h-8 rounded-full bg-wash text-primary text-[11px] font-bold flex items-center justify-center">
-          AR
-        </div>
+        <img
+          src="/images/avatars/avatar-4.jpg"
+          alt="Ava Reynolds"
+          loading="lazy"
+          className="w-8 h-8 rounded-full object-cover"
+        />
         <div>
           <div className="text-sm font-bold text-ink">Ava Reynolds</div>
           <div className="text-[10px] text-stone">Founder · Trailhead Labs</div>
