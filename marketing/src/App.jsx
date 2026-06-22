@@ -2,6 +2,7 @@ import Nav from "./components/Nav.jsx";
 import Hero from "./components/Hero.jsx";
 import SocialProof from "./components/SocialProof.jsx";
 import Problem from "./components/Problem.jsx";
+import PhotoBand from "./components/PhotoBand.jsx";
 import HowItWorks from "./components/HowItWorks.jsx";
 import Features from "./components/Features.jsx";
 import Pricing from "./components/Pricing.jsx";
@@ -17,6 +18,7 @@ export default function App() {
         <Hero />
         <SocialProof />
         <Problem />
+        <PhotoBand />
         <HowItWorks />
         <Features />
         <Pricing />
