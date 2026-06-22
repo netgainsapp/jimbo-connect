@@ -24,7 +24,7 @@ const TIERS = [
     price: "$39",
     period: "/month",
     annual: "$390 billed yearly",
-    blurb: "For solo hosts running a few events a year.",
+    blurb: "For hosts who outgrew the free plan and want a permanent directory.",
     cta: "Start free trial",
     href: REGISTER,
     features: [
@@ -42,7 +42,7 @@ const TIERS = [
     price: "$99",
     period: "/month",
     annual: "$990 billed yearly",
-    blurb: "For hosts running events most months.",
+    blurb: "For hosts who want their events to build a lasting network.",
     cta: "Start free trial",
     href: REGISTER,
     highlighted: true,
@@ -54,7 +54,7 @@ const TIERS = [
       "Your own custom domain",
       "Post-event surveys with analytics",
       "Sponsor tiles and calendar invites",
-      "Luma and Eventbrite import",
+      "CSV import from any tool",
       "Priority support",
     ],
   },
@@ -115,12 +115,12 @@ export default function Pricing() {
             rel="noopener"
             className="inline-flex items-center gap-1.5 text-[14px] font-bold text-primary hover:underline shrink-0"
           >
-            Buy a single event <ArrowRight className="w-3.5 h-3.5" />
+            Get one event for $149 <ArrowRight className="w-3.5 h-3.5" />
           </a>
         </div>
 
         <p className="mt-8 text-center text-xs text-stone tracking-wide">
-          Start free, no credit card. Upgrade or cancel anytime.
+          Free plan, no credit card. Paid plans include a 14-day trial.
         </p>
       </div>
     </section>
