@@ -12,6 +12,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from fastapi import FastAPI, HTTPException, Depends, Response, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from bson import ObjectId
 from dotenv import load_dotenv
 
@@ -27,6 +28,8 @@ from database import (
 )
 import email_send
 import rate_limit
+from blog import render as blog_render
+from blog.store import list_published, get_by_slug
 from template_seeds import DEFAULT_TEMPLATES, CATEGORIES as TEMPLATE_CATEGORIES
 from auth import (
     hash_password,
@@ -1733,3 +1736,20 @@ async def unread_count(user: dict = Depends(get_current_user)):
 @app.get("/api/health")
 async def health():
     return {"ok": True}
+
+
+# ---------- Public blog (server-rendered; surfaced at the marketing domain
+# via a Vercel rewrite). Only published posts are shown. ----------
+
+@app.get("/blog", response_class=HTMLResponse)
+async def blog_index():
+    posts = await list_published(limit=50)
+    return HTMLResponse(blog_render.render_index(posts))
+
+
+@app.get("/blog/{slug}", response_class=HTMLResponse)
+async def blog_post(slug: str):
+    doc = await get_by_slug(slug)
+    if not doc:
+        return HTMLResponse(blog_render.render_404(), status_code=404)
+    return HTMLResponse(blog_render.render_post(doc))
