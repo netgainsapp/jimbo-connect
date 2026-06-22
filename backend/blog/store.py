@@ -4,6 +4,8 @@ draft with its guardrail_reasons for debugging.
 """
 from datetime import datetime, timezone
 
+from bson import ObjectId
+
 from database import db
 from .flags import get_flag
 from .guardrails import check_guardrails
@@ -72,3 +74,55 @@ async def list_published(limit: int = 50) -> list:
 
 async def get_by_slug(slug: str) -> dict:
     return await blog_post.find_one({"slug": slug, "status": "published"})
+
+
+# ---------- Admin ----------
+
+async def list_all(limit: int = 100) -> list:
+    """All posts (drafts and published), newest first, for the admin view."""
+    cursor = blog_post.find({}).sort("created_at", -1).limit(limit)
+    return [doc async for doc in cursor]
+
+
+def _oid(post_id: str):
+    try:
+        return ObjectId(post_id)
+    except Exception:
+        return None
+
+
+async def publish_post(post_id: str):
+    """Publish a draft. Returns the doc, or {"error": "guardrails_failed",
+    "reasons": [...]} if it has unresolved guardrail failures, or None if not
+    found / bad id."""
+    oid = _oid(post_id)
+    if oid is None:
+        return None
+    doc = await blog_post.find_one({"_id": oid})
+    if not doc:
+        return None
+    if doc.get("guardrail_reasons"):
+        return {"error": "guardrails_failed", "reasons": doc["guardrail_reasons"]}
+    now = datetime.now(timezone.utc)
+    await blog_post.update_one(
+        {"_id": oid}, {"$set": {"status": "published", "published_at": now}}
+    )
+    doc["status"] = "published"
+    doc["published_at"] = now
+    return doc
+
+
+async def unpublish_post(post_id: str):
+    """Revert a post to draft. Returns the doc, or None if not found / bad id."""
+    oid = _oid(post_id)
+    if oid is None:
+        return None
+    doc = await blog_post.find_one({"_id": oid})
+    if not doc:
+        return None
+    await blog_post.update_one(
+        {"_id": oid}, {"$set": {"status": "draft", "published_at": None}}
+    )
+    doc["status"] = "draft"
+    doc["published_at"] = None
+    return doc
