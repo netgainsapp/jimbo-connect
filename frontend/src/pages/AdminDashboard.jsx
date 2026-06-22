@@ -6,6 +6,7 @@ import {
   CalendarPlus,
   UserPlus,
   Mail,
+  FileText,
   HelpCircle,
   MapPin,
   ArrowRight,
@@ -84,6 +85,12 @@ export default function AdminDashboard() {
           icon={<Mail className="w-5 h-5" />}
           title="Email templates"
           body="Save the date, day-of, post-event — copy or open in your mail."
+        />
+        <ActionCard
+          to="/admin/blog"
+          icon={<FileText className="w-5 h-5" />}
+          title="Blog"
+          body="Review drafts, publish, and control automated posts."
         />
       </div>
 
