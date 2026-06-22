@@ -1,0 +1,14 @@
+# Add this service to your existing render.yaml under the top-level `services:` list.
+# It lives alongside the existing jimbo-connect-api and jimbo-connect-web services.
+
+  - type: web
+    name: jimbo-connect-marketing
+    runtime: static
+    rootDir: marketing
+    buildCommand: yarn install && yarn build
+    staticPublishPath: dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

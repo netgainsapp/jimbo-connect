@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
+import { Mark } from "../components/Logo.jsx";
 
 export default function Register() {
   const { register } = useAuth();
@@ -33,10 +34,8 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center px-4 bg-bg-secondary">
       <div className="card p-8 w-full max-w-md">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-10 h-10 rounded-card bg-primary text-white flex items-center justify-center font-bold text-lg">
-            J
-          </div>
-          <div className="text-2xl font-bold tracking-tight">Jimbo Connect</div>
+          <Mark size={40} />
+          <div className="text-2xl font-bold tracking-tight">Intro Connect</div>
         </div>
         <h1 className="text-xl font-bold text-text-primary mb-1">Create account</h1>
         <p className="text-sm text-text-secondary mb-6">

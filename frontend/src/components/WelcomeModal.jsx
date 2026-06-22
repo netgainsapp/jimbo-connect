@@ -75,10 +75,10 @@ export default function WelcomeModal({ open, onClose, hostName }) {
           <Sparkles className="w-4 h-4" /> Welcome
         </div>
         <h2 className="text-2xl font-bold text-text-primary mt-1">
-          Hey Jimbo... here's the 60-second tour.
+          Welcome aboard. Here's the 60-second tour.
         </h2>
         <p className="text-sm text-text-secondary mt-1">
-          Jimbo Connect turns the people at your events into a private,
+          Intro Connect turns the people at your events into a private,
           searchable directory that lives forever. Free and easy for everyone.
         </p>
 

@@ -7,7 +7,7 @@ import httpx
 from typing import Optional
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
-EMAIL_FROM = os.getenv("EMAIL_FROM", "Jimbo Connect <onboarding@resend.dev>").strip()
+EMAIL_FROM = os.getenv("EMAIL_FROM", "Intro Connect <onboarding@resend.dev>").strip()
 RESEND_URL = "https://api.resend.com/emails"
 
 
@@ -61,14 +61,14 @@ Tap the link below to set a new password (or just log in — same link works eit
 
 This link expires in 2 hours.
 
-— Jimbo Connect"""
+— Intro Connect"""
     html = f"""<!doctype html><html><body style="font-family:Calibri,Segoe UI,system-ui,sans-serif;color:#0a0c10;background:#f7f8fa;padding:24px">
 <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #E4E6EA;border-radius:8px;padding:28px">
-<div style="font-weight:bold;color:#0A66C2;font-size:20px;margin-bottom:12px">Jimbo Connect</div>
+<div style="font-weight:bold;color:#2563EB;font-size:20px;margin-bottom:12px">Intro Connect</div>
 <p>{greeting}</p>
 <p>Tap the button below to set a new password — or just log in (same link works for both).</p>
 <p style="margin:24px 0">
-  <a href="{reset_url}" style="display:inline-block;background:#0A66C2;color:#fff;text-decoration:none;padding:12px 22px;border-radius:24px;font-weight:bold">Open my reset link</a>
+  <a href="{reset_url}" style="display:inline-block;background:#2563EB;color:#fff;text-decoration:none;padding:12px 22px;border-radius:24px;font-weight:bold">Open my reset link</a>
 </p>
 <p style="font-size:12px;color:#6B7280">This link expires in 2 hours. If you didn't ask for this, you can ignore the email.</p>
 </div></body></html>"""
@@ -99,7 +99,7 @@ The directory fills in as more people join. After the event you can save contact
 — {host_name}"""
     html = f"""<!doctype html><html><body style="font-family:Calibri,Segoe UI,system-ui,sans-serif;color:#0a0c10;background:#f7f8fa;padding:24px">
 <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #E4E6EA;border-radius:8px;padding:28px">
-<div style="font-weight:bold;color:#0A66C2;font-size:20px;margin-bottom:12px">You're invited to {event_name}</div>
+<div style="font-weight:bold;color:#2563EB;font-size:20px;margin-bottom:12px">You're invited to {event_name}</div>
 <p>{event_date}{where}.</p>
 <p>Log in to your private attendee directory:</p>
 <div style="background:#F7F8FA;border-radius:8px;padding:12px;font-family:monospace;font-size:13px">
@@ -107,7 +107,7 @@ The directory fills in as more people join. After the event you can save contact
   Password: {temp_password}
 </div>
 <p style="margin:24px 0">
-  <a href="{site_url}" style="display:inline-block;background:#0A66C2;color:#fff;text-decoration:none;padding:12px 22px;border-radius:24px;font-weight:bold">Open the directory</a>
+  <a href="{site_url}" style="display:inline-block;background:#2563EB;color:#fff;text-decoration:none;padding:12px 22px;border-radius:24px;font-weight:bold">Open the directory</a>
 </p>
 <p style="font-size:12px;color:#6B7280">After the event you can save contacts and add private notes for follow-up. Always free.</p>
 <p style="font-size:12px;color:#6B7280">— {host_name}</p>

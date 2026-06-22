@@ -173,7 +173,7 @@ export default function AdminTemplates() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <h1 className="text-2xl font-bold text-text-primary mb-1">Email templates</h1>
       <p className="text-sm text-text-secondary mb-6">
-        Edit any template — including the ones Jimbo sends automatically.
+        Edit any template — including the ones Intro Connect sends automatically.
         Changes save to the server and apply to all admins.
       </p>
 
@@ -198,7 +198,7 @@ export default function AdminTemplates() {
         </div>
         <div className="flex-1 text-xs text-text-muted self-end pb-1">
           Variables left as <code className="bg-bg-secondary px-1">{`{like_this}`}</code>{" "}
-          mean Jimbo fills them in per-recipient (attendee name, password, etc.).
+          mean Intro Connect fills them in per-recipient (attendee name, password, etc.).
         </div>
       </div>
 
@@ -259,7 +259,7 @@ export default function AdminTemplates() {
                         {t.system && (
                           <Cog
                             className="w-3 h-3 text-text-muted"
-                            title="Sent automatically by Jimbo"
+                            title="Sent automatically by Intro Connect"
                           />
                         )}
                       </div>
@@ -317,7 +317,7 @@ export default function AdminTemplates() {
                 <p className="text-xs text-text-muted mt-2 inline-flex items-center gap-1">
                   <Send className="w-3 h-3" />
                   {template.system
-                    ? "Jimbo sends this automatically when triggered. Edit affects all future sends."
+                    ? "Intro Connect sends this automatically when triggered. Edit affects all future sends."
                     : "\"Open in mail\" pre-fills your default email client. If an event is selected, attendees are added as BCC."}
                 </p>
               </>

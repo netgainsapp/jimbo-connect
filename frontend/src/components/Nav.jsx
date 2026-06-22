@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import Avatar from "./Avatar.jsx";
+import { Mark } from "./Logo.jsx";
 import { messagesApi } from "../lib/api.js";
 
 export default function Nav() {
@@ -135,11 +136,9 @@ export default function Nav() {
     <nav className="fixed top-0 inset-x-0 z-40 bg-white border-b border-border-default">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 rounded-card bg-primary text-white flex items-center justify-center font-bold">
-            J
-          </div>
+          <Mark size={30} />
           <span className="font-bold text-text-primary text-lg tracking-tight hidden sm:block">
-            Jimbo Connect
+            Intro Connect
           </span>
         </Link>
 
