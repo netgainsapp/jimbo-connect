@@ -77,19 +77,22 @@ function MockApp() {
 
           <div className="mt-4 grid grid-cols-2 gap-2">
             {[
-              { name: "Ava Reynolds", role: "Founder · Trailhead Labs", init: "AR", saved: true },
-              { name: "Ben Carter", role: "VP Eng · Summit Robotics", init: "BC", saved: false },
-              { name: "Cara Liu", role: "Designer · Aspen Studio", init: "CL", saved: true },
-              { name: "Diego Martinez", role: "Partner · Range Capital", init: "DM", saved: false },
+              { name: "Ava Reynolds", role: "Founder · Trailhead Labs", img: "/images/avatars/avatar-4.jpg", saved: true },
+              { name: "Ben Carter", role: "VP Eng · Summit Robotics", img: "/images/avatars/avatar-3.jpg", saved: false },
+              { name: "Cara Liu", role: "Designer · Aspen Studio", img: "/images/avatars/avatar-5.jpg", saved: true },
+              { name: "Diego Martinez", role: "Partner · Range Capital", img: "/images/avatars/avatar-1.jpg", saved: false },
             ].map((p) => (
               <div
                 key={p.name}
                 className="border border-line rounded-card p-3 flex items-start justify-between gap-2 bg-white"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-wash text-primary text-xs font-bold flex items-center justify-center">
-                    {p.init}
-                  </div>
+                  <img
+                    src={p.img}
+                    alt={p.name}
+                    loading="lazy"
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
                   <div className="min-w-0">
                     <div className="text-sm font-bold text-ink truncate">{p.name}</div>
                     <div className="text-[10px] text-stone truncate">{p.role}</div>
