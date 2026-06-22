@@ -7,8 +7,8 @@ export default {
         sans: ["Calibri", "Segoe UI", "system-ui", "sans-serif"],
       },
       colors: {
-        primary: "#0A66C2",
-        "primary-hover": "#084d92",
+        primary: "#2563EB",
+        "primary-hover": "#1D4ED8",
         "bg-secondary": "#F7F8FA",
         "border-default": "#E4E6EA",
         "text-primary": "#0A0C10",

@@ -200,7 +200,7 @@ function WordmarkB({ size = "lg", color = "#2E5266" }) {
       }`}
       style={{ color }}
     >
-      Jimbo<span className="font-light">·</span>Connect
+      Intro<span className="font-light">·</span>Connect
     </div>
   );
 }
@@ -299,7 +299,7 @@ function WordmarkC({ size = "lg", color = "#A8593E" }) {
         letterSpacing: "-0.02em",
       }}
     >
-      Jimbo <span style={{ fontStyle: "italic", fontWeight: 400 }}>Connect</span>
+      Intro <span style={{ fontStyle: "italic", fontWeight: 400 }}>Connect</span>
     </div>
   );
 }
