@@ -14,7 +14,7 @@ const STEPS = [
     kicker: "The night of",
     title: "Your room becomes a directory.",
     body:
-      "Attendees log in and see who else is there — name, role, company, what they're looking for. They save the people they meet with one tap. Notes, intros, follow-ups — all in one place.",
+      "Attendees log in and see who else is there: name, role, company, what they're looking for. They save the people they meet with one tap. Notes, intros, and follow-ups, all in one place.",
     visual: <DirectoryVisual />,
   },
   {
@@ -22,7 +22,7 @@ const STEPS = [
     kicker: "Six months later",
     title: "Connections compound.",
     body:
-      "They can still find that designer. Message that investor. Intro a friend. The host (you) stays in everyone's network — not as a stranger on LinkedIn, but as the reason any of this exists.",
+      "They can still find that designer. Message that investor. Intro a friend. The host (you) stays in everyone's network. Not as a stranger on LinkedIn, but as the reason any of this exists.",
     visual: <CompoundVisual />,
   },
 ];

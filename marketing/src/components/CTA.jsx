@@ -12,14 +12,14 @@ export default function CTA() {
       />
       <div className="container-prose text-center max-w-2xl relative">
         <div className="text-[10px] uppercase tracking-[0.22em] font-extrabold text-wash">
-          Host better. Connect deeper. Build what matters.
+          No long-term contract. No credit card.
         </div>
         <h2 className="mt-5 text-4xl sm:text-5xl font-extrabold leading-[1.05] tracking-tight">
           Your next event shouldn't disappear by Monday.
         </h2>
         <p className="mt-5 text-lg text-white/75 leading-relaxed">
-          14-day free trial. Set up your first event in five minutes. If your
-          attendees don't use it, walk away.
+          Start on the free plan today. Set up your first event in five minutes.
+          If your attendees don't use it, walk away.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <a
@@ -28,7 +28,7 @@ export default function CTA() {
             rel="noopener"
             className="inline-flex items-center gap-2 px-7 py-3 rounded-pill bg-white text-ink font-bold hover:bg-cream transition shadow-lift"
           >
-            Start free trial <ArrowRight className="w-4 h-4" />
+            Start for free <ArrowRight className="w-4 h-4" />
           </a>
           <a
             href="mailto:hello@frontrangedev.co?subject=Intro%20Connect%20demo"
