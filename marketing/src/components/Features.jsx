@@ -10,13 +10,13 @@ const MARQUEE = [
   {
     eyebrow: "01 · Directory",
     title: "A private room, after the room.",
-    body: "Every event you host turns into a searchable directory of who came. Photos, bios, role, company, contact info, what they're looking for. Mobile-first. Lives forever.",
+    body: "Every event you host turns into a searchable directory of who came. Photos, bios, role, company, contact info, what they're looking for. Mobile-first, and permanent on paid plans.",
     preview: <DirectoryPreview />,
   },
   {
     eyebrow: "02 · Notes",
     title: "Remember the conversation. Not just the name.",
-    body: '"Lives in Boulder, building robotics, wants intro to Diego." Private notes attached to any saved contact — visible only to the person who wrote them.',
+    body: '"Lives in Boulder, building robotics, wants intro to Diego." Private notes attached to any saved contact, visible only to the person who wrote them.',
     preview: <NotesPreview />,
   },
   {
@@ -28,15 +28,15 @@ const MARQUEE = [
   {
     eyebrow: "04 · Sponsors",
     title: "Drop a URL. Get a sponsor tile.",
-    body: "Paste any sponsor's website and we scrape their headline, image, and description automatically. No uploading logos, no copy-writing. Click-through analytics included.",
+    body: "Paste a sponsor's website and we pull their headline, image, and description automatically. No uploading logos, no copy-writing. Click-through analytics included.",
     preview: <SponsorPreview />,
   },
 ];
 
 const ALSO = [
-  ["Save anyone, anytime", "One tap saves a contact across every event."],
+  ["Save anyone, anytime", "One tap and they're saved to your contacts."],
   ["Custom personal tags", '"Warm lead," "investor," "Q3 follow-up." Each user builds their own.'],
-  ["Editable email templates", "Save the date, day-of, post-event — eight templates."],
+  ["Editable email templates", "Save the date, day-of, post-event. Eight templates."],
   [".ics calendar invites", 'One-click "Add to calendar" in every invitation email.'],
   ["Custom post-event surveys", "Six question types. Charts. Per-event."],
   ["Clone any event", "Recurring monthly dinner? Duplicate in one click."],
@@ -191,7 +191,7 @@ function NotesPreview() {
         </div>
         <p className="text-[13px] leading-snug italic">
           "Designs for outdoor brands. Mentioned a Patagonia project ending in
-          Q3 — circle back then re: brand work for us."
+          Q3, circle back then re: brand work for us."
         </p>
         <div className="text-[10px] text-amber-700/70 mt-2 font-semibold">
           Saved at Denver Founders Dinner · Jun 15

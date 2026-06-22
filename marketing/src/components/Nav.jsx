@@ -39,7 +39,7 @@ export default function Nav() {
             Log in
           </a>
           <a href="#pricing" className="btn-primary">
-            Start free trial
+            Start for free
           </a>
         </div>
         <button
@@ -72,7 +72,7 @@ export default function Nav() {
               Log in
             </a>
             <a href="#pricing" className="btn-primary mt-2">
-              Start free trial
+              Start for free
             </a>
           </div>
         </div>
