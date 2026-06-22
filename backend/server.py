@@ -112,7 +112,7 @@ async def _safe_fetch_html(url: str, max_redirects: int = 3) -> str:
     async with httpx.AsyncClient(
         follow_redirects=False,
         timeout=8.0,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; JimboConnectBot/1.0)"},
+        headers={"User-Agent": "Mozilla/5.0 (compatible; IntroConnectBot/1.0)"},
     ) as client:
         for _ in range(max_redirects + 1):
             _assert_public_url(url)
@@ -322,9 +322,9 @@ async def seed_data():
         "is_admin": True,
         "created_at": now,
         "profile": {
-            "name": "Jimbo Admin",
+            "name": "Intro Admin",
             "role": "Platform Host",
-            "company": "Jimbo Connect",
+            "company": "Intro Connect",
             "industry": "Events",
             "bio": "Running the show.",
             "looking_for": "",
@@ -481,7 +481,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Jimbo Connect API", lifespan=lifespan)
+app = FastAPI(title="Intro Connect API", lifespan=lifespan)
 
 _origins = [o.strip() for o in FRONTEND_URL.split(",") if o.strip()]
 if "http://localhost:3000" not in _origins:
@@ -621,7 +621,7 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
         {
             "attendee_name": profile.get("name") or "",
             "attendee_email": user["email"],
-            "host_name": "Jimbo Connect",
+            "host_name": "Intro Connect",
             "site_url": FRONTEND_URL,
             "reset_url": reset_url,
         },

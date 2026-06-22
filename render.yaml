@@ -25,7 +25,7 @@ services:
       - key: RESEND_API_KEY
         sync: false  # paste from resend.com → API Keys
       - key: EMAIL_FROM
-        value: "Jimbo Connect <onboarding@resend.dev>"
+        value: "Intro Connect <onboarding@resend.dev>"
 
   - type: web
     name: jimbo-connect-web

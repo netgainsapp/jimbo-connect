@@ -25,7 +25,7 @@ DEFAULT_TEMPLATES = [
         "title": "Password reset",
         "blurb": "Sent when an attendee uses 'Forgot password'.",
         "system": True,
-        "subject": "Reset your Jimbo Connect password",
+        "subject": "Reset your Intro Connect password",
         "body": (
             "Hi {attendee_name},\n\n"
             "Tap this link to set a new password (or just log in — same link works):\n\n"
@@ -146,13 +146,13 @@ DEFAULT_TEMPLATES = [
     {
         "template_id": "what-is-jimbo",
         "category": "marketing",
-        "title": "What is Jimbo Connect?",
+        "title": "What is Intro Connect?",
         "blurb": "Send to a friend / prospect to explain the service.",
         "system": False,
         "subject": "A better way to follow up after networking events",
         "body": (
             "Hi,\n\n"
-            "Quick share — I've started using something called Jimbo Connect for "
+            "Quick share — I've started using something called Intro Connect for "
             "the networking events I host.\n\n"
             "It's a private directory of everyone who came: name, role, company, "
             "contact info, what they're looking for. After the event, attendees can "
@@ -207,7 +207,7 @@ DEFAULT_TEMPLATES = [
 ]
 
 CATEGORIES = [
-    {"id": "system", "label": "Automated (sent by Jimbo)"},
+    {"id": "system", "label": "Automated (sent by Intro Connect)"},
     {"id": "event", "label": "Per-event emails"},
     {"id": "marketing", "label": "Marketing & outreach"},
 ]
