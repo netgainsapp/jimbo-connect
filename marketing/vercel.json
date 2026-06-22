@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/blog",
+      "destination": "https://jimbo-connect-api.onrender.com/blog"
+    },
+    {
+      "source": "/blog/:path*",
+      "destination": "https://jimbo-connect-api.onrender.com/blog/:path*"
+    }
+  ]
+}
