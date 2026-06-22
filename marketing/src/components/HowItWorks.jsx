@@ -131,9 +131,9 @@ function PasteVisual() {
 
 function DirectoryVisual() {
   const people = [
-    { name: "Ava Reynolds", role: "Trailhead Labs", saved: true },
-    { name: "Ben Carter", role: "Summit Robotics", saved: false },
-    { name: "Cara Liu", role: "Aspen Studio", saved: true },
+    { name: "Ava Reynolds", role: "Trailhead Labs", img: "/images/avatars/avatar-4.jpg", saved: true },
+    { name: "Ben Carter", role: "Summit Robotics", img: "/images/avatars/avatar-3.jpg", saved: false },
+    { name: "Cara Liu", role: "Aspen Studio", img: "/images/avatars/avatar-5.jpg", saved: true },
   ];
   return (
     <div className="card bg-white p-3">
@@ -147,9 +147,12 @@ function DirectoryVisual() {
             className="flex items-center justify-between gap-2 border border-line rounded-card p-2"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-wash text-primary text-[10px] font-bold flex items-center justify-center">
-                {p.name.split(" ").map((s) => s[0]).join("")}
-              </div>
+              <img
+                src={p.img}
+                alt={p.name}
+                loading="lazy"
+                className="w-7 h-7 rounded-full object-cover"
+              />
               <div className="min-w-0">
                 <div className="text-[12px] font-bold text-ink truncate">
                   {p.name}
