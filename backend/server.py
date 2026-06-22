@@ -473,11 +473,46 @@ async def seed_email_templates():
         await email_templates.insert_one({**t, "updated_at": datetime.now(timezone.utc)})
 
 
+def _rebrand_text(text):
+    """Replace legacy 'Jimbo Connect' / 'Jimbo' branding with 'Intro Connect'.
+    Returns (new_text, changed). 'Jimbo Connect' is replaced first so we never
+    produce 'Intro Connect Connect'."""
+    if not text or "Jimbo" not in text:
+        return text, False
+    new = text.replace("Jimbo Connect", "Intro Connect").replace("Jimbo", "Intro Connect")
+    return new, new != text
+
+
+async def migrate_template_branding():
+    """One-time, idempotent: rename legacy 'Jimbo' branding in stored email
+    templates to 'Intro Connect'. Targeted string replacement, so admin
+    customizations are preserved (only the brand name changes). The query only
+    matches templates that still contain the old name, so once renamed this is
+    a no-op on every subsequent boot."""
+    cursor = email_templates.find(
+        {"$or": [
+            {"subject": {"$regex": "Jimbo"}},
+            {"title": {"$regex": "Jimbo"}},
+            {"body": {"$regex": "Jimbo"}},
+        ]}
+    )
+    async for doc in cursor:
+        updates = {}
+        for field in ("subject", "title", "body"):
+            new, changed = _rebrand_text(doc.get(field))
+            if changed:
+                updates[field] = new
+        if updates:
+            updates["updated_at"] = datetime.now(timezone.utc)
+            await email_templates.update_one({"_id": doc["_id"]}, {"$set": updates})
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await ensure_indexes()
     await seed_data()
     await seed_email_templates()
+    await migrate_template_branding()
     yield
 
 
