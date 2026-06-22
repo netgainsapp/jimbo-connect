@@ -12,7 +12,7 @@ export default function Footer() {
                 Intro <span className="font-medium">Connect</span>
               </div>
               <div className="text-[10px] uppercase tracking-[0.18em] font-bold text-stone mt-1">
-                © 2026 Front Range Dev Co.
+                © 2026 Intro Connect
               </div>
             </div>
           </div>
@@ -26,6 +26,12 @@ export default function Footer() {
             <a href="#faq" className="hover:text-ink font-semibold">
               FAQ
             </a>
+            <a href="/privacy.html" className="hover:text-ink font-semibold">
+              Privacy
+            </a>
+            <a href="/terms.html" className="hover:text-ink font-semibold">
+              Terms
+            </a>
             <a
               href="mailto:hello@frontrangedev.co"
               className="hover:text-ink font-semibold"
@@ -38,14 +44,6 @@ export default function Footer() {
           <div className="text-[10px] uppercase tracking-[0.22em] font-extrabold text-primary">
             Host better. Connect deeper. Build what matters.
           </div>
-          <a
-            href="https://frontrangedev.co"
-            target="_blank"
-            rel="noopener"
-            className="mt-3 inline-block text-xs text-stone hover:text-ink"
-          >
-            Built by Front Range Dev Co. ↗
-          </a>
         </div>
       </div>
     </footer>
