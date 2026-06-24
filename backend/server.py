@@ -1026,10 +1026,17 @@ async def get_event_attendees(event_id: str, user: dict = Depends(get_current_us
         if not joined:
             raise HTTPException(status_code=403, detail="Not joined to this event")
     out = []
-    async for link in event_attendees.find({"event_id": oid}):
-        attendee = await users.find_one({"_id": link["user_id"]})
-        if attendee and not attendee.get("is_admin"):
-            out.append(serialize_attendee(attendee))
+    links = await event_attendees.find({"event_id": oid}).to_list(None)
+    user_ids = [link["user_id"] for link in links]
+    if user_ids:
+        by_id = {
+            u["_id"]: u
+            for u in await users.find({"_id": {"$in": user_ids}}).to_list(None)
+        }
+        for link in links:
+            attendee = by_id.get(link["user_id"])
+            if attendee and not attendee.get("is_admin"):
+                out.append(serialize_attendee(attendee))
     return out
 
 
@@ -1040,12 +1047,29 @@ async def discoverable_events(user: dict = Depends(get_current_user)):
     joined_ids = set()
     async for link in event_attendees.find({"user_id": user["_id"]}):
         joined_ids.add(link["event_id"])
+    candidates = [
+        e
+        for e in await events.find({"date": {"$gte": now}}).sort("date", 1).to_list(None)
+        if e["_id"] not in joined_ids
+    ]
+    event_ids = [e["_id"] for e in candidates]
+    counts: dict = {}
+    if event_ids:
+        async for row in event_attendees.aggregate(
+            [
+                {"$match": {"event_id": {"$in": event_ids}}},
+                {"$group": {"_id": "$event_id", "n": {"$sum": 1}}},
+            ]
+        ):
+            counts[row["_id"]] = row["n"]
+    host_ids = list({e.get("created_by") for e in candidates if e.get("created_by")})
+    hosts: dict = {}
+    if host_ids:
+        for h in await users.find({"_id": {"$in": host_ids}}).to_list(None):
+            hosts[h["_id"]] = h
     out = []
-    async for e in events.find({"date": {"$gte": now}}).sort("date", 1):
-        if e["_id"] in joined_ids:
-            continue
-        count = await event_attendees.count_documents({"event_id": e["_id"]})
-        host = await users.find_one({"_id": e.get("created_by")})
+    for e in candidates:
+        host = hosts.get(e.get("created_by"))
         host_profile = (host or {}).get("profile") or {}
         out.append(
             {
@@ -1054,7 +1078,7 @@ async def discoverable_events(user: dict = Depends(get_current_user)):
                 "date": e["date"],
                 "location": e.get("location", ""),
                 "industry_tags": e.get("industry_tags", []),
-                "attendee_count": count,
+                "attendee_count": counts.get(e["_id"], 0),
                 "host_name": host_profile.get("name")
                 or (host or {}).get("email", "")
                 or "",
@@ -1132,10 +1156,8 @@ async def my_attendees(user: dict = Depends(get_current_user)):
     if not my_event_ids:
         return []
     seen: set = set()
-    out = []
-    async for link in event_attendees.find(
-        {"event_id": {"$in": my_event_ids}}
-    ):
+    uids = []
+    async for link in event_attendees.find({"event_id": {"$in": my_event_ids}}):
         uid = link["user_id"]
         if uid == user["_id"]:
             continue
@@ -1143,20 +1165,47 @@ async def my_attendees(user: dict = Depends(get_current_user)):
         if key in seen:
             continue
         seen.add(key)
-        u = await users.find_one({"_id": uid})
-        if u and not u.get("is_admin"):
-            out.append(serialize_attendee(u))
+        uids.append(uid)
+    out = []
+    if uids:
+        docs = {
+            u["_id"]: u
+            for u in await users.find({"_id": {"$in": uids}}).to_list(None)
+        }
+        for uid in uids:
+            u = docs.get(uid)
+            if u and not u.get("is_admin"):
+                out.append(serialize_attendee(u))
     return out
 
 
 @app.get("/api/my-events")
 async def my_events(user: dict = Depends(get_current_user)):
+    links = (
+        await event_attendees.find({"user_id": user["_id"]})
+        .sort("joined_at", -1)
+        .to_list(None)
+    )
+    event_ids = [link["event_id"] for link in links]
+    if not event_ids:
+        return []
+    events_by_id = {
+        e["_id"]: e
+        for e in await events.find({"_id": {"$in": event_ids}}).to_list(None)
+    }
+    counts: dict = {}
+    async for row in event_attendees.aggregate(
+        [
+            {"$match": {"event_id": {"$in": event_ids}}},
+            {"$group": {"_id": "$event_id", "n": {"$sum": 1}}},
+        ]
+    ):
+        counts[row["_id"]] = row["n"]
     out = []
-    async for link in event_attendees.find({"user_id": user["_id"]}).sort("joined_at", -1):
-        e = await events.find_one({"_id": link["event_id"]})
+    for link in links:
+        e = events_by_id.get(link["event_id"])
         if e:
-            count = await event_attendees.count_documents({"event_id": e["_id"]})
-            out.append(serialize_event(e, count))
+            out.append(serialize_event(e, counts.get(e["_id"], 0)))
     return out
 
 
@@ -1285,12 +1334,22 @@ async def is_contact_saved(
 
 @app.get("/api/admin/users")
 async def admin_list_users(_: dict = Depends(get_current_admin)):
+    all_users = (
+        await users.find({"is_admin": {"$ne": True}})
+        .sort("created_at", -1)
+        .to_list(None)
+    )
+    links_by_user: dict = {}
+    if all_users:
+        async for link in event_attendees.find(
+            {"user_id": {"$in": [u["_id"] for u in all_users]}}
+        ):
+            links_by_user.setdefault(link["user_id"], []).append(
+                str(link["event_id"])
+            )
     out = []
-    cursor = users.find({"is_admin": {"$ne": True}}).sort("created_at", -1)
-    async for u in cursor:
-        event_ids = []
-        async for link in event_attendees.find({"user_id": u["_id"]}):
-            event_ids.append(str(link["event_id"]))
+    for u in all_users:
+        event_ids = links_by_user.get(u["_id"], [])
         out.append(
             {
                 "id": str(u["_id"]),
@@ -1784,10 +1843,19 @@ async def health():
 # ---------- Public blog (server-rendered; surfaced at the marketing domain
 # via a Vercel rewrite). Only published posts are shown. ----------
 
+# Edge-cacheable so the Vercel proxy serves these without round-tripping to
+# Render on every hit (avoids cold-start latency on the public blog).
+_BLOG_INDEX_CACHE = "public, s-maxage=300, stale-while-revalidate=600"
+_BLOG_POST_CACHE = "public, s-maxage=3600, stale-while-revalidate=86400"
+
+
 @app.get("/blog", response_class=HTMLResponse)
 async def blog_index():
     posts = await list_published(limit=50)
-    return HTMLResponse(blog_render.render_index(posts))
+    return HTMLResponse(
+        blog_render.render_index(posts),
+        headers={"Cache-Control": _BLOG_INDEX_CACHE},
+    )
 
 
 @app.get("/blog/{slug}", response_class=HTMLResponse)
@@ -1795,7 +1863,10 @@ async def blog_post(slug: str):
     doc = await get_by_slug(slug)
     if not doc:
         return HTMLResponse(blog_render.render_404(), status_code=404)
-    return HTMLResponse(blog_render.render_post(doc))
+    return HTMLResponse(
+        blog_render.render_post(doc),
+        headers={"Cache-Control": _BLOG_POST_CACHE},
+    )
 
 
 # ---------- Blog pipeline: cron tick + admin controls ----------
