@@ -5,6 +5,8 @@ export default function PhotoBand() {
         src="/images/networking-event.jpg"
         alt="People talking and connecting at a networking event"
         loading="lazy"
+        width="1920"
+        height="1080"
         className="w-full h-[44vh] min-h-[320px] max-h-[520px] object-cover"
       />
       <div
