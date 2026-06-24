@@ -68,6 +68,8 @@ export default function FAQ() {
                 <div key={f.q}>
                   <button
                     onClick={() => setOpen(isOpen ? -1 : i)}
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${i}`}
                     className="w-full py-6 text-left flex items-start justify-between gap-6 group"
                   >
                     <div className="flex items-start gap-4 min-w-0">
@@ -90,7 +92,7 @@ export default function FAQ() {
                     </div>
                   </button>
                   {isOpen && (
-                    <div className="pb-6 pl-12 pr-2 -mt-2">
+                    <div id={`faq-answer-${i}`} className="pb-6 pl-12 pr-2 -mt-2">
                       <p className="text-[15px] text-stone leading-relaxed">
                         {f.a}
                       </p>
