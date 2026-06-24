@@ -8,6 +8,11 @@ export default function Hero() {
         src="/images/networking-mixer.jpg"
         alt=""
         aria-hidden="true"
+        width="1920"
+        height="1280"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
         className="absolute inset-0 w-full h-full object-cover"
       />
       <div
