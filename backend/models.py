@@ -17,8 +17,8 @@ class Profile(BaseModel):
 
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=6)
-    name: Optional[str] = ""
+    password: str = Field(min_length=6, max_length=200)
+    name: Optional[str] = Field(default="", max_length=100)
 
 
 class LoginRequest(BaseModel):
@@ -36,19 +36,20 @@ class ResetPasswordRequest(BaseModel):
 
 
 class ProfileUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    role: Optional[str] = None
-    company: Optional[str] = None
-    industry: Optional[str] = None
-    bio: Optional[str] = None
-    looking_for: Optional[str] = None
-    phone: Optional[str] = None
-    linkedin: Optional[str] = None
-    photo_url: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=100)
+    role: Optional[str] = Field(default=None, max_length=100)
+    company: Optional[str] = Field(default=None, max_length=200)
+    industry: Optional[str] = Field(default=None, max_length=120)
+    bio: Optional[str] = Field(default=None, max_length=2000)
+    looking_for: Optional[str] = Field(default=None, max_length=1000)
+    phone: Optional[str] = Field(default=None, max_length=40)
+    linkedin: Optional[str] = Field(default=None, max_length=300)
+    photo_url: Optional[str] = Field(default=None, max_length=2_200_000)
 
 
 class PhotoUploadRequest(BaseModel):
-    photo_data: str  # base64 data URL
+    # base64 data URL; cap ~1.6MB decoded to avoid unbounded Mongo growth / OOM
+    photo_data: str = Field(max_length=2_200_000)
 
 
 class UserPublic(BaseModel):
@@ -66,17 +67,17 @@ class AttendeePublic(BaseModel):
 
 
 class EventCreateRequest(BaseModel):
-    name: str
+    name: str = Field(max_length=200)
     date: datetime
-    location: Optional[str] = ""
-    industry_tags: List[str] = []
+    location: Optional[str] = Field(default="", max_length=200)
+    industry_tags: List[str] = Field(default_factory=list, max_length=50)
 
 
 class EventUpdateRequest(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=200)
     date: Optional[datetime] = None
-    location: Optional[str] = None
-    industry_tags: Optional[List[str]] = None
+    location: Optional[str] = Field(default=None, max_length=200)
+    industry_tags: Optional[List[str]] = Field(default=None, max_length=50)
 
 
 class EventPublic(BaseModel):
@@ -93,11 +94,11 @@ class EventPublic(BaseModel):
 
 class SaveContactRequest(BaseModel):
     contact_id: str
-    note: Optional[str] = ""
+    note: Optional[str] = Field(default="", max_length=2000)
 
 
 class NoteUpdateRequest(BaseModel):
-    note: str
+    note: str = Field(max_length=2000)
 
 
 class SavedContactPublic(BaseModel):
@@ -116,14 +117,14 @@ class StatsResponse(BaseModel):
 
 class BulkImportRow(BaseModel):
     email: EmailStr
-    name: Optional[str] = ""
-    role: Optional[str] = ""
-    company: Optional[str] = ""
-    industry: Optional[str] = ""
-    bio: Optional[str] = ""
-    looking_for: Optional[str] = ""
-    phone: Optional[str] = ""
-    linkedin: Optional[str] = ""
+    name: Optional[str] = Field(default="", max_length=100)
+    role: Optional[str] = Field(default="", max_length=100)
+    company: Optional[str] = Field(default="", max_length=200)
+    industry: Optional[str] = Field(default="", max_length=120)
+    bio: Optional[str] = Field(default="", max_length=2000)
+    looking_for: Optional[str] = Field(default="", max_length=1000)
+    phone: Optional[str] = Field(default="", max_length=40)
+    linkedin: Optional[str] = Field(default="", max_length=300)
 
 
 class BulkImportRequest(BaseModel):
@@ -167,3 +168,18 @@ class SponsorPublic(BaseModel):
 class BlogFlagRequest(BaseModel):
     name: str
     value: bool
+
+
+class RequestInviteRequest(BaseModel):
+    message: Optional[str] = Field(default="", max_length=2000)
+
+
+class CheckEmailsRequest(BaseModel):
+    # EmailStr forces each element to be a real email string, so the list can be
+    # safely used in a Mongo $in query (no operator-object injection).
+    emails: List[EmailStr] = Field(default_factory=list, max_length=1000)
+
+
+class TemplateUpdateRequest(BaseModel):
+    subject: Optional[str] = Field(default=None, max_length=300)
+    body: Optional[str] = Field(default=None, max_length=20000)
