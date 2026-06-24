@@ -163,7 +163,8 @@ def render_post(doc: dict) -> str:
         + "</script>"
     )
     body = (
-        f'<article class="wrap"><a class="back" href="/blog">← All articles</a>'
+        f'<article class="wrap"><a class="back" href="/blog" aria-label="All articles">'
+        f'<span aria-hidden="true">&larr;</span> All articles</a>'
         f"<h1 style=\"margin-top:18px\">{_esc(title)}</h1>"
         f'<div class="meta">{_esc(_fmt_date(doc.get("published_at")))}</div>'
         f'<div class="summary">{_esc(summary)}</div>'

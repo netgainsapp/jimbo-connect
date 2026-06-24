@@ -3,7 +3,8 @@ export default function PhotoBand() {
     <section className="relative">
       <img
         src="/images/networking-event.jpg"
-        alt="People talking and connecting at a networking event"
+        alt=""
+        aria-hidden="true"
         loading="lazy"
         width="1920"
         height="1080"
