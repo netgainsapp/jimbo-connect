@@ -14,7 +14,10 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-line">
+    <nav
+      aria-label="Main navigation"
+      className="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-line"
+    >
       <div className="container-prose h-16 flex items-center justify-between">
         <a href="#" className="flex items-center">
           <Lockup size="sm" />
@@ -46,13 +49,15 @@ export default function Nav() {
         <button
           onClick={() => setOpen((v) => !v)}
           className="md:hidden p-2 rounded-pill hover:bg-cream"
-          aria-label="Menu"
+          aria-label={open ? "Close navigation" : "Open navigation"}
+          aria-expanded={open}
+          aria-controls="mobile-menu"
         >
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
       {open && (
-        <div className="md:hidden border-t border-line bg-white">
+        <div id="mobile-menu" className="md:hidden border-t border-line bg-white">
           <div className="container-prose py-3 flex flex-col gap-1">
             {LINKS.map((l) => (
               <a
