@@ -170,9 +170,9 @@ export default function AdminBlog() {
 function Section({ title, children }) {
   return (
     <div className="mb-6">
-      <div className="text-xs uppercase tracking-wider text-text-muted font-semibold mb-2">
+      <h2 className="text-xs uppercase tracking-wider text-text-muted font-semibold mb-2">
         {title}
-      </div>
+      </h2>
       <div className="flex flex-col gap-3">{children}</div>
     </div>
   );

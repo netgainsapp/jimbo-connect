@@ -181,7 +181,8 @@ export default function Nav() {
                 <button
                   onClick={() => setOpen((v) => !v)}
                   className="p-2 rounded-pill hover:bg-bg-secondary text-text-primary"
-                  aria-label="Menu"
+                  aria-label={open ? "Close menu" : "Open menu"}
+                  aria-expanded={open}
                 >
                   {open ? (
                     <X className="w-5 h-5" />
