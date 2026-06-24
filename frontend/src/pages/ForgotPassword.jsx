@@ -46,8 +46,9 @@ export default function ForgotPassword() {
         {!submitted ? (
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div>
-              <label className="label">Email</label>
+              <label className="label" htmlFor="forgot-email">Email</label>
               <input
+                id="forgot-email"
                 type="email"
                 className="input"
                 value={email}

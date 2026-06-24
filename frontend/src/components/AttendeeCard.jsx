@@ -14,8 +14,17 @@ export default function AttendeeCard({
   const hasFooter = note || meta;
   return (
     <div
-      className="card p-4 flex flex-col gap-2 hover:border-primary/50 transition cursor-pointer"
+      role="button"
+      tabIndex={0}
+      aria-label={`View ${p.name || attendee.email}'s profile`}
+      className="card p-4 flex flex-col gap-2 hover:border-primary/50 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
       onClick={() => onOpen?.(attendee)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen?.(attendee);
+        }
+      }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">

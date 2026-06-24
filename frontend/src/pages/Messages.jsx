@@ -248,6 +248,7 @@ function Conversation({ otherId, meId, onSent }) {
         <input
           className="input flex-1"
           placeholder="Type a message…"
+          aria-label="Message text"
           value={text}
           onChange={(e) => setText(e.target.value)}
         />

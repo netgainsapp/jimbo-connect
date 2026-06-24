@@ -52,8 +52,9 @@ export default function Login() {
         </p>
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div>
-            <label className="label">Email</label>
+            <label className="label" htmlFor="login-email">Email</label>
             <input
+              id="login-email"
               type="email"
               className="input"
               value={email}
@@ -63,8 +64,9 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="label">Password</label>
+            <label className="label" htmlFor="login-password">Password</label>
             <input
+              id="login-password"
               type="password"
               className="input"
               value={password}

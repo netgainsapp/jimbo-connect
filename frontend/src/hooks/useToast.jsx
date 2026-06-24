@@ -24,10 +24,15 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+      <div
+        aria-live="polite"
+        aria-atomic="false"
+        className="fixed bottom-6 right-6 z-50 flex flex-col gap-2"
+      >
         {toasts.map((t) => (
           <div
             key={t.id}
+            role={t.type === "error" ? "alert" : "status"}
             className="flex items-center gap-2 bg-white border border-border-default shadow-card rounded-card px-4 py-3 text-sm text-text-primary min-w-[240px]"
           >
             {t.type === "error" ? (
