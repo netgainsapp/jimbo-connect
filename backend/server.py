@@ -5,6 +5,7 @@ import re
 import secrets
 import socket
 import string
+import sys
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from typing import List, Optional
@@ -63,6 +64,9 @@ from models import (
     SponsorPublic,
     SendMessageRequest,
     BlogFlagRequest,
+    RequestInviteRequest,
+    CheckEmailsRequest,
+    TemplateUpdateRequest,
 )
 
 load_dotenv()
@@ -537,8 +541,32 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],
-    expose_headers=["*"],
+    expose_headers=[],
 )
+
+
+@app.middleware("http")
+async def _security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+    )
+    # Tight CSP for the server-rendered blog HTML. Those pages carry no
+    # executable JS, only inline <style>, Google Fonts, and a JSON-LD block, all
+    # server-controlled and HTML-escaped. 'unsafe-inline' covers the JSON-LD and
+    # inline styles without opening an XSS path on already-escaped content.
+    if request.url.path == "/blog" or request.url.path.startswith("/blog/"):
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; img-src 'self' data: https:; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "script-src 'self' 'unsafe-inline'; object-src 'none'; "
+            "base-uri 'self'; frame-ancestors 'none'"
+        )
+    return response
 
 
 def _cookie_secure() -> bool:
@@ -646,39 +674,44 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
         request, "forgot", limit=5, window_seconds=900, identifier=payload.email
     )
     user = await users.find_one({"email": payload.email.lower().strip()})
-    if not user:
-        return {"ok": True, "sent": False}
-    token = _new_reset_token()
-    expires = datetime.now(timezone.utc) + _td(hours=2)
-    await users.update_one(
-        {"_id": user["_id"]},
-        {"$set": {"reset_token": token, "reset_token_expires": expires}},
-    )
-    reset_url = f"{FRONTEND_URL}/reset-password/{token}"
-    profile = user.get("profile") or {}
-    rendered = await render_email_template(
-        "password-reset",
-        {
-            "attendee_name": profile.get("name") or "",
-            "attendee_email": user["email"],
-            "host_name": "Intro Connect",
-            "site_url": FRONTEND_URL,
-            "reset_url": reset_url,
-        },
-    )
-    sent = False
-    if email_send.is_configured() and rendered:
-        result = await email_send.send_email(
-            to=user["email"],
-            subject=rendered["subject"],
-            html=body_to_html(rendered["body"]),
-            text=rendered["body"],
+    if user:
+        token = _new_reset_token()
+        expires = datetime.now(timezone.utc) + _td(hours=2)
+        await users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"reset_token": token, "reset_token_expires": expires}},
         )
-        sent = bool(result.get("sent"))
-    out = {"ok": True, "sent": sent}
-    if not sent:
-        out["reset_url"] = reset_url
-    return out
+        reset_url = f"{FRONTEND_URL}/reset-password/{token}"
+        profile = user.get("profile") or {}
+        rendered = await render_email_template(
+            "password-reset",
+            {
+                "attendee_name": profile.get("name") or "",
+                "attendee_email": user["email"],
+                "host_name": "Intro Connect",
+                "site_url": FRONTEND_URL,
+                "reset_url": reset_url,
+            },
+        )
+        sent = False
+        if email_send.is_configured() and rendered:
+            result = await email_send.send_email(
+                to=user["email"],
+                subject=rendered["subject"],
+                html=body_to_html(rendered["body"]),
+                text=rendered["body"],
+            )
+            sent = bool(result.get("sent"))
+        # Never return the reset link in the response body (that would let anyone
+        # request a reset for a victim's email and read the link). When email is
+        # not sent (dev, or a send failure), log it server-side instead.
+        if not sent:
+            print(
+                f"[forgot-password] reset link for {user['email']}: {reset_url}",
+                file=sys.stderr,
+            )
+    # Identical response whether or not the account exists, to avoid enumeration.
+    return {"ok": True}
 
 
 @app.post("/api/auth/reset-password")
@@ -706,10 +739,11 @@ async def reset_password(payload: ResetPasswordRequest, response: Response, requ
 
 
 @app.get("/api/auth/magic/{token}")
-async def magic_login(token: str, response: Response):
+async def magic_login(token: str, response: Response, request: Request):
     """One-tap login via a reset token. Single-use: the token is cleared
     after a successful login so the link cannot be replayed if it leaks
     (e.g. via referrer headers, logs, or shared history)."""
+    rate_limit.guard(request, "magic", limit=10, window_seconds=300)
     user = await users.find_one({"reset_token": token})
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired link")
@@ -749,8 +783,11 @@ async def update_my_profile(
 
 @app.post("/api/profile/photo")
 async def upload_photo(
-    payload: PhotoUploadRequest, user: dict = Depends(get_current_user)
+    payload: PhotoUploadRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
 ):
+    rate_limit.guard(request, "photo", limit=20, window_seconds=300)
     profile = user.get("profile") or {}
     profile["photo_url"] = payload.photo_data
     await users.update_one({"_id": user["_id"]}, {"$set": {"profile": profile}})
@@ -1028,7 +1065,9 @@ async def discoverable_events(user: dict = Depends(get_current_user)):
 
 @app.post("/api/events/{event_id}/request-invite")
 async def request_invite(
-    event_id: str, payload: dict, user: dict = Depends(get_current_user)
+    event_id: str,
+    payload: RequestInviteRequest,
+    user: dict = Depends(get_current_user),
 ):
     try:
         oid = ObjectId(event_id)
@@ -1046,7 +1085,7 @@ async def request_invite(
     if existing:
         raise HTTPException(status_code=400, detail="Already joined")
 
-    note = str(payload.get("message", "")).strip()
+    note = (payload.message or "").strip()
     profile = user.get("profile") or {}
     name = profile.get("name") or user["email"]
     role_company = " · ".join(
@@ -1424,10 +1463,9 @@ async def delete_event_sponsor(
 
 @app.post("/api/admin/users/check-emails")
 async def admin_check_emails(
-    payload: dict, _: dict = Depends(get_current_admin)
+    payload: CheckEmailsRequest, _: dict = Depends(get_current_admin)
 ):
-    emails = payload.get("emails") or []
-    emails = [str(e).lower().strip() for e in emails if e]
+    emails = [str(e).lower().strip() for e in payload.emails if e]
     matches = []
     found_set = set()
     if emails:
@@ -1463,14 +1501,14 @@ async def list_email_templates_api(_: dict = Depends(get_current_admin)):
 @app.put("/api/email-templates/{template_id}")
 async def update_email_template_api(
     template_id: str,
-    payload: dict,
+    payload: TemplateUpdateRequest,
     _: dict = Depends(get_current_admin),
 ):
     updates = {}
-    if "subject" in payload:
-        updates["subject"] = str(payload["subject"])
-    if "body" in payload:
-        updates["body"] = str(payload["body"])
+    if payload.subject is not None:
+        updates["subject"] = payload.subject
+    if payload.body is not None:
+        updates["body"] = payload.body
     if not updates:
         raise HTTPException(status_code=400, detail="Nothing to update")
     updates["updated_at"] = datetime.now(timezone.utc)
@@ -1632,8 +1670,11 @@ def _serialize_message(doc: dict) -> dict:
 
 @app.post("/api/messages")
 async def send_message(
-    payload: SendMessageRequest, user: dict = Depends(get_current_user)
+    payload: SendMessageRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
 ):
+    rate_limit.guard(request, "messages", limit=30, window_seconds=60)
     try:
         to_oid = ObjectId(payload.to_user_id)
     except Exception:
