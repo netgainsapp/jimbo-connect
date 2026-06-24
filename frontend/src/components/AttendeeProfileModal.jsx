@@ -274,7 +274,7 @@ function ContactRow({ icon, label, onCopy }) {
       <button
         onClick={onCopy}
         className="text-text-secondary hover:text-primary p-1"
-        aria-label="Copy"
+        aria-label={`Copy ${label}`}
       >
         <Copy className="w-4 h-4" />
       </button>

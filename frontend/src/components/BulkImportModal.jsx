@@ -255,6 +255,7 @@ export default function BulkImportModal({
 
             <textarea
               className="input mt-3 min-h-[180px] font-mono text-xs"
+              aria-label="Paste emails or CSV rows"
               placeholder={`email,name,company,role
 ava@example.com,Ava Reynolds,Trailhead Labs,Founder
 ben@example.com,Ben Carter,Summit Robotics,VP Engineering
@@ -269,8 +270,9 @@ ben@example.com`}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="label">Add to event (optional)</label>
+                <label className="label" htmlFor="bulk-event">Add to event (optional)</label>
                 <select
+                  id="bulk-event"
                   className="input"
                   value={eventId}
                   onChange={(e) => setEventId(e.target.value)}

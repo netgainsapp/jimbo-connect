@@ -118,16 +118,17 @@ export default function ProfileSetup({ editMode = false }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label">Full name *</label>
-            <input className="input" value={form.name} onChange={setField("name")} required />
+            <label className="label" htmlFor="profile-name">Full name *</label>
+            <input id="profile-name" className="input" value={form.name} onChange={setField("name")} required />
           </div>
           <div>
-            <label className="label">Role / title *</label>
-            <input className="input" value={form.role} onChange={setField("role")} required />
+            <label className="label" htmlFor="profile-role">Role / title *</label>
+            <input id="profile-role" className="input" value={form.role} onChange={setField("role")} required />
           </div>
           <div>
-            <label className="label">Company *</label>
+            <label className="label" htmlFor="profile-company">Company *</label>
             <input
+              id="profile-company"
               className="input"
               value={form.company}
               onChange={setField("company")}
@@ -135,8 +136,9 @@ export default function ProfileSetup({ editMode = false }) {
             />
           </div>
           <div>
-            <label className="label">Industry</label>
+            <label className="label" htmlFor="profile-industry">Industry</label>
             <input
+              id="profile-industry"
               className="input"
               value={form.industry}
               onChange={setField("industry")}
@@ -146,8 +148,9 @@ export default function ProfileSetup({ editMode = false }) {
         </div>
 
         <div>
-          <label className="label">Bio</label>
+          <label className="label" htmlFor="profile-bio">Bio</label>
           <textarea
+            id="profile-bio"
             className="input min-h-[90px]"
             value={form.bio}
             onChange={setField("bio")}
@@ -156,8 +159,9 @@ export default function ProfileSetup({ editMode = false }) {
         </div>
 
         <div>
-          <label className="label">What you're looking for</label>
+          <label className="label" htmlFor="profile-looking-for">What you're looking for</label>
           <textarea
+            id="profile-looking-for"
             className="input min-h-[70px]"
             value={form.looking_for}
             onChange={setField("looking_for")}
@@ -167,8 +171,9 @@ export default function ProfileSetup({ editMode = false }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label">Phone</label>
+            <label className="label" htmlFor="profile-phone">Phone</label>
             <input
+              id="profile-phone"
               className="input"
               value={form.phone}
               onChange={setField("phone")}
@@ -176,8 +181,9 @@ export default function ProfileSetup({ editMode = false }) {
             />
           </div>
           <div>
-            <label className="label">LinkedIn</label>
+            <label className="label" htmlFor="profile-linkedin">LinkedIn</label>
             <input
+              id="profile-linkedin"
               className="input"
               value={form.linkedin}
               onChange={setField("linkedin")}
