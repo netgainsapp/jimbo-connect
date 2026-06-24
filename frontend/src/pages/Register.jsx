@@ -43,8 +43,9 @@ export default function Register() {
         </p>
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div>
-            <label className="label">Full name</label>
+            <label className="label" htmlFor="register-name">Full name</label>
             <input
+              id="register-name"
               className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -52,8 +53,9 @@ export default function Register() {
             />
           </div>
           <div>
-            <label className="label">Email</label>
+            <label className="label" htmlFor="register-email">Email</label>
             <input
+              id="register-email"
               type="email"
               className="input"
               value={email}
@@ -62,8 +64,9 @@ export default function Register() {
             />
           </div>
           <div>
-            <label className="label">Password</label>
+            <label className="label" htmlFor="register-password">Password</label>
             <input
+              id="register-password"
               type="password"
               className="input"
               value={password}

@@ -26,7 +26,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Nav />
-      <div className="pt-14 flex-1">
+      <main className="pt-14 flex-1">
         <Routes>
           <Route
             path="/"
@@ -160,7 +160,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </div>
+      </main>
       <Footer />
     </div>
   );
