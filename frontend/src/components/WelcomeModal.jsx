@@ -88,7 +88,7 @@ export default function WelcomeModal({ open, onClose, hostName }) {
               <Icon className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <div className="text-xs text-text-muted font-semibold">
+              <div className="text-xs text-text-muted font-semibold" aria-live="polite">
                 Step {step + 1} of {STEPS.length}
               </div>
               <div className="font-bold text-text-primary text-lg">
