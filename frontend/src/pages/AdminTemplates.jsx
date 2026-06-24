@@ -344,14 +344,16 @@ export default function AdminTemplates() {
                     </button>
                   </div>
                 </div>
-                <label className="label">Subject line</label>
+                <label className="label" htmlFor="template-subject">Subject line</label>
                 <input
+                  id="template-subject"
                   className="input mb-3"
                   value={draftSubject}
                   onChange={(e) => setDraftSubject(e.target.value)}
                 />
-                <label className="label">Body</label>
+                <label className="label" htmlFor="template-body">Body</label>
                 <textarea
+                  id="template-body"
                   className="input flex-1 min-h-[420px] font-sans whitespace-pre-wrap"
                   value={draftBody}
                   onChange={(e) => setDraftBody(e.target.value)}
