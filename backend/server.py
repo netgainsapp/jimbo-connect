@@ -827,10 +827,27 @@ async def get_profile_by_id(user_id: str, _: dict = Depends(get_current_user)):
 
 # ---------- Events ----------
 
+# Self-serve hosting: any signup can host, the free plan covers one event.
+# Admins are unlimited. (Guest cap and directory expiry are separate follow-ups.)
+FREE_EVENT_LIMIT = 1
+
+
+def _can_manage_event(user: dict, event: dict) -> bool:
+    """An event is managed by a platform admin or by the host who created it."""
+    return bool(user.get("is_admin")) or event.get("created_by") == user.get("_id")
+
+
 @app.post("/api/events")
 async def create_event(
-    payload: EventCreateRequest, admin: dict = Depends(get_current_admin)
+    payload: EventCreateRequest, user: dict = Depends(get_current_user)
 ):
+    if not user.get("is_admin"):
+        hosted = await events.count_documents({"created_by": user["_id"]})
+        if hosted >= FREE_EVENT_LIMIT:
+            raise HTTPException(
+                status_code=403,
+                detail="Your free plan includes one event. Upgrade to host more.",
+            )
     code = generate_join_code()
     while await events.find_one({"join_code": code}):
         code = generate_join_code()
@@ -841,12 +858,32 @@ async def create_event(
         "location": payload.location or "",
         "industry_tags": payload.industry_tags or [],
         "join_code": code,
-        "created_by": admin["_id"],
+        "created_by": user["_id"],
         "created_at": now,
     }
     result = await events.insert_one(doc)
     doc["_id"] = result.inserted_id
     return serialize_event(doc, 0)
+
+
+@app.get("/api/my-hosted-events")
+async def my_hosted_events(user: dict = Depends(get_current_user)):
+    """Events this user created (the self-serve host view)."""
+    hosted = (
+        await events.find({"created_by": user["_id"]}).sort("date", -1).to_list(None)
+    )
+    if not hosted:
+        return []
+    event_ids = [e["_id"] for e in hosted]
+    counts: dict = {}
+    async for row in event_attendees.aggregate(
+        [
+            {"$match": {"event_id": {"$in": event_ids}}},
+            {"$group": {"_id": "$event_id", "n": {"$sum": 1}}},
+        ]
+    ):
+        counts[row["_id"]] = row["n"]
+    return [serialize_event(e, counts.get(e["_id"], 0)) for e in hosted]
 
 
 @app.get("/api/events")
@@ -867,7 +904,7 @@ async def get_event(event_id: str, user: dict = Depends(get_current_user)):
     e = await events.find_one({"_id": oid})
     if not e:
         raise HTTPException(status_code=404, detail="Event not found")
-    if not user.get("is_admin"):
+    if not _can_manage_event(user, e):
         joined = await event_attendees.find_one(
             {"event_id": oid, "user_id": user["_id"]}
         )
@@ -881,28 +918,36 @@ async def get_event(event_id: str, user: dict = Depends(get_current_user)):
 async def update_event(
     event_id: str,
     payload: EventUpdateRequest,
-    _: dict = Depends(get_current_admin),
+    user: dict = Depends(get_current_user),
 ):
     try:
         oid = ObjectId(event_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid event id")
-    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
-    if updates:
-        await events.update_one({"_id": oid}, {"$set": updates})
     e = await events.find_one({"_id": oid})
     if not e:
         raise HTTPException(status_code=404, detail="Event not found")
+    if not _can_manage_event(user, e):
+        raise HTTPException(status_code=403, detail="Not your event")
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if updates:
+        await events.update_one({"_id": oid}, {"$set": updates})
+        e = await events.find_one({"_id": oid})
     count = await event_attendees.count_documents({"event_id": oid})
     return serialize_event(e, count)
 
 
 @app.delete("/api/events/{event_id}")
-async def delete_event(event_id: str, _: dict = Depends(get_current_admin)):
+async def delete_event(event_id: str, user: dict = Depends(get_current_user)):
     try:
         oid = ObjectId(event_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid event id")
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not _can_manage_event(user, e):
+        raise HTTPException(status_code=403, detail="Not your event")
     await event_attendees.delete_many({"event_id": oid})
     await event_sponsors.delete_many({"event_id": oid})
     await events.delete_one({"_id": oid})
@@ -911,13 +956,18 @@ async def delete_event(event_id: str, _: dict = Depends(get_current_admin)):
 
 @app.delete("/api/events/{event_id}/attendees/{user_id}")
 async def admin_remove_attendee(
-    event_id: str, user_id: str, _: dict = Depends(get_current_admin)
+    event_id: str, user_id: str, user: dict = Depends(get_current_user)
 ):
     try:
         e_oid = ObjectId(event_id)
         u_oid = ObjectId(user_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid id")
+    e = await events.find_one({"_id": e_oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not _can_manage_event(user, e):
+        raise HTTPException(status_code=403, detail="Not your event")
     result = await event_attendees.delete_one(
         {"event_id": e_oid, "user_id": u_oid}
     )
@@ -1019,7 +1069,7 @@ async def get_event_attendees(event_id: str, user: dict = Depends(get_current_us
     e = await events.find_one({"_id": oid})
     if not e:
         raise HTTPException(status_code=404, detail="Event not found")
-    if not user.get("is_admin"):
+    if not _can_manage_event(user, e):
         joined = await event_attendees.find_one(
             {"event_id": oid, "user_id": user["_id"]}
         )
@@ -1401,7 +1451,7 @@ async def _require_event_access(event_id: str, user: dict):
     e = await events.find_one({"_id": oid})
     if not e:
         raise HTTPException(status_code=404, detail="Event not found")
-    if not user.get("is_admin"):
+    if not _can_manage_event(user, e):
         joined = await event_attendees.find_one(
             {"event_id": oid, "user_id": user["_id"]}
         )

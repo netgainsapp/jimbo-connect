@@ -107,6 +107,7 @@ export const eventsApi = {
     api.del(`/api/events/${eventId}/attendees/${userId}`),
   leave: (eventId) => api.del(`/api/my-events/${eventId}`),
   myEvents: () => api.get("/api/my-events"),
+  myHostedEvents: () => api.get("/api/my-hosted-events"),
   allMyAttendees: () => api.get("/api/my-attendees"),
   discover: () => api.get("/api/events/discoverable"),
   requestInvite: (id, message = "") =>
