@@ -20,6 +20,7 @@ email_templates = db["email_templates"]
 blog_post = db["blog_post"]
 blog_topic = db["blog_topic"]
 app_flags = db["app_flags"]
+event_invites = db["event_invites"]
 
 
 async def ensure_indexes():
@@ -33,3 +34,5 @@ async def ensure_indexes():
     await email_templates.create_index("template_id", unique=True)
     await blog_post.create_index("slug")
     await blog_post.create_index([("status", 1), ("published_at", -1)])
+    await event_invites.create_index([("event_id", 1), ("email", 1)], unique=True)
+    await event_invites.create_index([("joined_at", 1), ("reminder_step", 1)])
