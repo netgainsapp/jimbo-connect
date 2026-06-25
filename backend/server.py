@@ -31,6 +31,7 @@ from database import (
 import email_send
 import invites
 import nurture
+import outreach
 import rate_limit
 from blog import render as blog_render
 from blog.store import list_published, get_by_slug
@@ -70,6 +71,7 @@ from models import (
     CheckEmailsRequest,
     TemplateUpdateRequest,
     InviteGuestsRequest,
+    OutreachAddRequest,
 )
 
 load_dotenv()
@@ -2001,6 +2003,109 @@ async def invites_tick(request: Request):
     if not _tick_authorized(request.headers.get("x-tick-secret")):
         raise HTTPException(status_code=401, detail="Unauthorized")
     return await invites.run_invite_reminder_tick()
+
+
+# ---------- Outreach cockpit (stages host-acquisition leads, hands off to
+# signal-scout for sending). Admin only. ----------
+
+def _serialize_lead(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "email": doc.get("email", ""),
+        "name": doc.get("name", ""),
+        "company": doc.get("company", ""),
+        "role": doc.get("role", ""),
+        "source": doc.get("source", ""),
+        "status": doc.get("status", "new"),
+        "created_at": doc.get("created_at"),
+        "pushed_at": doc.get("pushed_at"),
+    }
+
+
+@app.get("/api/admin/outreach/status")
+async def outreach_status(_: dict = Depends(get_current_admin)):
+    total = await outreach_leads.count_documents({})
+    pushed = await outreach_leads.count_documents({"status": "pushed"})
+    return {
+        "configured": outreach.is_configured(),
+        "signal_scout_url": outreach.SIGNAL_SCOUT_URL or None,
+        "total": total,
+        "pushed": pushed,
+        "new": total - pushed,
+    }
+
+
+@app.get("/api/admin/outreach/leads")
+async def outreach_list(_: dict = Depends(get_current_admin)):
+    docs = await outreach_leads.find({}).sort("created_at", -1).to_list(None)
+    return [_serialize_lead(d) for d in docs]
+
+
+@app.post("/api/admin/outreach/leads")
+async def outreach_add(
+    payload: OutreachAddRequest, _: dict = Depends(get_current_admin)
+):
+    now = datetime.now(timezone.utc)
+    added = 0
+    for lead in payload.leads:
+        email = str(lead.email).lower().strip()
+        res = await outreach_leads.update_one(
+            {"email": email},
+            {
+                "$setOnInsert": {
+                    "email": email,
+                    "name": lead.name or "",
+                    "company": lead.company or "",
+                    "role": lead.role or "",
+                    "source": lead.source or "",
+                    "status": "new",
+                    "created_at": now,
+                }
+            },
+            upsert=True,
+        )
+        if res.upserted_id is not None:
+            added += 1
+    return {"added": added, "received": len(payload.leads)}
+
+
+@app.delete("/api/admin/outreach/leads/{lead_id}")
+async def outreach_remove(lead_id: str, _: dict = Depends(get_current_admin)):
+    try:
+        oid = ObjectId(lead_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid id")
+    res = await outreach_leads.delete_one({"_id": oid})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return {"ok": True}
+
+
+@app.get("/api/admin/outreach/leads.csv")
+async def outreach_csv(_: dict = Depends(get_current_admin)):
+    docs = await outreach_leads.find({}).sort("created_at", -1).to_list(None)
+    return Response(
+        content=outreach.to_csv(docs),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=intro-connect-leads.csv"
+        },
+    )
+
+
+@app.post("/api/admin/outreach/push")
+async def outreach_push(_: dict = Depends(get_current_admin)):
+    docs = await outreach_leads.find({"status": {"$ne": "pushed"}}).to_list(None)
+    if not docs:
+        return {"ok": False, "skipped": "no_new_leads"}
+    result = await outreach.push_to_signal_scout(docs)
+    if result.get("ok"):
+        now = datetime.now(timezone.utc)
+        await outreach_leads.update_many(
+            {"_id": {"$in": [d["_id"] for d in docs]}},
+            {"$set": {"status": "pushed", "pushed_at": now}},
+        )
+    return result
 
 
 @app.post("/api/admin/blog/run")
