@@ -1,0 +1,27 @@
+name: Invite reminder tick
+
+# Sends one due reminder per pending guest invite (guests who were emailed a
+# join link but have not joined yet). Secret-gated: set BLOG_TICK_SECRET as a
+# repo secret AND on the jimbo-connect-api Render service (same secret guards
+# all ticks). Sends are no-ops until RESEND_API_KEY is configured.
+
+on:
+  schedule:
+    - cron: "30 16 * * *" # daily at 16:30 UTC (after the nurture tick)
+  workflow_dispatch: {}
+
+concurrency:
+  group: invites-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send due invite reminders
+        run: |
+          curl -fsS -X POST \
+            https://jimbo-connect-api.onrender.com/api/invites/tick \
+            -H "X-Tick-Secret: ${{ secrets.BLOG_TICK_SECRET }}" \
+            --max-time 150 --retry 3 --retry-delay 15 --retry-all-errors

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Plus, Users, LogOut, Copy, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Plus, Users, LogOut, Copy, Trash2, Mail } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -16,6 +16,9 @@ export default function MyEvents() {
   const [joining, setJoining] = useState(false);
   const [form, setForm] = useState({ name: "", date: "", location: "" });
   const [creating, setCreating] = useState(false);
+  const [inviteOpenId, setInviteOpenId] = useState(null);
+  const [inviteText, setInviteText] = useState("");
+  const [inviting, setInviting] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
   const confirm = useConfirm();
@@ -83,6 +86,38 @@ export default function MyEvents() {
       }
     } finally {
       setCreating(false);
+    }
+  };
+
+  const parseEmails = (text) =>
+    Array.from(
+      new Set(
+        text
+          .split(/[\s,;]+/)
+          .map((s) => s.trim().toLowerCase())
+          .filter((s) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s))
+      )
+    );
+
+  const sendInvites = async (ev) => {
+    const emails = parseEmails(inviteText);
+    if (emails.length === 0) {
+      toast.show("Add at least one valid email", "error");
+      return;
+    }
+    setInviting(true);
+    try {
+      const res = await eventsApi.invite(ev.id, emails);
+      toast.show(`Invited ${res.invited} guest${res.invited === 1 ? "" : "s"}`);
+      setInviteText("");
+      setInviteOpenId(null);
+    } catch (err) {
+      toast.show(
+        err.status === 403 ? "Only the host can invite guests." : err.message,
+        "error"
+      );
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -245,14 +280,51 @@ export default function MyEvents() {
                       >
                         <Copy className="w-3.5 h-3.5" /> Code {e.join_code}
                       </button>
-                      <button
-                        onClick={() => removeHosted(e)}
-                        className="p-1.5 rounded-full text-text-secondary hover:bg-red-50 hover:text-red-500"
-                        aria-label={`Delete ${e.name}`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setInviteOpenId(inviteOpenId === e.id ? null : e.id);
+                            setInviteText("");
+                          }}
+                          className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> Invite guests
+                        </button>
+                        <button
+                          onClick={() => removeHosted(e)}
+                          className="p-1.5 rounded-full text-text-secondary hover:bg-red-50 hover:text-red-500"
+                          aria-label={`Delete ${e.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
+                    {inviteOpenId === e.id && (
+                      <div className="pt-1">
+                        <label className="label" htmlFor={`invite-${e.id}`}>
+                          Guest emails
+                        </label>
+                        <textarea
+                          id={`invite-${e.id}`}
+                          className="input min-h-[80px] text-sm"
+                          placeholder="Paste emails, separated by commas or new lines"
+                          value={inviteText}
+                          onChange={(ev) => setInviteText(ev.target.value)}
+                        />
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            onClick={() => sendInvites(e)}
+                            className="btn-primary"
+                            disabled={inviting}
+                          >
+                            {inviting ? "Sending…" : "Send invites"}
+                          </button>
+                          <span className="text-xs text-text-muted">
+                            We email each guest a join link.
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
