@@ -183,3 +183,7 @@ class CheckEmailsRequest(BaseModel):
 class TemplateUpdateRequest(BaseModel):
     subject: Optional[str] = Field(default=None, max_length=300)
     body: Optional[str] = Field(default=None, max_length=20000)
+
+
+class InviteGuestsRequest(BaseModel):
+    emails: List[EmailStr] = Field(default_factory=list, max_length=200)
