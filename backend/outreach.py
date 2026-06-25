@@ -66,26 +66,34 @@ def to_csv(leads) -> str:
 
 
 async def push_to_signal_scout(leads) -> dict:
-    """Live push to signal-scout's Intro Connect import endpoint. Dormant until
-    configured; expects a signal-scout endpoint that accepts the CSV with the
-    Intro Connect brand. Returns an outcome dict (never raises on config gaps)."""
+    """Live push to signal-scout's Intro Connect import endpoint
+    (POST /api/intro-connect/import, JSON). Dormant until SIGNAL_SCOUT_URL +
+    SIGNAL_SCOUT_API_KEY are set (the key is signal-scout's CRON_SECRET). Returns
+    an outcome dict (never raises on config gaps)."""
     if not is_configured():
         return {"ok": False, "skipped": "not_configured"}
     if not leads:
         return {"ok": False, "skipped": "no_leads"}
     import httpx
 
-    csv_text = to_csv(leads)
-    url = f"{SIGNAL_SCOUT_URL}/api/leads/import?brand=intro_connect"
+    payload = {
+        "leads": [
+            {
+                "email": lead.get("email", ""),
+                "name": lead.get("name", ""),
+                "company": lead.get("company", ""),
+                "role": lead.get("role", ""),
+            }
+            for lead in leads
+        ]
+    }
+    url = f"{SIGNAL_SCOUT_URL}/api/intro-connect/import"
     try:
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(
                 url,
-                headers={
-                    "Authorization": f"Bearer {SIGNAL_SCOUT_API_KEY}",
-                    "Content-Type": "text/csv",
-                },
-                content=csv_text,
+                headers={"Authorization": f"Bearer {SIGNAL_SCOUT_API_KEY}"},
+                json=payload,
             )
         ok = resp.status_code < 300
         return {
