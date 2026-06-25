@@ -29,6 +29,7 @@ from database import (
     ensure_indexes,
 )
 import email_send
+import invites
 import nurture
 import rate_limit
 from blog import render as blog_render
@@ -68,6 +69,7 @@ from models import (
     RequestInviteRequest,
     CheckEmailsRequest,
     TemplateUpdateRequest,
+    InviteGuestsRequest,
 )
 
 load_dotenv()
@@ -1065,8 +1067,30 @@ async def join_event(code: str, user: dict = Depends(get_current_user)):
                 "joined_at": datetime.now(timezone.utc),
             }
         )
+    # Stop any pending invite reminders for this guest on this event.
+    await invites.mark_joined(e["_id"], user.get("email", ""))
     count = await event_attendees.count_documents({"event_id": e["_id"]})
     return serialize_event(e, count)
+
+
+@app.post("/api/events/{event_id}/invite")
+async def invite_guests(
+    event_id: str,
+    payload: InviteGuestsRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Self-serve: a host emails their guest list a join link."""
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not _can_manage_event(user, e):
+        raise HTTPException(status_code=403, detail="Not your event")
+    host_name = (user.get("profile") or {}).get("name") or ""
+    return await invites.send_event_invites(e, payload.emails, host_name)
 
 
 @app.get("/api/events/{event_id}/attendees")
@@ -1969,6 +1993,14 @@ async def nurture_tick(request: Request):
     if not _tick_authorized(request.headers.get("x-tick-secret")):
         raise HTTPException(status_code=401, detail="Unauthorized")
     return await nurture.run_nurture_tick()
+
+
+@app.post("/api/invites/tick")
+async def invites_tick(request: Request):
+    """Send due guest-invite reminders. Secret-gated for the cron."""
+    if not _tick_authorized(request.headers.get("x-tick-secret")):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return await invites.run_invite_reminder_tick()
 
 
 @app.post("/api/admin/blog/run")
