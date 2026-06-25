@@ -7,6 +7,7 @@ import {
   UserPlus,
   Mail,
   FileText,
+  Send,
   HelpCircle,
   MapPin,
   ArrowRight,
@@ -91,6 +92,12 @@ export default function AdminDashboard() {
           icon={<FileText className="w-5 h-5" />}
           title="Blog"
           body="Review drafts, publish, and control automated posts."
+        />
+        <ActionCard
+          to="/admin/outreach"
+          icon={<Send className="w-5 h-5" />}
+          title="Outreach"
+          body="Stage host leads and hand them to signal-scout for sending."
         />
       </div>
 

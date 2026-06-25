@@ -164,6 +164,15 @@ export const templatesApi = {
   reseedAll: () => api.post("/api/admin/reseed-templates"),
 };
 
+export const outreachApi = {
+  status: () => api.get("/api/admin/outreach/status"),
+  list: () => api.get("/api/admin/outreach/leads"),
+  add: (leads) => api.post("/api/admin/outreach/leads", { leads }),
+  remove: (id) => api.del(`/api/admin/outreach/leads/${id}`),
+  push: () => api.post("/api/admin/outreach/push"),
+  exportCsv: () => api.get("/api/admin/outreach/leads.csv"),
+};
+
 export const blogApi = {
   flags: () => api.get("/api/admin/blog/flags"),
   setFlag: (name, value) => api.put("/api/admin/blog/flags", { name, value }),

@@ -187,3 +187,15 @@ class TemplateUpdateRequest(BaseModel):
 
 class InviteGuestsRequest(BaseModel):
     emails: List[EmailStr] = Field(default_factory=list, max_length=200)
+
+
+class OutreachLeadIn(BaseModel):
+    email: EmailStr
+    name: Optional[str] = Field(default="", max_length=120)
+    company: Optional[str] = Field(default="", max_length=200)
+    role: Optional[str] = Field(default="", max_length=120)
+    source: Optional[str] = Field(default="", max_length=300)
+
+
+class OutreachAddRequest(BaseModel):
+    leads: List[OutreachLeadIn] = Field(default_factory=list, max_length=500)
