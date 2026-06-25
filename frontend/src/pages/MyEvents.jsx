@@ -5,6 +5,7 @@ import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { formatDateTime } from "../lib/utils.js";
+import HostCta from "../components/HostCta.jsx";
 
 export default function MyEvents() {
   const [events, setEvents] = useState([]);
@@ -169,6 +170,8 @@ export default function MyEvents() {
           ))}
         </div>
       )}
+
+      <HostCta />
     </div>
   );
 }
