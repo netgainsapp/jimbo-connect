@@ -29,6 +29,7 @@ from database import (
     ensure_indexes,
 )
 import email_send
+import nurture
 import rate_limit
 from blog import render as blog_render
 from blog.store import list_published, get_by_slug
@@ -607,9 +608,17 @@ async def register(payload: RegisterRequest, response: Response, request: Reques
         "is_admin": False,
         "created_at": now,
         "profile": Profile(name=payload.name or "").model_dump(),
+        # Self-registered users are enrolled in the nurture drip (bulk-imported
+        # attendees are not). Step 0 = welcome sent below.
+        "nurture_enabled": True,
+        "nurture_step": 0,
     }
     result = await users.insert_one(doc)
     doc["_id"] = result.inserted_id
+    try:
+        await nurture.send_welcome(doc)
+    except Exception as exc:  # never block signup on a mail hiccup
+        print(f"[register] welcome email failed: {exc}", file=sys.stderr)
     token = create_access_token(str(result.inserted_id))
     set_auth_cookie(response, token)
     return {"user": serialize_user(doc), "token": token}
@@ -1952,6 +1961,14 @@ async def blog_tick(request: Request):
     from blog.generate import run_once
 
     return await run_once()
+
+
+@app.post("/api/nurture/tick")
+async def nurture_tick(request: Request):
+    """Advance the free-signup nurture drip once. Secret-gated for the cron."""
+    if not _tick_authorized(request.headers.get("x-tick-secret")):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return await nurture.run_nurture_tick()
 
 
 @app.post("/api/admin/blog/run")

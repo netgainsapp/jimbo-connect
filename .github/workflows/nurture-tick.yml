@@ -1,0 +1,28 @@
+name: Nurture tick
+
+# Advances the free-signup nurture drip once a day: each enrolled signup gets at
+# most one step when it comes due. Secret-gated, so set BLOG_TICK_SECRET as a
+# repo secret AND as the same env var on the jimbo-connect-api Render service
+# (the same secret guards the blog and nurture ticks). Sends are no-ops until
+# RESEND_API_KEY is configured on the backend.
+
+on:
+  schedule:
+    - cron: "0 16 * * *" # daily at 16:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: nurture-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Advance the nurture drip
+        run: |
+          curl -fsS -X POST \
+            https://jimbo-connect-api.onrender.com/api/nurture/tick \
+            -H "X-Tick-Secret: ${{ secrets.BLOG_TICK_SECRET }}" \
+            --max-time 150 --retry 3 --retry-delay 15 --retry-all-errors
