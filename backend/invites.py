@@ -78,8 +78,14 @@ def reminder_body(event_name: str, host_name: str, join_url: str) -> str:
 
 
 async def send_event_invites(event: dict, raw_emails, host_name: str) -> dict:
-    """Record and email invites for an event. Returns counts."""
+    """Record and email invites for an event. Dormant when Resend is not
+    configured (no records written either), so the invite + reminder state never
+    gets ahead of actually-sent mail."""
     emails = normalize_emails(raw_emails)
+    if not emails:
+        return {"invited": 0, "sent": 0}
+    if not email_send.is_configured():
+        return {"invited": 0, "sent": 0, "skipped": "email_not_configured"}
     join_url = _join_url(event["join_code"])
     now = datetime.now(timezone.utc)
     sent = 0
@@ -98,15 +104,14 @@ async def send_event_invites(event: dict, raw_emails, host_name: str) -> dict:
             },
             upsert=True,
         )
-        if email_send.is_configured():
-            result = await email_send.send_email(
-                to=email,
-                subject=invite_subject(event["name"]),
-                html=_html(invite_body(event["name"], host_name, join_url)),
-                text=invite_body(event["name"], host_name, join_url),
-            )
-            if result.get("sent"):
-                sent += 1
+        result = await email_send.send_email(
+            to=email,
+            subject=invite_subject(event["name"]),
+            html=_html(invite_body(event["name"], host_name, join_url)),
+            text=invite_body(event["name"], host_name, join_url),
+        )
+        if result.get("sent"):
+            sent += 1
     return {"invited": len(emails), "sent": sent}
 
 
@@ -148,16 +153,20 @@ async def run_invite_reminder_tick() -> dict:
                 {"_id": inv["_id"]}, {"$set": {"reminder_step": MAX_REMINDERS}}
             )
             continue
+        # Atomically claim this reminder slot so a concurrent tick can't
+        # double-send. If it doesn't match, another tick already handled it.
+        claimed = await event_invites.find_one_and_update(
+            {"_id": inv["_id"], "reminder_step": step, "joined_at": None},
+            {"$set": {"reminder_step": step + 1, "reminder_last_sent": now}},
+        )
+        if claimed is None:
+            continue
         join_url = _join_url(e["join_code"])
         result = await email_send.send_email(
             to=inv["email"],
             subject=invite_subject(e["name"]),
             html=_html(reminder_body(e["name"], inv.get("host_name", ""), join_url)),
             text=reminder_body(e["name"], inv.get("host_name", ""), join_url),
-        )
-        await event_invites.update_one(
-            {"_id": inv["_id"]},
-            {"$set": {"reminder_step": step + 1, "reminder_last_sent": now}},
         )
         if result.get("sent"):
             sent += 1

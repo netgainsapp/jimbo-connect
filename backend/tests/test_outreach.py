@@ -2,8 +2,22 @@
 push needs signal-scout + httpx and is not exercised here.
 Run from backend/: python -m pytest tests/test_outreach.py
 """
+import os
+
 import outreach
 from outreach import to_csv, lead_to_row, CSV_FIELDS
+
+
+def test_server_imports_outreach_leads_collection():
+    # Regression: the /admin/outreach routes reference `outreach_leads` directly,
+    # so it must be importable into server.py's namespace (a missing import only
+    # surfaces at request time, not at module import).
+    os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
+    os.environ.setdefault("DB_NAME", "t")
+    os.environ.setdefault("JWT_SECRET", "x")
+    import server
+
+    assert server.outreach_leads is not None
 
 
 def test_lead_to_row_splits_name_and_tags_source():
