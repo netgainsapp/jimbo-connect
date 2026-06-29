@@ -8,7 +8,7 @@ Resend key this is a no-op. Plain voice, no dashes, no emoji.
 """
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from database import event_invites, events
 import email_send
@@ -86,10 +86,18 @@ async def send_event_invites(event: dict, raw_emails, host_name: str) -> dict:
         return {"invited": 0, "sent": 0}
     if not email_send.is_configured():
         return {"invited": 0, "sent": 0, "skipped": "email_not_configured"}
-    join_url = _join_url(event["join_code"])
     now = datetime.now(timezone.utc)
+    # Anti-abuse: skip any address invited to ANY event in the last 24h, so the
+    # same person cannot be re-blasted across events.
+    cutoff = now - timedelta(hours=24)
+    recent = await event_invites.find(
+        {"email": {"$in": emails}, "invited_at": {"$gte": cutoff}}, {"email": 1}
+    ).to_list(None)
+    recent_set = {r["email"] for r in recent}
+    to_send = [e for e in emails if e not in recent_set]
+    join_url = _join_url(event["join_code"])
     sent = 0
-    for email in emails:
+    for email in to_send:
         await event_invites.update_one(
             {"event_id": event["_id"], "email": email},
             {
@@ -112,7 +120,11 @@ async def send_event_invites(event: dict, raw_emails, host_name: str) -> dict:
         )
         if result.get("sent"):
             sent += 1
-    return {"invited": len(emails), "sent": sent}
+    return {
+        "invited": len(to_send),
+        "skipped_recent": len(emails) - len(to_send),
+        "sent": sent,
+    }
 
 
 async def mark_joined(event_id, email: str) -> None:

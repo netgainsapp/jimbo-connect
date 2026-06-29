@@ -71,7 +71,10 @@ async def generate_for_topic(topic: dict) -> GeneratedPost:
         messages=[{"role": "user", "content": _user_prompt(topic)}],
         output_format=GeneratedPost,
     )
-    return response.parsed_output
+    post = response.parsed_output
+    if post is None:
+        raise RuntimeError("Blog generation returned no structured output")
+    return post
 
 
 async def run_once() -> dict:
@@ -92,7 +95,12 @@ async def run_once() -> dict:
     if not topic:
         return {"ok": False, "skipped": "no_unused_topic"}
 
-    post = await generate_for_topic(topic)
+    # A malformed model response (None / Pydantic validation error) must not 500
+    # the tick endpoint; report it as a failed run instead.
+    try:
+        post = await generate_for_topic(topic)
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)[:300], "topic_id": topic["id"]}
     doc = await create_post(post, topic_id=topic["id"])
     return {
         "ok": True,
