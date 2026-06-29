@@ -847,8 +847,13 @@ FREE_EVENT_LIMIT = 1
 
 
 def _can_manage_event(user: dict, event: dict) -> bool:
-    """An event is managed by a platform admin or by the host who created it."""
-    return bool(user.get("is_admin")) or event.get("created_by") == user.get("_id")
+    """An event is managed by a platform admin or by the host who created it.
+    Compare as strings so an ObjectId-vs-string storage mismatch can't silently
+    grant or revoke access."""
+    if user.get("is_admin"):
+        return True
+    created_by = event.get("created_by")
+    return created_by is not None and str(created_by) == str(user.get("_id"))
 
 
 @app.post("/api/events")
@@ -884,7 +889,7 @@ async def create_event(
 async def my_hosted_events(user: dict = Depends(get_current_user)):
     """Events this user created (the self-serve host view)."""
     hosted = (
-        await events.find({"created_by": user["_id"]}).sort("date", -1).to_list(None)
+        await events.find({"created_by": user["_id"]}).sort("date", -1).to_list(200)
     )
     if not hosted:
         return []
@@ -2040,7 +2045,7 @@ async def outreach_status(_: dict = Depends(get_current_admin)):
 
 @app.get("/api/admin/outreach/leads")
 async def outreach_list(_: dict = Depends(get_current_admin)):
-    docs = await outreach_leads.find({}).sort("created_at", -1).to_list(None)
+    docs = await outreach_leads.find({}).sort("created_at", -1).to_list(1000)
     return [_serialize_lead(d) for d in docs]
 
 
