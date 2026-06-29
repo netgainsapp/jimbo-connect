@@ -10,6 +10,7 @@ holds the staging list + a status per lead.
 import csv
 import io
 import os
+import sys
 
 from database import outreach_leads
 
@@ -42,15 +43,22 @@ def _split_name(name: str):
     return first, last
 
 
+def _csv_safe(value) -> str:
+    """Prevent CSV formula injection: a cell starting with = + - @ (or a control
+    char) is prefixed with a single quote so a spreadsheet treats it as text."""
+    s = str(value or "")
+    return "'" + s if s[:1] in ("=", "+", "-", "@", "\t", "\r") else s
+
+
 def lead_to_row(lead: dict) -> dict:
     first, last = _split_name(lead.get("name", ""))
     return {
-        "first_name": first,
-        "last_name": last,
-        "company": lead.get("company", "") or "",
+        "first_name": _csv_safe(first),
+        "last_name": _csv_safe(last),
+        "company": _csv_safe(lead.get("company", "")),
         "email": lead.get("email", "") or "",
-        "title": lead.get("role", "") or "",
-        "linkedin_url": lead.get("source", "") or "",
+        "title": _csv_safe(lead.get("role", "")),
+        "linkedin_url": _csv_safe(lead.get("source", "")),
         "source": "intro_connect",
     }
 
@@ -96,11 +104,18 @@ async def push_to_signal_scout(leads) -> dict:
                 json=payload,
             )
         ok = resp.status_code < 300
+        if not ok:
+            # Log the raw body server-side; do not forward it to the admin UI
+            # (it could carry signal-scout internal diagnostics).
+            print(
+                f"[outreach] signal-scout push {resp.status_code}: {resp.text[:500]}",
+                file=sys.stderr,
+            )
         return {
             "ok": ok,
             "status_code": resp.status_code,
             "pushed": len(leads) if ok else 0,
-            "detail": resp.text[:500],
+            "detail": f"HTTP {resp.status_code}",
         }
     except Exception as exc:  # network / DNS / timeout
         return {"ok": False, "error": str(exc)[:300]}
