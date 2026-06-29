@@ -89,7 +89,7 @@ async def push_to_signal_scout(leads) -> dict:
     }
     url = f"{SIGNAL_SCOUT_URL}/api/intro-connect/import"
     try:
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
                 url,
                 headers={"Authorization": f"Bearer {SIGNAL_SCOUT_API_KEY}"},
