@@ -26,6 +26,7 @@ from database import (
     event_sponsors,
     messages,
     email_templates,
+    outreach_leads,
     ensure_indexes,
 )
 import email_send
@@ -1079,9 +1080,11 @@ async def join_event(code: str, user: dict = Depends(get_current_user)):
 async def invite_guests(
     event_id: str,
     payload: InviteGuestsRequest,
+    request: Request,
     user: dict = Depends(get_current_user),
 ):
     """Self-serve: a host emails their guest list a join link."""
+    rate_limit.guard(request, "invite", limit=5, window_seconds=3600)
     try:
         oid = ObjectId(event_id)
     except Exception:

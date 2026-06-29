@@ -153,11 +153,15 @@ async def run_nurture_tick() -> dict:
             await users.update_one({"_id": u["_id"]}, {"$set": {"nurture_step": idx + 1}})
             advanced += 1
             continue
-        ok = await _send(u, step["subject"], step["body"](_name(u)))
-        await users.update_one(
-            {"_id": u["_id"]},
+        # Atomically claim this step (filter on the current step value) so a
+        # concurrent tick can't send the same email twice. If the claim doesn't
+        # match, another tick already advanced this user.
+        claimed = await users.find_one_and_update(
+            {"_id": u["_id"], "nurture_step": idx},
             {"$set": {"nurture_step": idx + 1, "nurture_last_sent": now}},
         )
-        if ok:
+        if claimed is None:
+            continue
+        if await _send(u, step["subject"], step["body"](_name(u))):
             sent += 1
     return {"ok": True, "processed": processed, "sent": sent, "advanced": advanced}
