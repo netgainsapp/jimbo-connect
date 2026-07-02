@@ -27,6 +27,8 @@ outreach_leads = db["outreach_leads"]
 async def ensure_indexes():
     await users.create_index("email", unique=True)
     await events.create_index("join_code", unique=True)
+    # created_by is queried on nearly every host action (create/list/nurture).
+    await events.create_index("created_by")
     await event_attendees.create_index([("event_id", 1), ("user_id", 1)], unique=True)
     await saved_contacts.create_index([("owner_id", 1), ("contact_id", 1)], unique=True)
     await event_sponsors.create_index("event_id")

@@ -1,6 +1,17 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+
+class _EmailNormalized(BaseModel):
+    """Mixin that lowercases and trims any `email` field, so registration,
+    login, and password reset all key on the same canonical value and the
+    unique email index behaves case-insensitively."""
+
+    @field_validator("email", check_fields=False)
+    @classmethod
+    def _normalize_email(cls, v):
+        return v.lower().strip() if isinstance(v, str) else v
 
 
 class Profile(BaseModel):
@@ -15,18 +26,18 @@ class Profile(BaseModel):
     photo_url: Optional[str] = ""
 
 
-class RegisterRequest(BaseModel):
+class RegisterRequest(_EmailNormalized):
     email: EmailStr
     password: str = Field(min_length=6, max_length=200)
     name: Optional[str] = Field(default="", max_length=100)
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(_EmailNormalized):
     email: EmailStr
     password: str
 
 
-class ForgotPasswordRequest(BaseModel):
+class ForgotPasswordRequest(_EmailNormalized):
     email: EmailStr
 
 
@@ -115,7 +126,7 @@ class StatsResponse(BaseModel):
     total_connections: int
 
 
-class BulkImportRow(BaseModel):
+class BulkImportRow(_EmailNormalized):
     email: EmailStr
     name: Optional[str] = Field(default="", max_length=100)
     role: Optional[str] = Field(default="", max_length=100)
@@ -128,23 +139,23 @@ class BulkImportRow(BaseModel):
 
 
 class BulkImportRequest(BaseModel):
-    rows: List[BulkImportRow]
+    rows: List[BulkImportRow] = Field(max_length=500)
     event_id: Optional[str] = None
-    default_password: Optional[str] = None
+    default_password: Optional[str] = Field(default=None, max_length=200)
 
 
 class SponsorCreateRequest(BaseModel):
-    url: str
-    title: Optional[str] = None
-    description: Optional[str] = None
-    image_url: Optional[str] = None
+    url: str = Field(max_length=2048)
+    title: Optional[str] = Field(default=None, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    image_url: Optional[str] = Field(default=None, max_length=2048)
     active: Optional[bool] = True
 
 
 class SponsorUpdateRequest(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    image_url: Optional[str] = None
+    title: Optional[str] = Field(default=None, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    image_url: Optional[str] = Field(default=None, max_length=2048)
     active: Optional[bool] = None
 
 

@@ -6,6 +6,7 @@ Dormant-safe: every send is gated on email_send.is_configured(), so with no
 Resend key configured the welcome and the tick are harmless no-ops. Copy mirrors
 growth/free-signup-nurture.md (plain voice, no dashes, no emoji).
 """
+import html
 import os
 from datetime import datetime, timezone
 
@@ -19,6 +20,9 @@ FIRST_EVENT_URL = f"{APP_URL}/events"
 
 
 def _html(body: str) -> str:
+    # Escape first: the attendee name is interpolated into the body and must not
+    # inject markup into the email.
+    body = html.escape(body)
     paras = [p.strip() for p in body.split("\n\n") if p.strip()]
     return "".join("<p>" + p.replace("\n", "<br>") + "</p>" for p in paras)
 

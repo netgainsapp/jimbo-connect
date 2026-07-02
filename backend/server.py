@@ -1,3 +1,4 @@
+import hashlib
 import hmac
 import ipaddress
 import os
@@ -78,7 +79,10 @@ from models import (
 load_dotenv()
 
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@jimboconnect.com")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "***REMOVED***")
+# No fallback: a hardcoded default would become a guessable live admin password
+# if the env var is ever unset. When missing, admin bootstrap is skipped (see
+# seed_data) rather than falling back to a known literal.
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 
@@ -301,31 +305,27 @@ def serialize_event(event: dict, attendee_count: int = 0) -> dict:
 
 
 async def seed_data():
-    """Reconcile the canonical admin from env (the source of truth), then
-    seed sample data on first run only.
+    """Ensure the platform admin exists, then seed sample data on first run only.
 
-    ADMIN_EMAIL / ADMIN_PASSWORD define the single platform admin. On every
-    boot we (1) demote any other lingering admin accounts so old or default
-    credentials cannot retain access, and (2) force-set the configured
-    admin's password so it can be rotated from the dashboard. Accounts are
-    demoted, never deleted, so their history is preserved.
+    ADMIN_EMAIL / ADMIN_PASSWORD define the single platform admin. The admin is
+    created once if missing; we never overwrite its password on boot (so a
+    password rotated from the dashboard persists across restarts) and never
+    blanket-demote other admins (which could silently lock out a deliberately
+    promoted operator). If ADMIN_PASSWORD is not configured, admin bootstrap is
+    skipped rather than falling back to a guessable default.
     """
-    # Retire any stale admins (e.g. a previous default admin) without deleting.
-    await users.update_many(
-        {"is_admin": True, "email": {"$ne": ADMIN_EMAIL}},
-        {"$set": {"is_admin": False}},
-    )
-
-    admin = await users.find_one({"email": ADMIN_EMAIL})
+    admin = await users.find_one({"email": ADMIN_EMAIL}) if ADMIN_EMAIL else None
     if admin:
-        # Env is authoritative: keep the admin flag and rotate the password
-        # on every boot so credentials are managed from the dashboard.
-        await users.update_one(
-            {"_id": admin["_id"]},
-            {"$set": {
-                "is_admin": True,
-                "password_hash": hash_password(ADMIN_PASSWORD),
-            }},
+        # Ensure the admin flag is set, but leave the password untouched.
+        if not admin.get("is_admin"):
+            await users.update_one({"_id": admin["_id"]}, {"$set": {"is_admin": True}})
+        return
+
+    if not (ADMIN_EMAIL and ADMIN_PASSWORD):
+        print(
+            "WARNING: ADMIN_EMAIL/ADMIN_PASSWORD not set; skipping admin bootstrap. "
+            "Set them in the environment to create the platform admin.",
+            file=sys.stderr,
         )
         return
 
@@ -543,7 +543,7 @@ app.add_middleware(
     # Scope to this project's own Render services and the frontrangedev.co
     # domain only. The previous `.*\.onrender\.com` matched EVERY Render
     # tenant's app, which with allow_credentials=True is a cross-origin risk.
-    allow_origin_regex=r"https://(jimbo-connect-[a-z0-9-]+\.onrender\.com|([a-z0-9-]+\.)?frontrangedev\.co)",
+    allow_origin_regex=r"^https://(jimbo-connect-[a-z0-9-]+\.onrender\.com|([a-z0-9-]+\.)?frontrangedev\.co)$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],
@@ -560,16 +560,28 @@ async def _security_headers(request: Request, call_next):
     response.headers.setdefault(
         "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
     )
+    # Production terminates TLS at the Render proxy (X-Forwarded-Proto: https).
+    # HSTS is ignored by browsers over plain HTTP, so setting it is safe for
+    # local dev while enforcing HTTPS in production (defends against SSL strip).
+    if (
+        request.headers.get("x-forwarded-proto") == "https"
+        or request.url.scheme == "https"
+    ):
+        response.headers.setdefault(
+            "Strict-Transport-Security",
+            "max-age=31536000; includeSubDomains; preload",
+        )
     # Tight CSP for the server-rendered blog HTML. Those pages carry no
-    # executable JS, only inline <style>, Google Fonts, and a JSON-LD block, all
-    # server-controlled and HTML-escaped. 'unsafe-inline' covers the JSON-LD and
-    # inline styles without opening an XSS path on already-escaped content.
+    # executable JS, only inline <style>, Google Fonts, and a JSON-LD block
+    # (ld+json is data, never executed), all server-controlled and HTML-escaped.
+    # script-src 'none' means an injected inline <script> would not run even if
+    # escaping ever regressed. 'unsafe-inline' remains only under style-src.
     if request.url.path == "/blog" or request.url.path.startswith("/blog/"):
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; img-src 'self' data: https:; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
-            "script-src 'self' 'unsafe-inline'; object-src 'none'; "
+            "script-src 'none'; object-src 'none'; "
             "base-uri 'self'; frame-ancestors 'none'"
         )
     return response
@@ -602,7 +614,9 @@ _DUMMY_PW_HASH = hash_password("not-a-real-password-timing-equalizer")
 
 @app.post("/api/auth/register")
 async def register(payload: RegisterRequest, response: Response, request: Request):
-    rate_limit.guard(request, "register", limit=10, window_seconds=3600)
+    rate_limit.guard(
+        request, "register", limit=10, window_seconds=3600, identifier=payload.email
+    )
     existing = await users.find_one({"email": payload.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -678,6 +692,12 @@ def _new_reset_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def _hash_token(token: str) -> str:
+    """Store only a hash of reset/magic tokens so a DB or backup read cannot be
+    replayed as a live account-takeover token. The raw token is emailed once."""
+    return hashlib.sha256((token or "").encode()).hexdigest()
+
+
 @app.post("/api/auth/forgot-password")
 async def forgot_password(payload: ForgotPasswordRequest, request: Request):
     """Generate a one-time reset token. Always returns success
@@ -693,7 +713,7 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
         expires = datetime.now(timezone.utc) + _td(hours=2)
         await users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"reset_token": token, "reset_token_expires": expires}},
+            {"$set": {"reset_token": _hash_token(token), "reset_token_expires": expires}},
         )
         reset_url = f"{FRONTEND_URL}/reset-password/{token}"
         profile = user.get("profile") or {}
@@ -731,7 +751,7 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
 @app.post("/api/auth/reset-password")
 async def reset_password(payload: ResetPasswordRequest, response: Response, request: Request):
     rate_limit.guard(request, "reset", limit=15, window_seconds=900)
-    user = await users.find_one({"reset_token": payload.token})
+    user = await users.find_one({"reset_token": _hash_token(payload.token)})
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     expires = user.get("reset_token_expires")
@@ -758,7 +778,7 @@ async def magic_login(token: str, response: Response, request: Request):
     after a successful login so the link cannot be replayed if it leaks
     (e.g. via referrer headers, logs, or shared history)."""
     rate_limit.guard(request, "magic", limit=10, window_seconds=300)
-    user = await users.find_one({"reset_token": token})
+    user = await users.find_one({"reset_token": _hash_token(token)})
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     expires = user.get("reset_token_expires")

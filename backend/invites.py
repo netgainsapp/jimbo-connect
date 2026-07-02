@@ -6,6 +6,7 @@ event with no pre-created accounts or temp passwords.
 Dormant-safe: every send is gated on email_send.is_configured(), so with no
 Resend key this is a no-op. Plain voice, no dashes, no emoji.
 """
+import html
 import os
 import re
 from datetime import datetime, timedelta, timezone
@@ -27,6 +28,9 @@ def _join_url(code: str) -> str:
 
 
 def _html(body: str) -> str:
+    # Escape first: event names and host names are attacker-controlled and must
+    # not inject markup into the platform-branded email.
+    body = html.escape(body)
     paras = [p.strip() for p in body.split("\n\n") if p.strip()]
     return "".join("<p>" + p.replace("\n", "<br>") + "</p>" for p in paras)
 
