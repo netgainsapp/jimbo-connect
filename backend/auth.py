@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import HTTPException, Request, status
 from passlib.context import CryptContext
-from jose import jwt, JWTError
+import jwt
 from bson import ObjectId
 from dotenv import load_dotenv
 
@@ -52,7 +52,7 @@ def decode_token(token: str) -> Optional[str]:
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         return payload.get("sub")
-    except JWTError:
+    except jwt.InvalidTokenError:
         return None
 
 
