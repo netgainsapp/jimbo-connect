@@ -116,7 +116,7 @@ async def send_event_invites(event: dict, raw_emails, host_name: str) -> dict:
             },
             upsert=True,
         )
-        result = await email_send.send_email(
+        result = await email_send.send_marketing_email(
             to=email,
             subject=invite_subject(event["name"]),
             html=_html(invite_body(event["name"], host_name, join_url)),
@@ -178,7 +178,7 @@ async def run_invite_reminder_tick() -> dict:
         if claimed is None:
             continue
         join_url = _join_url(e["join_code"])
-        result = await email_send.send_email(
+        result = await email_send.send_marketing_email(
             to=inv["email"],
             subject=invite_subject(e["name"]),
             html=_html(reminder_body(e["name"], inv.get("host_name", ""), join_url)),

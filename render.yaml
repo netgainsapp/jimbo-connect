@@ -26,6 +26,10 @@ services:
         sync: false  # paste from resend.com → API Keys
       - key: EMAIL_FROM
         value: "Intro Connect <onboarding@resend.dev>"
+      - key: RESEND_WEBHOOK_SECRET
+        sync: false  # resend.com → Webhooks signing secret (whsec_...); blank = webhook disabled
+      - key: API_PUBLIC_URL
+        value: "https://jimbo-connect-api-rdkp.onrender.com"
 
   - type: web
     name: jimbo-connect-web

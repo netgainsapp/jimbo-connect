@@ -112,7 +112,9 @@ STEPS = [
 async def _send(user: dict, subject: str, body: str) -> bool:
     if not email_send.is_configured():
         return False
-    result = await email_send.send_email(
+    # Marketing send: enforces the suppression list and carries the
+    # unsubscribe footer + List-Unsubscribe headers.
+    result = await email_send.send_marketing_email(
         to=user["email"], subject=subject, html=_html(body), text=body
     )
     return bool(result.get("sent"))

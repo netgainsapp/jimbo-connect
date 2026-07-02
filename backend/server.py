@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import ipaddress
+import json
 import os
 import re
 import secrets
@@ -35,6 +36,7 @@ import invites
 import nurture
 import outreach
 import rate_limit
+import suppression
 from blog import render as blog_render
 from blog.store import list_published, get_by_slug
 from template_seeds import DEFAULT_TEMPLATES, CATEGORIES as TEMPLATE_CATEGORIES
@@ -1829,7 +1831,8 @@ async def admin_bulk_import(
                 created += 1
                 accounts.append({"email": email, "password": temp_password})
 
-                # Send invitation email if Resend is configured
+                # Send invitation email if Resend is configured (send_email
+                # itself skips hard-bounced addresses).
                 if email_send.is_configured():
                     admin_profile = admin.get("profile") or {}
                     rendered = await render_email_template(
@@ -2099,6 +2102,73 @@ async def invites_tick(request: Request):
     if not _tick_authorized(request.headers.get("x-tick-secret")):
         raise HTTPException(status_code=401, detail="Unauthorized")
     return await invites.run_invite_reminder_tick()
+
+
+# ---------- CAN-SPAM: unsubscribe + Resend bounce/complaint webhook ----------
+
+_UNSUB_OK_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Unsubscribed</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222">
+<h1 style="font-size:22px">You are unsubscribed</h1>
+<p style="color:#555">We will not send you any more emails like that one.
+If this was a mistake, reply to any email from us and a real person will fix it.</p>
+</body></html>"""
+
+_UNSUB_BAD_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Invalid link</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222">
+<h1 style="font-size:22px">This link is not valid</h1>
+<p style="color:#555">The unsubscribe link looks incomplete or altered.
+Reply to any email from us and a real person will take you off the list.</p>
+</body></html>"""
+
+
+@app.get("/api/unsubscribe", response_class=HTMLResponse)
+async def unsubscribe_get(token: str, request: Request):
+    """Human click from the email footer. The token is HMAC-signed over the
+    address, so no auth is needed and the link only unsubscribes that address."""
+    rate_limit.guard(request, "unsubscribe", limit=30, window_seconds=3600)
+    email = suppression.verify_unsub_token(token)
+    if not email:
+        return HTMLResponse(_UNSUB_BAD_HTML, status_code=400)
+    await suppression.apply_unsubscribe(email)
+    return HTMLResponse(_UNSUB_OK_HTML)
+
+
+@app.post("/api/unsubscribe")
+async def unsubscribe_post(token: str, request: Request):
+    """RFC 8058 one-click unsubscribe (mailbox providers POST to the
+    List-Unsubscribe URL with no body and expect a 2xx)."""
+    rate_limit.guard(request, "unsubscribe", limit=30, window_seconds=3600)
+    email = suppression.verify_unsub_token(token)
+    if not email:
+        raise HTTPException(status_code=400, detail="Invalid unsubscribe token")
+    await suppression.apply_unsubscribe(email)
+    return {"ok": True}
+
+
+@app.post("/api/webhooks/resend")
+async def resend_webhook(request: Request):
+    """Ingest Resend bounce/complaint events into the suppression list.
+    Signature-verified (svix scheme); disabled entirely until
+    RESEND_WEBHOOK_SECRET is set."""
+    secret = os.getenv("RESEND_WEBHOOK_SECRET")
+    if not secret:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    body = await request.body()
+    if not suppression.verify_resend_signature(
+        secret,
+        request.headers.get("svix-id"),
+        request.headers.get("svix-timestamp"),
+        request.headers.get("svix-signature"),
+        body,
+    ):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        payload = json.loads(body)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    return await suppression.handle_resend_event(payload)
 
 
 # ---------- Outreach cockpit (stages host-acquisition leads, hands off to
