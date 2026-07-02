@@ -825,12 +825,69 @@ async def get_user_event_history(user_id):
     return out
 
 
+async def _attended_event_ids(user_id) -> set:
+    """Event ids where this user is a joined attendee."""
+    ids = set()
+    async for link in event_attendees.find({"user_id": user_id}, {"event_id": 1}):
+        ids.add(link["event_id"])
+    return ids
+
+
+async def users_share_event(user_a_id, user_b_id) -> bool:
+    """True if two users are connected through an event: both joined the same
+    event, or one hosts an event the other joined. This is the trust boundary
+    for viewing another attendee's profile, saving them, or messaging them.
+    created_by is compared as a string because it can be stored as either an
+    ObjectId or a string (see _can_manage_event)."""
+    a_events = await _attended_event_ids(user_a_id)
+    b_events = await _attended_event_ids(user_b_id)
+    if a_events & b_events:
+        return True
+    a_str, b_str = str(user_a_id), str(user_b_id)
+    # B hosts an event A attends?
+    if a_events:
+        async for e in events.find({"_id": {"$in": list(a_events)}}, {"created_by": 1}):
+            if e.get("created_by") is not None and str(e["created_by"]) == b_str:
+                return True
+    # A hosts an event B attends?
+    if b_events:
+        async for e in events.find({"_id": {"$in": list(b_events)}}, {"created_by": 1}):
+            if e.get("created_by") is not None and str(e["created_by"]) == a_str:
+                return True
+    return False
+
+
+async def _users_connected(requester: dict, target_oid) -> bool:
+    """Authorization gate for cross-user reads and messaging. Allowed when the
+    requester is the target, an admin, shares an event with the target, has
+    already saved them as a contact, or has an existing message thread with
+    them. Everything else is treated as no relationship so callers can return
+    an opaque 404 (no id enumeration)."""
+    if requester.get("is_admin"):
+        return True
+    rid = requester["_id"]
+    if rid == target_oid:
+        return True
+    if await users_share_event(rid, target_oid):
+        return True
+    if await saved_contacts.find_one({"owner_id": rid, "contact_id": target_oid}):
+        return True
+    if await messages.find_one({"thread_id": _thread_id(rid, target_oid)}):
+        return True
+    return False
+
+
 @app.get("/api/profile/{user_id}")
-async def get_profile_by_id(user_id: str, _: dict = Depends(get_current_user)):
+async def get_profile_by_id(user_id: str, user: dict = Depends(get_current_user)):
     try:
         oid = ObjectId(user_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid user id")
+    # Enforce the event-gated privacy model: only reveal a profile to someone
+    # with a relationship to the target. Return an identical 404 for both
+    # "no such user" and "not permitted" so ids cannot be enumerated.
+    if not await _users_connected(user, oid):
+        raise HTTPException(status_code=404, detail="User not found")
     target = await users.find_one({"_id": oid})
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
@@ -1314,6 +1371,10 @@ async def save_contact(
         raise HTTPException(status_code=400, detail="Invalid contact id")
     if contact_oid == user["_id"]:
         raise HTTPException(status_code=400, detail="Cannot save yourself")
+    # Only allow saving someone you actually share an event with (or already
+    # have a relationship with). Opaque 404 so ids cannot be enumerated.
+    if not await _users_connected(user, contact_oid):
+        raise HTTPException(status_code=404, detail="Contact not found")
     target = await users.find_one({"_id": contact_oid})
     if not target:
         raise HTTPException(status_code=404, detail="Contact not found")
@@ -1826,13 +1887,20 @@ async def send_message(
     request: Request,
     user: dict = Depends(get_current_user),
 ):
-    rate_limit.guard(request, "messages", limit=30, window_seconds=60)
+    rate_limit.guard(
+        request, "messages", limit=30, window_seconds=60, identifier=str(user["_id"])
+    )
     try:
         to_oid = ObjectId(payload.to_user_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid recipient")
     if to_oid == user["_id"]:
         raise HTTPException(status_code=400, detail="Cannot message yourself")
+    # Only allow messaging someone you share an event with (or already have a
+    # thread with). Opaque 404 so ids cannot be enumerated. Hosts remain
+    # reachable via POST /api/events/{event_id}/request-invite.
+    if not await _users_connected(user, to_oid):
+        raise HTTPException(status_code=404, detail="Recipient not found")
     target = await users.find_one({"_id": to_oid})
     if not target:
         raise HTTPException(status_code=404, detail="Recipient not found")

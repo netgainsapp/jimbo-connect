@@ -8,6 +8,7 @@ service is ever scaled to multiple instances, move this to a shared store
 """
 from __future__ import annotations
 
+import os
 import threading
 import time
 from collections import defaultdict
@@ -21,15 +22,27 @@ _hits: dict[str, list[float]] = defaultdict(list)
 # buckets whose entries have all expired.
 _MAX_KEYS = 20_000
 
+# Number of trusted reverse proxies in front of the app (Render is one). Only
+# the rightmost N entries of X-Forwarded-For are appended by proxies we
+# control; anything to the left is client-supplied and forgeable.
+_TRUSTED_PROXY_HOPS = max(1, int(os.getenv("TRUSTED_PROXY_HOPS", "1")))
+
 
 def _client_ip(request: Request) -> str:
-    """Best-effort real client IP. Render terminates TLS at a proxy and sets
-    X-Forwarded-For, so prefer its first entry, then fall back to the socket."""
+    """Real client IP behind a trusted reverse proxy.
+
+    X-Forwarded-For is a comma-separated list where each proxy appends the
+    address it received the request from. The leftmost entries are
+    client-supplied and trivially spoofable, so keying rate limits on them
+    lets a client rotate to a fresh bucket per request. We instead take the
+    entry appended by the outermost trusted proxy (the Nth from the right,
+    N = TRUSTED_PROXY_HOPS), which a client cannot forge."""
     xff = request.headers.get("x-forwarded-for", "")
     if xff:
-        first = xff.split(",")[0].strip()
-        if first:
-            return first
+        parts = [p.strip() for p in xff.split(",") if p.strip()]
+        if parts:
+            idx = -_TRUSTED_PROXY_HOPS if _TRUSTED_PROXY_HOPS <= len(parts) else 0
+            return parts[idx]
     return request.client.host if request.client else "unknown"
 
 
