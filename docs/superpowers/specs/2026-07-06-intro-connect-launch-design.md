@@ -157,9 +157,9 @@ re-testing.
 
 ---
 
-## 9. Open items to confirm with owner
+## 9. Confirmed decisions (owner-approved 2026-07-06)
 
-- GTM scope: assumed **blog SEO + manual outreach + PLG** for launch; Product Hunt/social
-  copy prepared as ready-to-fire assets, no paid ads this week. (Default; owner may expand.)
-- Analytics: include a lightweight analytics tool, or skip for launch? (Default: include if quick.)
-- Support email address to replace `frontrangedev.co` (e.g. `hello@intro-connect.com`)?
+- **GTM scope:** blog SEO + manual outreach + PLG for launch; Product Hunt/social copy
+  prepared as ready-to-fire assets, no paid ads this week. **Confirmed.**
+- **Analytics:** include a lightweight, privacy-friendly analytics tool on marketing + app. **Confirmed.**
+- **Support email:** replace all `frontrangedev.co` references with **`hello@intro-connect.com`**. **Confirmed.**
