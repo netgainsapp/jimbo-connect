@@ -26,7 +26,7 @@ export default function CTA() {
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <a
-            href="https://jimbo.frontrangedev.co/register"
+            href="https://app.intro-connect.com/register"
             target="_blank"
             rel="noopener"
             className="inline-flex items-center gap-2 px-7 py-3 rounded-pill bg-white text-ink font-bold hover:bg-cream transition shadow-lift"
@@ -34,7 +34,7 @@ export default function CTA() {
             Start for free <ArrowRight className="w-4 h-4" />
           </a>
           <a
-            href="mailto:hello@frontrangedev.co?subject=Intro%20Connect%20demo"
+            href="mailto:hello@intro-connect.com?subject=Intro%20Connect%20demo"
             className="inline-flex items-center gap-2 px-7 py-3 rounded-pill border border-white/30 text-white font-bold hover:bg-white/10 transition"
           >
             Schedule a 15-min demo

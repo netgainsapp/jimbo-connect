@@ -35,7 +35,7 @@ export default function Nav() {
         </div>
         <div className="hidden md:flex items-center gap-2">
           <a
-            href="https://jimbo.frontrangedev.co"
+            href="https://app.intro-connect.com"
             className="btn-ghost"
             target="_blank"
             rel="noopener"
@@ -70,7 +70,7 @@ export default function Nav() {
               </a>
             ))}
             <a
-              href="https://jimbo.frontrangedev.co"
+              href="https://app.intro-connect.com"
               target="_blank"
               rel="noopener"
               className="px-3 py-2 rounded-card text-sm font-semibold text-stone hover:bg-cream"

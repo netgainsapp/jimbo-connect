@@ -36,7 +36,7 @@ export default function Footer() {
               Terms
             </a>
             <a
-              href="mailto:hello@frontrangedev.co"
+              href="mailto:hello@intro-connect.com"
               className="hover:text-ink font-semibold"
             >
               Contact

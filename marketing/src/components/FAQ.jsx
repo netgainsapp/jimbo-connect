@@ -51,7 +51,7 @@ export default function FAQ() {
               <p className="mt-4 text-stone text-[15px] leading-relaxed">
                 Don't see your question?{" "}
                 <a
-                  href="mailto:hello@frontrangedev.co"
+                  href="mailto:hello@intro-connect.com"
                   className="text-primary font-bold hover:underline"
                 >
                   Email us.
