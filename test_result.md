@@ -139,6 +139,21 @@ automates the signup trigger.
 
 All five are fixable in code/config; none require rebuilding features.
 
+### Post-deploy re-verification — 2026-07-06 (after merge 4589a09 -> production)
+
+| Check | Before | After deploy |
+| --- | --- | --- |
+| API health | PASS | PASS (`200 {"ok":true}`) |
+| CORS from `app.intro-connect.com` | FAIL (`400`, empty ACAO) | **PASS** (`200`, `ACAO: https://app.intro-connect.com`) |
+| Blog serves real posts (API) | PASS | PASS (title "Blog — Intro Connect") |
+| Marketing CTAs (deployed bundle) | FAIL (old domain) | **PASS** (`app.intro-connect.com` x4, `hello@intro-connect.com` x4, zero `frontrangedev` refs) |
+| Email sender branded | FAIL (sandbox) | Config deployed (`render.yaml` EMAIL_FROM=hello@intro-connect.com); **needs owner inbox test to confirm actual delivery** |
+
+Remaining before public launch: blog public URL (owner DNS for `blog.intro-connect.com`),
+real-inbox email/signup test, cron secret, analytics, cold-start, blog content seeding.
+
 ### agent_communication
     -agent: "main"
     -message: "Task 1 (production audit) complete. 5 blockers confirmed, all code/config-level. Phase 1 fixes proceeding on branch launch-prep; re-verify each against production after the deliberate merge/deploy."
+    -agent: "main"
+    -message: "Phase 1 merged to main (4589a09) and deployed. Re-verified live: CORS now allows app origin, marketing CTAs repointed to production, blog serves from API. Email sender config deployed; owner to confirm real delivery with a live inbox. Proceeding to owner-gated tasks (blog DNS, cron secret, analytics) and content/announcement."
