@@ -101,3 +101,44 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+## Production launch-readiness audit — 2026-07-06
+
+Audit performed against live production (`intro-connect.com`, `app.intro-connect.com`,
+API `jimbo-connect-api-rdkp.onrender.com`) as Task 1 of the launch plan
+(`docs/superpowers/plans/2026-07-06-intro-connect-launch.md`). Automated checks via
+`tests/smoke_prod.py`; routing/CORS confirmed via direct HTTP probes.
+
+### Automated / probe results
+
+| Feature | Result | Evidence |
+| --- | --- | --- |
+| API health | PASS | `GET /api/health` -> `200 {"ok": true}` (cold-starts on free tier; ~60s first hit) |
+| CORS allows app origin | FAIL | `OPTIONS /api/auth/login` with `Origin: https://app.intro-connect.com` -> `400`, empty `Access-Control-Allow-Origin` (Starlette "Disallowed CORS origin") |
+| Blog publicly reachable | FAIL | `intro-connect.com/blog` serves the marketing SPA shell (title "Intro Connect. Better events, stronger connections."); real blog only at API `/blog` (title "Blog — Intro Connect") |
+| Email sender branded | FAIL (config) | `render.yaml:28` hard-codes `EMAIL_FROM = "Intro Connect <onboarding@resend.dev>"` (Resend sandbox), not the verified `intro-connect.com` domain |
+| Marketing CTAs point to prod | FAIL | "Get started"/register links target the old `https://jimbo.frontrangedev.co` app, not `https://app.intro-connect.com` (Nav/CTA/Pricing) |
+| Dead assets present | CLEANUP | standalone `jimbo_connect_landing.html`, stray `backend/vercel.json` (Render is the deploy target) |
+
+### Manual browser loop — TO DO (owner, with a real inbox)
+
+Not yet run. Requires registering with an inbox you control to confirm the welcome
+email lands branded from `hello@intro-connect.com`, then exercising: login -> create
+event -> join by code -> save contact -> send message -> unsubscribe. Run after the
+Phase 1 fixes deploy. `SMOKE_SIGNUP_EMAIL=you+test@yourdomain.com python tests/smoke_prod.py`
+automates the signup trigger.
+
+### Confirmed launch blockers (ranked)
+
+1. **CORS** does not allow `intro-connect.com` — browser API calls from the app are
+   blocked (`server.py:548` regex omits the domain). -> Plan Task 3.
+2. **Blog not publicly reachable** at a branded URL — SEO channel dark. -> Plan Task 5.
+3. **Email sends from the Resend sandbox**, not the verified domain. -> Plan Task 2.
+4. **Marketing CTAs send users to the old staging app** domain. -> Plan Task 4.
+5. **Dead assets** create deploy ambiguity. -> Plan Task 6.
+
+All five are fixable in code/config; none require rebuilding features.
+
+### agent_communication
+    -agent: "main"
+    -message: "Task 1 (production audit) complete. 5 blockers confirmed, all code/config-level. Phase 1 fixes proceeding on branch launch-prep; re-verify each against production after the deliberate merge/deploy."
