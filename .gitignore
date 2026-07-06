@@ -112,3 +112,6 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Superpowers SDD scratch
+.superpowers/
