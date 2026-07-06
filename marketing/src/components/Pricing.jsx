@@ -1,6 +1,6 @@
 import { ArrowRight, Check } from "lucide-react";
 
-const REGISTER = "https://jimbo.frontrangedev.co/register";
+const REGISTER = "https://app.intro-connect.com/register";
 
 const TIERS = [
   {
@@ -64,7 +64,7 @@ const TIERS = [
     period: "let's talk",
     blurb: "For teams running events across multiple hosts.",
     cta: "Schedule a call",
-    href: "mailto:hello@frontrangedev.co?subject=Intro%20Connect%20Enterprise",
+    href: "mailto:hello@intro-connect.com?subject=Intro%20Connect%20Enterprise",
     features: [
       "Multiple host accounts",
       "SSO via Google or Microsoft",

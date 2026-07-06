@@ -14,7 +14,7 @@ from typing import Optional
 import suppression
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
-EMAIL_FROM = os.getenv("EMAIL_FROM", "Intro Connect <onboarding@resend.dev>").strip()
+EMAIL_FROM = os.getenv("EMAIL_FROM", "Intro Connect <hello@intro-connect.com>").strip()
 RESEND_URL = "https://api.resend.com/emails"
 
 

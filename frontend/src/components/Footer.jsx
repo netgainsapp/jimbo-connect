@@ -3,7 +3,7 @@ export default function Footer() {
     <footer className="border-t border-border-default mt-16 py-6">
       <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-text-muted">
         <a
-          href="https://frontrangedev.co"
+          href="https://intro-connect.com"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 hover:opacity-80 transition group"
