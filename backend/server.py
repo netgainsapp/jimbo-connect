@@ -80,7 +80,7 @@ from models import (
 
 load_dotenv()
 
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@jimboconnect.com")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@intro-connect.com")
 # No fallback: a hardcoded default would become a guessable live admin password
 # if the env var is ever unset. When missing, admin bootstrap is skipped (see
 # seed_data) rather than falling back to a known literal.
