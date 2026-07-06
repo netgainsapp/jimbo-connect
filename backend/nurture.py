@@ -14,7 +14,7 @@ from database import users, events
 import email_send
 
 # App links (where a host sets up an event) and the marketing pricing page.
-APP_URL = os.getenv("FRONTEND_URL", "https://jimbo.frontrangedev.co").split(",")[0].rstrip("/")
+APP_URL = os.getenv("FRONTEND_URL", "https://app.intro-connect.com").split(",")[0].rstrip("/")
 MARKETING_URL = os.getenv("MARKETING_URL", "https://jimbo-connect.vercel.app").rstrip("/")
 FIRST_EVENT_URL = f"{APP_URL}/events"
 

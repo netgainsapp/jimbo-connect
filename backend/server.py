@@ -539,13 +539,19 @@ _origins = [o.strip() for o in FRONTEND_URL.split(",") if o.strip()]
 if "http://localhost:3000" not in _origins:
     _origins.append("http://localhost:3000")
 
+# Scope to this project's own Render services, the production intro-connect.com
+# domain, and the legacy frontrangedev.co staging domain. A broad `.*\.onrender\.com`
+# would match EVERY Render tenant's app, which with allow_credentials=True is a risk.
+CORS_ORIGIN_REGEX = (
+    r"^https://(jimbo-connect-[a-z0-9-]+\.onrender\.com"
+    r"|([a-z0-9-]+\.)?intro-connect\.com"
+    r"|([a-z0-9-]+\.)?frontrangedev\.co)$"
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
-    # Scope to this project's own Render services and the frontrangedev.co
-    # domain only. The previous `.*\.onrender\.com` matched EVERY Render
-    # tenant's app, which with allow_credentials=True is a cross-origin risk.
-    allow_origin_regex=r"^https://(jimbo-connect-[a-z0-9-]+\.onrender\.com|([a-z0-9-]+\.)?frontrangedev\.co)$",
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],

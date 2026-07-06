@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from database import event_invites, events
 import email_send
 
-APP_URL = os.getenv("FRONTEND_URL", "https://jimbo.frontrangedev.co").split(",")[0].rstrip("/")
+APP_URL = os.getenv("FRONTEND_URL", "https://app.intro-connect.com").split(",")[0].rstrip("/")
 
 # Reminder cadence for guests who have not joined: days after the invite.
 REMINDER_DAYS = [2, 5]
