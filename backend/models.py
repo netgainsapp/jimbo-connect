@@ -46,6 +46,26 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(min_length=6)
 
 
+# A photo may be an https URL or an inline base64 data URL of a real image
+# type. Anything else (javascript:, http:, file:, plain text) is rejected at
+# the boundary; stored legacy values are not re-validated on read.
+_PHOTO_DATA_PREFIXES = (
+    "data:image/png;base64,",
+    "data:image/jpeg;base64,",
+    "data:image/jpg;base64,",
+    "data:image/webp;base64,",
+    "data:image/gif;base64,",
+)
+
+
+def _check_photo_value(v):
+    if v is None or v == "":
+        return v
+    if v.startswith("https://") or v.startswith(_PHOTO_DATA_PREFIXES):
+        return v
+    raise ValueError("photo must be an https URL or an image data URL")
+
+
 class ProfileUpdateRequest(BaseModel):
     name: Optional[str] = Field(default=None, max_length=100)
     role: Optional[str] = Field(default=None, max_length=100)
@@ -57,10 +77,22 @@ class ProfileUpdateRequest(BaseModel):
     linkedin: Optional[str] = Field(default=None, max_length=300)
     photo_url: Optional[str] = Field(default=None, max_length=2_200_000)
 
+    @field_validator("photo_url")
+    @classmethod
+    def _photo_url_scheme(cls, v):
+        return _check_photo_value(v)
+
 
 class PhotoUploadRequest(BaseModel):
     # base64 data URL; cap ~1.6MB decoded to avoid unbounded Mongo growth / OOM
     photo_data: str = Field(max_length=2_200_000)
+
+    @field_validator("photo_data")
+    @classmethod
+    def _photo_data_is_image(cls, v):
+        if not v or not v.startswith(_PHOTO_DATA_PREFIXES):
+            raise ValueError("photo_data must be an image data URL")
+        return v
 
 
 class UserPublic(BaseModel):

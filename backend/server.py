@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import hmac
 import ipaddress
@@ -305,6 +306,7 @@ def serialize_user(user: dict) -> dict:
         "id": str(user["_id"]),
         "email": user["email"],
         "is_admin": bool(user.get("is_admin")),
+        "email_verified": bool(user.get("email_verified")),
         "profile": Profile(**profile).model_dump(),
         "created_at": user.get("created_at", datetime.now(timezone.utc)),
     }
@@ -658,7 +660,9 @@ async def register(payload: RegisterRequest, response: Response, request: Reques
     now = datetime.now(timezone.utc)
     doc = {
         "email": payload.email,
-        "password_hash": hash_password(payload.password),
+        # bcrypt is ~100ms of CPU; run it off the event loop so a burst of
+        # signups cannot stall every other request.
+        "password_hash": await asyncio.to_thread(hash_password, payload.password),
         "is_admin": False,
         "created_at": now,
         "profile": Profile(name=payload.name or "").model_dump(),
@@ -666,6 +670,7 @@ async def register(payload: RegisterRequest, response: Response, request: Reques
         # attendees are not). Step 0 = welcome sent below.
         "nurture_enabled": True,
         "nurture_step": 0,
+        "email_verified": False,
     }
     result = await users.insert_one(doc)
     doc["_id"] = result.inserted_id
@@ -673,6 +678,10 @@ async def register(payload: RegisterRequest, response: Response, request: Reques
         await nurture.send_welcome(doc)
     except Exception as exc:  # never block signup on a mail hiccup
         print(f"[register] welcome email failed: {exc}", file=sys.stderr)
+    try:
+        await issue_email_verification(doc)
+    except Exception as exc:
+        print(f"[register] verification email failed: {exc}", file=sys.stderr)
     token = create_access_token(str(result.inserted_id))
     set_auth_cookie(response, token)
     return {"user": serialize_user(doc), "token": token}
@@ -687,9 +696,11 @@ async def login(payload: LoginRequest, response: Response, request: Request):
     if not user:
         # Run a dummy verify so the unknown-email path costs the same as a
         # wrong-password path (no user-enumeration timing signal).
-        verify_password(payload.password, _DUMMY_PW_HASH)
+        await asyncio.to_thread(verify_password, payload.password, _DUMMY_PW_HASH)
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    if not verify_password(payload.password, user["password_hash"]):
+    if not await asyncio.to_thread(
+        verify_password, payload.password, user["password_hash"]
+    ):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token(str(user["_id"]))
     set_auth_cookie(response, token)
@@ -731,6 +742,106 @@ def _hash_token(token: str) -> str:
     """Store only a hash of reset/magic tokens so a DB or backup read cannot be
     replayed as a live account-takeover token. The raw token is emailed once."""
     return hashlib.sha256((token or "").encode()).hexdigest()
+
+
+# ---------- Email verification (M6, soft: nothing is gated on it yet) ----------
+
+_VERIFY_EXPIRY_DAYS = 7
+
+
+def verify_email_body(name: str, verify_url: str) -> str:
+    return (
+        f"Hi {name or 'there'},\n\n"
+        "Please confirm this email address so we know it is really yours. One "
+        "click does it:\n\n"
+        f"{verify_url}\n\n"
+        "The link works for seven days. If you did not create an Intro Connect "
+        "account, you can ignore this email.\n\n"
+        "Scott"
+    )
+
+
+async def issue_email_verification(user: dict) -> None:
+    """Create a one-time verification token and email the link. Dormant without
+    Resend. The token is stored hashed, same as reset tokens."""
+    if not email_send.is_configured():
+        return
+    raw = _new_reset_token()
+    await users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "verify_token": _hash_token(raw),
+                "verify_token_expires": datetime.now(timezone.utc)
+                + _td(days=_VERIFY_EXPIRY_DAYS),
+            }
+        },
+    )
+    verify_url = f"{suppression.API_PUBLIC_URL}/api/auth/verify-email?token={raw}"
+    profile = user.get("profile") or {}
+    body = verify_email_body(profile.get("name") or "", verify_url)
+    await email_send.send_email(
+        to=user["email"],
+        subject="confirm your email for Intro Connect",
+        html=nurture._html(body),
+        text=body,
+    )
+
+
+async def apply_email_verification(token: str) -> bool:
+    """Consume a verification token. Returns True if a user was verified."""
+    if not token:
+        return False
+    user = await users.find_one({"verify_token": _hash_token(token)})
+    if not user:
+        return False
+    expires = user.get("verify_token_expires")
+    if expires is not None and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if not expires or expires < datetime.now(timezone.utc):
+        return False
+    await users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"email_verified": True},
+            "$unset": {"verify_token": "", "verify_token_expires": ""},
+        },
+    )
+    return True
+
+
+_VERIFY_OK_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Email confirmed</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222">
+<h1 style="font-size:22px">Email confirmed</h1>
+<p style="color:#555">You are all set. You can close this tab and head back to the app.</p>
+</body></html>"""
+
+_VERIFY_BAD_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Link expired</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222">
+<h1 style="font-size:22px">This link is not valid</h1>
+<p style="color:#555">It may have expired or already been used. Log in and request a new
+confirmation email from your profile.</p>
+</body></html>"""
+
+
+@app.get("/api/auth/verify-email", response_class=HTMLResponse)
+async def verify_email(token: str, request: Request):
+    rate_limit.guard(request, "verify_email", limit=30, window_seconds=3600)
+    ok = await apply_email_verification(token)
+    return HTMLResponse(
+        _VERIFY_OK_HTML if ok else _VERIFY_BAD_HTML, status_code=200 if ok else 400
+    )
+
+
+@app.post("/api/auth/resend-verification")
+async def resend_verification(request: Request, user: dict = Depends(get_current_user)):
+    rate_limit.guard(request, "resend_verification", limit=3, window_seconds=3600)
+    if user.get("email_verified"):
+        return {"ok": True, "already_verified": True}
+    await issue_email_verification(user)
+    return {"ok": True, "sent": email_send.is_configured()}
 
 
 @app.post("/api/auth/forgot-password")
@@ -1854,15 +1965,24 @@ async def admin_bulk_import(
                 }
                 doc = {
                     "email": email,
-                    "password_hash": hash_password(temp_password),
+                    # Off the event loop: 500 rows of bcrypt would otherwise
+                    # freeze the API for the whole import.
+                    "password_hash": await asyncio.to_thread(
+                        hash_password, temp_password
+                    ),
                     "is_admin": False,
                     "created_at": now,
                     "profile": profile,
+                    "email_verified": False,
                 }
                 result = await users.insert_one(doc)
                 user_id = result.inserted_id
                 created += 1
-                accounts.append({"email": email, "password": temp_password})
+                # Plaintext credentials go to ONE channel: the invitation email
+                # when Resend is configured, or the API response as an explicit
+                # fallback so the admin can distribute them by hand. Never both.
+                if not email_send.is_configured():
+                    accounts.append({"email": email, "password": temp_password})
 
                 # Send invitation email if Resend is configured (send_email
                 # itself skips hard-bounced addresses).
