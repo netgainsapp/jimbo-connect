@@ -89,10 +89,12 @@ async def admin_list_users(_: dict = Depends(get_current_admin)):
     return out
 
 
-@router.api_route("/api/admin/reseed-templates", methods=["GET", "POST"])
+@router.post("/api/admin/reseed-templates")
 async def admin_reseed_templates(_: dict = Depends(get_current_admin)):
     """Force-seed any missing default templates. Idempotent: only inserts
-    missing rows. Admin-only (it writes to the DB)."""
+    missing rows. Admin-only, POST-only: a state-changing GET would be
+    CSRF-reachable cross-site without a preflight (simple request) since the
+    session cookie is SameSite=None."""
     inserted = 0
     for t in DEFAULT_TEMPLATES:
         existing = await email_templates.find_one({"template_id": t["template_id"]})

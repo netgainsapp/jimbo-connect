@@ -12,7 +12,6 @@
  "GET /api/admin/outreach/leads",
  "GET /api/admin/outreach/leads.csv",
  "GET /api/admin/outreach/status",
- "GET /api/admin/reseed-templates",
  "GET /api/admin/stats",
  "GET /api/admin/users",
  "GET /api/auth/magic/{token}",
