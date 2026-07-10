@@ -101,18 +101,19 @@ _OG_RE = re.compile(
 _TITLE_RE = re.compile(r"<title[^>]*>([^<]+)</title>", re.IGNORECASE)
 
 
-def _assert_public_url(url: str) -> None:
-    """Raise ValueError if the URL points at a non-public address. Prevents the
-    server-side fetch from being abused to reach internal services (SSRF), e.g.
-    cloud metadata endpoints (169.254.169.254) or localhost/private ranges."""
+def _resolve_public_ip(url: str) -> str:
+    """Resolve the URL's host and return one public IP to connect to. Raises
+    ValueError if the scheme is wrong, the host is missing, or ANY resolved
+    address is non-public (SSRF guard: cloud metadata endpoints, localhost,
+    private ranges)."""
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise ValueError("unsupported scheme")
     host = parsed.hostname
     if not host:
         raise ValueError("missing host")
-    # Resolve every address the host maps to and reject any non-public one.
     infos = socket.getaddrinfo(host, None)
+    ips = []
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
         if (
@@ -124,20 +125,46 @@ def _assert_public_url(url: str) -> None:
             or ip.is_unspecified
         ):
             raise ValueError(f"blocked non-public address: {ip}")
+        ips.append(ip)
+    if not ips:
+        raise ValueError("host did not resolve")
+    for ip in ips:  # prefer IPv4 for the pinned connection
+        if ip.version == 4:
+            return str(ip)
+    return str(ips[0])
+
+
+def _pin_url(url: str, ip: str):
+    """Rewrite the URL to connect to the validated IP directly, so the actual
+    connection cannot be re-routed by a second DNS answer (DNS rebinding).
+    Returns (pinned_url, hostname). Any userinfo in the URL is dropped."""
+    parsed = urlparse(url)
+    host = parsed.hostname
+    ip_literal = f"[{ip}]" if ":" in ip else ip
+    port = f":{parsed.port}" if parsed.port else ""
+    return parsed._replace(netloc=f"{ip_literal}{port}").geturl(), host
 
 
 async def _safe_fetch_html(url: str, max_redirects: int = 3) -> str:
     """Fetch HTML while validating the target (and each redirect hop) is a
     public host. Redirects are followed manually so an internal target cannot
-    be reached via a 3xx bounce."""
+    be reached via a 3xx bounce, and each request connects to the exact IP
+    that passed validation (Host header + SNI carry the real hostname, so
+    virtual hosting and certificate verification still work). This closes the
+    validate-then-reconnect DNS-rebind window."""
     async with httpx.AsyncClient(
         follow_redirects=False,
         timeout=8.0,
         headers={"User-Agent": "Mozilla/5.0 (compatible; IntroConnectBot/1.0)"},
     ) as client:
         for _ in range(max_redirects + 1):
-            _assert_public_url(url)
-            resp = await client.get(url)
+            ip = _resolve_public_ip(url)
+            pinned, host = _pin_url(url, ip)
+            resp = await client.get(
+                pinned,
+                headers={"Host": host},
+                extensions={"sni_hostname": host},
+            )
             location = resp.headers.get("location")
             if resp.is_redirect and location:
                 url = urljoin(url, location)
