@@ -8,44 +8,33 @@ export function blogPublicUrl(slug) {
   return `${BACKEND_URL}/blog/${slug}`;
 }
 
-const TOKEN_KEY = "jimbo_token";
+// Auth rides the httpOnly session cookie set by the backend (see
+// credentials: "include" below). The token is never kept in localStorage or
+// sent as a Bearer header, so a script injection cannot read or exfiltrate it.
 
-export function getToken() {
-  try {
-    return localStorage.getItem(TOKEN_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-export function setToken(t) {
-  try {
-    if (t) localStorage.setItem(TOKEN_KEY, t);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // ignore
-  }
-}
+// Endpoints where a 401 is a normal outcome for a logged-out visitor (bad
+// credentials, cold-start session probe), not an expired session.
+const EXPECTED_401_PATHS = new Set([
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/me",
+]);
 
 async function request(path, options = {}) {
-  const token = getToken();
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${BACKEND_URL}${path}`, {
     credentials: "include",
     ...options,
     headers,
   });
   if (!res.ok) {
-    if (res.status === 401 && token) {
-      // We sent a token and it was rejected: the session expired or is invalid.
-      // Clear it and tell the app so AuthProvider can reset the user, which
-      // makes RequireAuth bounce to /login. (No token sent => this is a normal
-      // login/auth failure, so we leave it to the caller.)
-      setToken("");
+    if (res.status === 401 && !EXPECTED_401_PATHS.has(path)) {
+      // A protected call was rejected: the session cookie expired or is
+      // invalid. Tell the app so AuthProvider resets the user, which makes
+      // RequireAuth bounce to /login.
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("auth:expired"));
       }

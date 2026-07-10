@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
-import { profileApi, setToken } from "../lib/api.js";
+import { profileApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import Avatar from "../components/Avatar.jsx";
@@ -226,7 +226,6 @@ export default function ProfileSetup({ editMode = false }) {
                 return;
               try {
                 await profileApi.deleteSelf();
-                setToken("");
                 await logout().catch(() => {});
                 toast.show("Account deleted");
                 navigate("/login", { replace: true });

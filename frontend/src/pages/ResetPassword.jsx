@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { authApi, setToken } from "../lib/api.js";
+import { authApi } from "../lib/api.js";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 
@@ -23,8 +23,7 @@ export default function ResetPassword() {
     }
     setSubmitting(true);
     try {
-      const res = await authApi.resetPassword(token, password);
-      if (res?.token) setToken(res.token);
+      await authApi.resetPassword(token, password);
       await refresh();
       toast.show("Password updated");
       navigate("/", { replace: true });
@@ -39,8 +38,7 @@ export default function ResetPassword() {
     setError("");
     setMagicSubmitting(true);
     try {
-      const res = await authApi.magicLogin(token);
-      if (res?.token) setToken(res.token);
+      await authApi.magicLogin(token);
       await refresh();
       toast.show("Logged in");
       navigate("/", { replace: true });
