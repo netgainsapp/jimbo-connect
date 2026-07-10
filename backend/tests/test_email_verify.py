@@ -13,6 +13,7 @@ os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
 os.environ.setdefault("DB_NAME", "t")
 os.environ.setdefault("JWT_SECRET", "x")
 
+import core
 import server
 from models import PhotoUploadRequest, ProfileUpdateRequest
 
@@ -57,7 +58,7 @@ def test_valid_token_verifies_and_burns(monkeypatch):
             }
         ]
     )
-    monkeypatch.setattr(server, "users", fake)
+    monkeypatch.setattr(core, "users", fake)
     assert asyncio.run(server.apply_email_verification(raw)) is True
     doc = fake.docs[0]
     assert doc["email_verified"] is True
@@ -76,13 +77,13 @@ def test_expired_token_rejected(monkeypatch):
             }
         ]
     )
-    monkeypatch.setattr(server, "users", fake)
+    monkeypatch.setattr(core, "users", fake)
     assert asyncio.run(server.apply_email_verification(raw)) is False
     assert "email_verified" not in fake.docs[0]
 
 
 def test_unknown_and_empty_tokens_rejected(monkeypatch):
-    monkeypatch.setattr(server, "users", _FakeUsers())
+    monkeypatch.setattr(core, "users", _FakeUsers())
     assert asyncio.run(server.apply_email_verification("nope")) is False
     assert asyncio.run(server.apply_email_verification("")) is False
 
@@ -99,7 +100,7 @@ def test_naive_expiry_datetime_handled(monkeypatch):
             }
         ]
     )
-    monkeypatch.setattr(server, "users", fake)
+    monkeypatch.setattr(core, "users", fake)
     assert asyncio.run(server.apply_email_verification(raw)) is True
 
 

@@ -15,6 +15,7 @@ os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
 os.environ.setdefault("DB_NAME", "t")
 os.environ.setdefault("JWT_SECRET", "x")
 
+import core
 import server
 
 
@@ -68,10 +69,12 @@ class _FakeFindOne:
 
 
 def _wire(monkeypatch, *, links=None, events=None, saved=None, thread=None):
-    monkeypatch.setattr(server, "event_attendees", _FakeAttendees(links or []))
-    monkeypatch.setattr(server, "events", _FakeEvents(events or {}))
-    monkeypatch.setattr(server, "saved_contacts", _FakeFindOne(saved))
-    monkeypatch.setattr(server, "messages", _FakeFindOne(thread))
+    # Patch the owning module (core) post-M13 split: users_share_event /
+    # _users_connected resolve their collection globals in core's namespace.
+    monkeypatch.setattr(core, "event_attendees", _FakeAttendees(links or []))
+    monkeypatch.setattr(core, "events", _FakeEvents(events or {}))
+    monkeypatch.setattr(core, "saved_contacts", _FakeFindOne(saved))
+    monkeypatch.setattr(core, "messages", _FakeFindOne(thread))
 
 
 def test_share_event_true_when_both_attend_same_event(monkeypatch):

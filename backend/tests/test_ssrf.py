@@ -12,6 +12,7 @@ os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
 os.environ.setdefault("DB_NAME", "t")
 os.environ.setdefault("JWT_SECRET", "x")
 
+import ogfetch
 import server
 
 
@@ -26,7 +27,8 @@ def _fake_resolver(mapping):
 
 
 def _wire(monkeypatch, mapping):
-    monkeypatch.setattr(server.socket, "getaddrinfo", _fake_resolver(mapping))
+    # Patch the owning module (ogfetch) post-M13 split.
+    monkeypatch.setattr(ogfetch.socket, "getaddrinfo", _fake_resolver(mapping))
 
 
 # ---- _resolve_public_ip ----
