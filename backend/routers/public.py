@@ -4,15 +4,18 @@ server.py (M13)."""
 import json
 import os
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 import invites
 import nurture
 import rate_limit
+import seo
 import suppression
 from blog import render as blog_render
 from blog.store import list_published, get_by_slug
+from news import render as news_render
+from news import store as news_store
 from core import _tick_authorized
 
 router = APIRouter()
@@ -21,6 +24,49 @@ router = APIRouter()
 @router.get("/api/health")
 async def health():
     return {"ok": True}
+
+
+# ---------- robots.txt + sitemap.xml (canonical origin from seo.content_base) ----------
+
+_SEO_CACHE = "public, s-maxage=3600, stale-while-revalidate=86400"
+
+
+@router.get("/robots.txt", response_class=PlainTextResponse)
+async def robots_txt():
+    return PlainTextResponse(seo.render_robots(), headers={"Cache-Control": _SEO_CACHE})
+
+
+@router.get("/sitemap.xml")
+async def sitemap_xml():
+    # Stable marketing surfaces first, then every published blog + news URL.
+    entries = [
+        {"path": "/", "changefreq": "weekly", "priority": "1.0"},
+        {"path": "/blog", "changefreq": "weekly", "priority": "0.7"},
+        {"path": "/news", "changefreq": "daily", "priority": "0.7"},
+    ]
+    for p in await list_published(limit=1000):
+        entries.append(
+            {
+                "path": f"/blog/{p.get('slug')}",
+                "lastmod": p.get("published_at"),
+                "changefreq": "monthly",
+                "priority": "0.6",
+            }
+        )
+    for a in await news_store.list_published(limit=1000):
+        entries.append(
+            {
+                "path": f"/news/{a.get('slug')}",
+                "lastmod": a.get("modified_at") or a.get("published_at"),
+                "changefreq": "monthly",
+                "priority": "0.6",
+            }
+        )
+    return Response(
+        content=seo.render_sitemap(entries),
+        media_type="application/xml",
+        headers={"Cache-Control": _SEO_CACHE},
+    )
 
 
 # ---------- Public blog (server-rendered; surfaced at the marketing domain
@@ -48,6 +94,29 @@ async def blog_post(slug: str):
         return HTMLResponse(blog_render.render_404(), status_code=404)
     return HTMLResponse(
         blog_render.render_post(doc),
+        headers={"Cache-Control": _BLOG_POST_CACHE},
+    )
+
+
+# ---------- Public news (server-rendered, same shell as the blog) ----------
+
+
+@router.get("/news", response_class=HTMLResponse)
+async def news_index():
+    articles = await news_store.list_published(limit=50)
+    return HTMLResponse(
+        news_render.render_index(articles),
+        headers={"Cache-Control": _BLOG_INDEX_CACHE},
+    )
+
+
+@router.get("/news/{slug}", response_class=HTMLResponse)
+async def news_article(slug: str):
+    doc = await news_store.get_by_slug(slug)
+    if not doc:
+        return HTMLResponse(news_render.render_404(), status_code=404)
+    return HTMLResponse(
+        news_render.render_article(doc),
         headers={"Cache-Control": _BLOG_POST_CACHE},
     )
 

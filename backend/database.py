@@ -23,6 +23,7 @@ app_flags = db["app_flags"]
 event_invites = db["event_invites"]
 outreach_leads = db["outreach_leads"]
 suppressed_emails = db["suppressed_emails"]
+news_article = db["news_article"]
 
 
 async def ensure_indexes():
@@ -43,3 +44,5 @@ async def ensure_indexes():
     await outreach_leads.create_index("email", unique=True)
     await outreach_leads.create_index([("status", 1), ("created_at", -1)])
     await suppressed_emails.create_index("email", unique=True)
+    await news_article.create_index("slug", unique=True)
+    await news_article.create_index([("status", 1), ("published_at", -1)])

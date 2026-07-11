@@ -38,7 +38,7 @@ def test_post_renders_sections_and_cta_and_jsonld():
     assert "Do a little homework" in htmlout  # second paragraph from \n\n split
     assert "Intro Connect" in htmlout
     assert 'application/ld+json' in htmlout
-    assert '"@type": "Article"' in htmlout
+    assert '"@type":"Article"' in htmlout  # shared seo.json_ld emits compact JSON
 
 
 def test_post_escapes_html_in_content():

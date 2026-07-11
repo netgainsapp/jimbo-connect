@@ -18,6 +18,7 @@ from database import (
 )
 import email_send
 import outreach
+from news.schema import NewsArticleInput
 from template_seeds import DEFAULT_TEMPLATES, CATEGORIES as TEMPLATE_CATEGORIES
 from auth import hash_password, get_current_admin
 from models import (
@@ -492,3 +493,57 @@ async def admin_blog_unpublish(post_id: str, _: dict = Depends(get_current_admin
     if res is None:
         raise HTTPException(status_code=404, detail="Post not found")
     return _serialize_blog_post(res)
+
+
+# ---------- Admin: news (human-authored, source-attributed) ----------
+
+def _serialize_news(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "slug": doc.get("slug", ""),
+        "headline": doc.get("headline", ""),
+        "summary": doc.get("summary", ""),
+        "source_url": doc.get("source_url", ""),
+        "sources": doc.get("sources", []),
+        "event_date": doc.get("event_date"),
+        "status": doc.get("status", "draft"),
+        "created_at": doc.get("created_at"),
+        "published_at": doc.get("published_at"),
+    }
+
+
+@router.get("/api/admin/news")
+async def admin_news_list(_: dict = Depends(get_current_admin)):
+    from news.store import list_all
+
+    return [_serialize_news(a) for a in await list_all()]
+
+
+@router.post("/api/admin/news")
+async def admin_news_create(
+    payload: NewsArticleInput, _: dict = Depends(get_current_admin)
+):
+    from news.store import create_article
+
+    doc = await create_article(payload)
+    return _serialize_news(doc)
+
+
+@router.post("/api/admin/news/{article_id}/publish")
+async def admin_news_publish(article_id: str, _: dict = Depends(get_current_admin)):
+    from news.store import publish_article
+
+    res = await publish_article(article_id)
+    if res is None:
+        raise HTTPException(status_code=404, detail="Article not found")
+    return _serialize_news(res)
+
+
+@router.post("/api/admin/news/{article_id}/unpublish")
+async def admin_news_unpublish(article_id: str, _: dict = Depends(get_current_admin)):
+    from news.store import unpublish_article
+
+    res = await unpublish_article(article_id)
+    if res is None:
+        raise HTTPException(status_code=404, detail="Article not found")
+    return _serialize_news(res)

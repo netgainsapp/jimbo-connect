@@ -42,6 +42,10 @@ PUBLIC = {
     ("GET", "/api/auth/verify-email"),
     ("GET", "/blog"),
     ("GET", "/blog/{slug}"),
+    ("GET", "/news"),
+    ("GET", "/news/{slug}"),
+    ("GET", "/robots.txt"),
+    ("GET", "/sitemap.xml"),
     ("GET", "/api/unsubscribe"),
     ("POST", "/api/unsubscribe"),
 }
