@@ -23,7 +23,7 @@ import JoinEvent from "./pages/JoinEvent.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Nav />
@@ -32,10 +32,20 @@ export default function App() {
           <Route
             path="/"
             element={
-              <Navigate
-                to={user ? (user.is_admin ? "/admin" : "/events") : "/login"}
-                replace
-              />
+              // Wait for the session check before deciding where "/" goes.
+              // Redirecting on `user` alone bounces a logged-in visitor to
+              // /login during the initial /api/auth/me round-trip, since user
+              // is still null until it resolves.
+              loading ? (
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="text-text-muted">Loading…</div>
+                </div>
+              ) : (
+                <Navigate
+                  to={user ? (user.is_admin ? "/admin" : "/events") : "/login"}
+                  replace
+                />
+              )
             }
           />
           <Route path="/login" element={<Login />} />
