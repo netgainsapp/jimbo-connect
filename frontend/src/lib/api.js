@@ -1,6 +1,10 @@
+// vite.config.js define-replaces process.env.REACT_APP_BACKEND_URL with the
+// build-time literal (Render sets it via render.yaml; loadEnv with an empty
+// prefix pulls it in). Do NOT wrap this in a `typeof process` runtime guard:
+// `process` is undefined in the browser bundle, so the guard is always false
+// and the app silently falls back to localhost:8001, breaking every API call.
 const BACKEND_URL =
-  (typeof process !== "undefined" && process.env && process.env.REACT_APP_BACKEND_URL) ||
-  "http://localhost:8001";
+  process.env.REACT_APP_BACKEND_URL || "http://localhost:8001";
 
 // Public blog pages are server-rendered by the backend (and proxied onto the
 // marketing domain). Used for the admin "View" link on published posts.
