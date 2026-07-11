@@ -1,12 +1,9 @@
 {
+  "$comment": "Only used if the marketing site is hosted on Vercel. Render ignores this file (Render uses render.yaml). These rewrites proxy the server-rendered /blog and /news onto the primary domain from the backend. robots.txt and sitemap.xml are served as static files from public/. Keep the destination host in sync with the live API service.",
   "rewrites": [
-    {
-      "source": "/blog",
-      "destination": "https://jimbo-connect-api.onrender.com/blog"
-    },
-    {
-      "source": "/blog/:path*",
-      "destination": "https://jimbo-connect-api.onrender.com/blog/:path*"
-    }
+    { "source": "/blog", "destination": "https://jimbo-connect-api-rdkp.onrender.com/blog" },
+    { "source": "/blog/:path*", "destination": "https://jimbo-connect-api-rdkp.onrender.com/blog/:path*" },
+    { "source": "/news", "destination": "https://jimbo-connect-api-rdkp.onrender.com/news" },
+    { "source": "/news/:path*", "destination": "https://jimbo-connect-api-rdkp.onrender.com/news/:path*" }
   ]
 }
