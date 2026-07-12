@@ -7,6 +7,7 @@ import {
   UserPlus,
   Mail,
   FileText,
+  Newspaper,
   Send,
   HelpCircle,
   MapPin,
@@ -92,6 +93,12 @@ export default function AdminDashboard() {
           icon={<FileText className="w-5 h-5" />}
           title="Blog"
           body="Review drafts, publish, and control automated posts."
+        />
+        <ActionCard
+          to="/admin/news"
+          icon={<Newspaper className="w-5 h-5" />}
+          title="News"
+          body="Write and publish source-attributed articles for /news."
         />
         <ActionCard
           to="/admin/outreach"

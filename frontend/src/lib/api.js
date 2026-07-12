@@ -174,3 +174,14 @@ export const blogApi = {
   unpublish: (id) => api.post(`/api/admin/blog/posts/${id}/unpublish`),
   run: () => api.post("/api/admin/blog/run"),
 };
+
+export function newsPublicUrl(slug) {
+  return `${BACKEND_URL}/news/${slug}`;
+}
+
+export const newsApi = {
+  list: () => api.get("/api/admin/news"),
+  create: (article) => api.post("/api/admin/news", article),
+  publish: (id) => api.post(`/api/admin/news/${id}/publish`),
+  unpublish: (id) => api.post(`/api/admin/news/${id}/unpublish`),
+};

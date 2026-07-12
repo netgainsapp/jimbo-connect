@@ -57,11 +57,10 @@ def decode_token(token: str) -> Optional[str]:
 
 
 async def get_current_user(request: Request) -> dict:
+    # Cookie-only: the token rides the httpOnly session cookie (set on every
+    # login/register/refresh). The frontend no longer sends a Bearer header, so
+    # accepting one would only widen the surface for no benefit.
     token = request.cookies.get(COOKIE_NAME)
-    if not token:
-        auth = request.headers.get("Authorization", "")
-        if auth.startswith("Bearer "):
-            token = auth.split(" ", 1)[1]
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     user_id = decode_token(token)

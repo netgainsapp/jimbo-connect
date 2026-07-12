@@ -40,7 +40,7 @@ services:
     autoDeploy: true
     envVars:
       - key: REACT_APP_BACKEND_URL
-        sync: false  # set to https://jimbo-connect-api.onrender.com (or your custom URL)
+        sync: false  # live API: https://jimbo-connect-api-rdkp.onrender.com
     routes:
       - type: rewrite
         source: /*
