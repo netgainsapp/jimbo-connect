@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
 Sitemap: https://intro-connect.com/sitemap.xml
+Sitemap: https://intro-connect.com/sitemap-content.xml
