@@ -71,6 +71,7 @@ from ogfetch import (
     _safe_fetch_html,
     fetch_og_metadata,
 )
+from error_hub import report_error
 
 from routers.auth import router as auth_router
 from routers.events import router as events_router
@@ -109,6 +110,17 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],
     expose_headers=[],
 )
+
+
+@app.middleware("http")
+async def _error_hub_reporter(request: Request, call_next):
+    # Unhandled exceptions only: HTTPException and validation errors are
+    # resolved by FastAPI's handlers before they reach this middleware.
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        report_error("server", exc, fatal=False, url=str(request.url))
+        raise
 
 
 @app.middleware("http")
