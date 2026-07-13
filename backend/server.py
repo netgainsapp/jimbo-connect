@@ -137,7 +137,7 @@ async def error_hub_self_test(request: Request):
     if not key or not presented or not hmac.compare_digest(presented, key):
         from fastapi import HTTPException
 
-        raise HTTPException(status_code=404, detail="Not Found")
+        raise HTTPException(status_code=401, detail="Unauthorized")
     raise RuntimeError("error hub e2e self-test (intentional)")
 
 
