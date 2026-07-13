@@ -4,13 +4,14 @@
 # installed on this account and the ANTHROPIC_API_KEY repo secret.
 name: Claude
 
+# Comment-only triggers ON PURPOSE: auto-filed error-hub issues contain the
+# literal "@claude" in their body, so an issues:opened trigger would spawn a
+# paid Claude run for every error group. A human comment is the dispatch.
 on:
   issue_comment:
     types: [created]
   pull_request_review_comment:
     types: [created]
-  issues:
-    types: [opened, assigned]
 
 permissions:
   contents: write
@@ -21,10 +22,7 @@ permissions:
 
 jobs:
   claude:
-    if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    if: contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
