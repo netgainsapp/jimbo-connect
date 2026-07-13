@@ -123,6 +123,24 @@ async def _error_hub_reporter(request: Request, call_next):
         raise
 
 
+@app.get("/api/errors/hub-test")
+async def error_hub_self_test(request: Request):
+    """Deliberately raise an unhandled exception to e2e-test the error-hub
+    reporter. Gated on the ERROR_HUB_KEY itself (constant-time compare) so
+    only the hub operator can trigger it; 404 for everyone else."""
+    import hmac
+    import os
+
+    key = os.environ.get("ERROR_HUB_KEY", "")
+    auth = request.headers.get("authorization", "")
+    presented = auth[7:] if auth.lower().startswith("bearer ") else ""
+    if not key or not presented or not hmac.compare_digest(presented, key):
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Not Found")
+    raise RuntimeError("error hub e2e self-test (intentional)")
+
+
 @app.middleware("http")
 async def _security_headers(request: Request, call_next):
     response = await call_next(request)
