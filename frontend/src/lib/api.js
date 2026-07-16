@@ -182,6 +182,8 @@ export function newsPublicUrl(slug) {
 export const newsApi = {
   list: () => api.get("/api/admin/news"),
   create: (article) => api.post("/api/admin/news", article),
+  update: (id, article) => api.put(`/api/admin/news/${id}`, article),
+  remove: (id) => api.del(`/api/admin/news/${id}`),
   publish: (id) => api.post(`/api/admin/news/${id}/publish`),
   unpublish: (id) => api.post(`/api/admin/news/${id}/unpublish`),
 };

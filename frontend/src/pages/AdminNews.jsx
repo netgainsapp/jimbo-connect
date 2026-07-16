@@ -3,6 +3,7 @@ import { ExternalLink, Plus, Trash2, FileText } from "lucide-react";
 import { newsApi, newsPublicUrl } from "../lib/api.js";
 import { formatDateTime } from "../lib/utils.js";
 import { useToast } from "../hooks/useToast.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
 
 const EMPTY_FORM = {
   headline: "",
@@ -16,6 +17,7 @@ const EMPTY_FORM = {
 
 export default function AdminNews() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -98,6 +100,23 @@ export default function AdminNews() {
     try {
       await newsApi.unpublish(id);
       toast.show("Moved back to draft");
+      await load();
+    } catch (e) {
+      toast.show(e.message, "error");
+    }
+  };
+
+  const remove = async (article) => {
+    const ok = await confirm({
+      title: "Delete this article?",
+      body: `"${article.headline}" will be removed for good. If it is published, its public /news page disappears too.`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await newsApi.remove(article.id);
+      toast.show("Deleted");
       await load();
     } catch (e) {
       toast.show(e.message, "error");
@@ -221,7 +240,13 @@ export default function AdminNews() {
               <Empty>No drafts. New articles you write appear here for review.</Empty>
             ) : (
               drafts.map((a) => (
-                <ArticleRow key={a.id} article={a} onPublish={publish} onUnpublish={unpublish} />
+                <ArticleRow
+                  key={a.id}
+                  article={a}
+                  onPublish={publish}
+                  onUnpublish={unpublish}
+                  onDelete={remove}
+                />
               ))
             )}
           </Section>
@@ -230,7 +255,13 @@ export default function AdminNews() {
               <Empty>Nothing published yet.</Empty>
             ) : (
               published.map((a) => (
-                <ArticleRow key={a.id} article={a} onPublish={publish} onUnpublish={unpublish} />
+                <ArticleRow
+                  key={a.id}
+                  article={a}
+                  onPublish={publish}
+                  onUnpublish={unpublish}
+                  onDelete={remove}
+                />
               ))
             )}
           </Section>
@@ -264,7 +295,7 @@ function Empty({ children }) {
   return <div className="card p-5 text-sm text-text-secondary">{children}</div>;
 }
 
-function ArticleRow({ article, onPublish, onUnpublish }) {
+function ArticleRow({ article, onPublish, onUnpublish, onDelete }) {
   const isPublished = article.status === "published";
   return (
     <div className="card p-4 flex flex-col gap-2">
@@ -312,6 +343,14 @@ function ArticleRow({ article, onPublish, onUnpublish }) {
               <FileText className="w-4 h-4" /> Publish
             </button>
           )}
+          <button
+            onClick={() => onDelete(article)}
+            className="btn-ghost"
+            aria-label="Delete article"
+            title="Delete"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
       <div className="text-xs text-text-muted">

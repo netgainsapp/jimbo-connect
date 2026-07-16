@@ -1,4 +1,5 @@
 [
+ "DELETE /api/admin/news/{article_id}",
  "DELETE /api/admin/outreach/leads/{lead_id}",
  "DELETE /api/admin/users/{user_id}",
  "DELETE /api/contacts/{contact_id}",
@@ -77,6 +78,7 @@
  "POST /api/unsubscribe",
  "POST /api/webhooks/resend",
  "PUT /api/admin/blog/flags",
+ "PUT /api/admin/news/{article_id}",
  "PUT /api/contacts/{contact_id}/note",
  "PUT /api/email-templates/{template_id}",
  "PUT /api/events/{event_id}",

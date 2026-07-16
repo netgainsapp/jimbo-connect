@@ -74,6 +74,40 @@ def _oid(article_id: str):
         return None
 
 
+async def update_article(article_id: str, item: NewsArticleInput):
+    """Rewrite an article's content. The slug is deliberately immutable: a
+    published article's URL is already indexed and linked, so re-slugging on a
+    headline edit would break it. Sets modified_at (surfaced as dateModified
+    in the NewsArticle JSON-LD)."""
+    oid = _oid(article_id)
+    if oid is None:
+        return None
+    doc = await news_article.find_one({"_id": oid})
+    if not doc:
+        return None
+    patch = {
+        "headline": item.headline,
+        "summary": item.summary,
+        "sections": [s.model_dump() for s in item.sections],
+        "source_url": item.source_url,
+        "sources": item.sources,
+        "event_date": item.event_date,
+        "image_url": item.image_url,
+        "modified_at": datetime.now(timezone.utc),
+    }
+    await news_article.update_one({"_id": oid}, {"$set": patch})
+    doc.update(patch)
+    return doc
+
+
+async def delete_article(article_id: str) -> bool:
+    oid = _oid(article_id)
+    if oid is None:
+        return False
+    res = await news_article.delete_one({"_id": oid})
+    return res.deleted_count > 0
+
+
 async def publish_article(article_id: str):
     oid = _oid(article_id)
     if oid is None:

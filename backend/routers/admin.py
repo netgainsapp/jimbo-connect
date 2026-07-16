@@ -529,6 +529,27 @@ async def admin_news_create(
     return _serialize_news(doc)
 
 
+@router.put("/api/admin/news/{article_id}")
+async def admin_news_update(
+    article_id: str, payload: NewsArticleInput, _: dict = Depends(get_current_admin)
+):
+    from news.store import update_article
+
+    doc = await update_article(article_id, payload)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Article not found")
+    return _serialize_news(doc)
+
+
+@router.delete("/api/admin/news/{article_id}")
+async def admin_news_delete(article_id: str, _: dict = Depends(get_current_admin)):
+    from news.store import delete_article
+
+    if not await delete_article(article_id):
+        raise HTTPException(status_code=404, detail="Article not found")
+    return {"ok": True}
+
+
 @router.post("/api/admin/news/{article_id}/publish")
 async def admin_news_publish(article_id: str, _: dict = Depends(get_current_admin)):
     from news.store import publish_article

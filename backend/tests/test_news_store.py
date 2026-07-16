@@ -44,6 +44,18 @@ class _FakeNews:
             if all(d.get(k) == v for k, v in query.items()):
                 d.update(update.get("$set", {}))
 
+    async def delete_one(self, query):
+        before = len(self.docs)
+        self.docs = [
+            d for d in self.docs
+            if not all(d.get(k) == v for k, v in query.items())
+        ]
+
+        class R:
+            deleted_count = before - len(self.docs)
+
+        return R()
+
 
 def _valid_input(headline="A Real Newsworthy Headline Here"):
     return NewsArticleInput(
@@ -129,3 +141,63 @@ def test_headline_and_sections_required():
             sections=[],  # empty
             source_url="https://ok.com",
         )
+
+
+# ---- update (PUT) ----
+
+def test_update_rewrites_content_and_stamps_modified(monkeypatch):
+    fake = _FakeNews()
+    monkeypatch.setattr(news_store, "news_article", fake)
+    doc = asyncio.run(news_store.create_article(_valid_input()))
+    assert doc["modified_at"] is None
+    edited = NewsArticleInput(
+        headline="A Corrected Headline For The Same Story",
+        summary="A corrected summary of the item.",
+        sections=[
+            {"heading": "What happened", "body": "Corrected body."},
+            {"heading": "Why it matters", "body": "Added a second section."},
+        ],
+        source_url="https://example.com/source",
+        sources=[],
+        event_date="July 11, 2026",
+    )
+    out = asyncio.run(news_store.update_article(str(doc["_id"]), edited))
+    assert out["headline"] == "A Corrected Headline For The Same Story"
+    assert len(out["sections"]) == 2
+    assert out["sources"] == []
+    assert out["modified_at"] is not None
+
+
+def test_update_keeps_slug_stable_when_headline_changes(monkeypatch):
+    # A published URL is already indexed/linked; re-slugging would break it.
+    fake = _FakeNews()
+    monkeypatch.setattr(news_store, "news_article", fake)
+    doc = asyncio.run(news_store.create_article(_valid_input()))
+    original_slug = doc["slug"]
+    edited = _valid_input(headline="A Totally Different Headline Now")
+    out = asyncio.run(news_store.update_article(str(doc["_id"]), edited))
+    assert out["slug"] == original_slug
+
+
+def test_update_unknown_or_bad_id_returns_none(monkeypatch):
+    fake = _FakeNews()
+    monkeypatch.setattr(news_store, "news_article", fake)
+    assert asyncio.run(news_store.update_article("not-an-oid", _valid_input())) is None
+    assert asyncio.run(news_store.update_article(str(ObjectId()), _valid_input())) is None
+
+
+# ---- delete ----
+
+def test_delete_removes_the_article(monkeypatch):
+    fake = _FakeNews()
+    monkeypatch.setattr(news_store, "news_article", fake)
+    doc = asyncio.run(news_store.create_article(_valid_input()))
+    assert asyncio.run(news_store.delete_article(str(doc["_id"]))) is True
+    assert fake.docs == []
+
+
+def test_delete_unknown_or_bad_id_is_false(monkeypatch):
+    fake = _FakeNews()
+    monkeypatch.setattr(news_store, "news_article", fake)
+    assert asyncio.run(news_store.delete_article("not-an-oid")) is False
+    assert asyncio.run(news_store.delete_article(str(ObjectId()))) is False
