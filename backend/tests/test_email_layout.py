@@ -27,8 +27,9 @@ def test_button_renders_when_given():
 
 def test_no_button_when_omitted():
     html = _render()
-    assert "border-radius:8px" in html  # card/badge styling still present
-    assert "<a " not in html.split("footer")[0] or True  # no CTA anchor required
+    # The official mark image renders in the header even without a CTA button.
+    assert f'<img src="{el.LOGO_URL}"' in html
+    assert 'alt="Intro Connect"' in html
 
 
 def test_unsubscribe_only_when_url_given():

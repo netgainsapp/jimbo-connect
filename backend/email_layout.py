@@ -25,14 +25,19 @@ def _esc(t) -> str:
     return _html.escape(str(t or ""))
 
 
+# The official app mark (Logo.jsx), pre-rendered to a transparent PNG served by
+# the web app. Gmail strips SVG, so emails embed this raster copy at 2x+ density.
+LOGO_URL = "https://app.intro-connect.com/email-logo.png"
+
+
 def _logo() -> str:
-    """Icon + wordmark lockup. A rounded blue monogram badge (email-safe, unlike
-    SVG) beside the two-tone Intro Connect wordmark."""
+    """Icon + wordmark lockup: the official interlocking-figures mark beside the
+    two-tone Intro Connect wordmark, matching the app nav."""
     return (
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
-        f'<td style="width:34px;height:34px;background:{BLUE};border-radius:8px;'
-        'text-align:center;vertical-align:middle;font-family:' + FONT + ';'
-        'font-size:15px;font-weight:800;color:#ffffff;line-height:34px">ic</td>'
+        '<td style="vertical-align:middle">'
+        f'<img src="{LOGO_URL}" width="34" height="34" alt="Intro Connect" '
+        'style="display:block;border:0;outline:none"></td>'
         '<td style="padding-left:10px;vertical-align:middle;font-family:' + FONT + ';'
         f'font-size:18px;font-weight:800;letter-spacing:-0.01em;color:{INK}">'
         f'Intro <span style="font-weight:500;color:{STONE}">Connect</span></td>'
