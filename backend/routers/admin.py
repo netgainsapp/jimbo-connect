@@ -190,6 +190,25 @@ async def admin_analytics(days: int = 30, _: dict = Depends(get_current_admin)):
     }
 
 
+@router.get("/api/admin/suppressions")
+async def admin_suppressions(_: dict = Depends(get_current_admin)):
+    """CAN-SPAM transparency: who is suppressed and why (unsubscribe, complaint,
+    or hard bounce). Read-only."""
+    from database import suppressed_emails
+
+    out = []
+    async for d in suppressed_emails.find({}).sort("created_at", -1).limit(1000):
+        out.append(
+            {
+                "email": d.get("email", ""),
+                "reason": d.get("reason", ""),
+                "source": d.get("source", ""),
+                "created_at": d.get("created_at"),
+            }
+        )
+    return out
+
+
 @router.post("/api/admin/users/check-emails")
 async def admin_check_emails(
     payload: CheckEmailsRequest, _: dict = Depends(get_current_admin)

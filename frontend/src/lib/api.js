@@ -139,6 +139,7 @@ export const messagesApi = {
 export const adminApi = {
   stats: () => api.get("/api/admin/stats"),
   analytics: (days = 30) => api.get(`/api/admin/analytics?days=${days}`),
+  suppressions: () => api.get("/api/admin/suppressions"),
   listUsers: () => api.get("/api/admin/users"),
   deleteUser: (id) => api.del(`/api/admin/users/${id}`),
   bulkImport: (rows, event_id, default_password) =>

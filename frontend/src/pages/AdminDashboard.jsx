@@ -11,6 +11,7 @@ import {
   Send,
   MessageSquareText,
   BarChart3,
+  MailX,
   HelpCircle,
   MapPin,
   ArrowRight,
@@ -119,6 +120,12 @@ export default function AdminDashboard() {
           icon={<Send className="w-5 h-5" />}
           title="Outreach"
           body="Stage host leads and hand them to signal-scout for sending."
+        />
+        <ActionCard
+          to="/admin/suppressions"
+          icon={<MailX className="w-5 h-5" />}
+          title="Suppressed emails"
+          body="Who unsubscribed, complained, or bounced, and why."
         />
       </div>
 

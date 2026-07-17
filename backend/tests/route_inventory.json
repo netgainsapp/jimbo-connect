@@ -18,6 +18,7 @@
  "GET /api/admin/outreach/status",
  "GET /api/admin/sales-templates",
  "GET /api/admin/stats",
+ "GET /api/admin/suppressions",
  "GET /api/admin/users",
  "GET /api/auth/magic/{token}",
  "GET /api/auth/me",
