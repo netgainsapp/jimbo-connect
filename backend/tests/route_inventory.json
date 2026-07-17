@@ -9,6 +9,7 @@
  "DELETE /api/events/{event_id}/sponsors/{sponsor_id}",
  "DELETE /api/my-events/{event_id}",
  "DELETE /api/profile",
+ "GET /api/admin/analytics",
  "GET /api/admin/blog/flags",
  "GET /api/admin/blog/posts",
  "GET /api/admin/news",

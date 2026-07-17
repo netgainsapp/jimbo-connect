@@ -10,6 +10,7 @@ import {
   Newspaper,
   Send,
   MessageSquareText,
+  BarChart3,
   HelpCircle,
   MapPin,
   ArrowRight,
@@ -71,6 +72,12 @@ export default function AdminDashboard() {
       )}
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <ActionCard
+          to="/admin/analytics"
+          icon={<BarChart3 className="w-5 h-5" />}
+          title="Analytics"
+          body="Signups, engagement, plan mix, and activity over time."
+        />
         <ActionCard
           to="/admin/events"
           icon={<CalendarPlus className="w-5 h-5" />}

@@ -3,7 +3,7 @@ server.py (M13). Route registration order is preserved from the original file.""
 import asyncio
 import secrets
 import string
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Depends, Response
 from bson import ObjectId
@@ -118,6 +118,75 @@ async def admin_stats(_: dict = Depends(get_current_admin)):
         "total_users": total_users,
         "total_events": total_events,
         "total_connections": total_connections,
+    }
+
+
+@router.get("/api/admin/analytics")
+async def admin_analytics(days: int = 30, _: dict = Depends(get_current_admin)):
+    """Platform metrics for the dashboard: totals, engagement, plan mix, and a
+    daily signups series over the trailing window."""
+    from database import messages, db as _db
+
+    days = max(7, min(days, 90))
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    total_users = await users.count_documents({"is_admin": {"$ne": True}})
+    total_events = await events.count_documents({})
+    total_contacts = await saved_contacts.count_documents({})
+    total_messages = await messages.count_documents({})
+    total_attendees = await event_attendees.count_documents({})
+
+    # Active hosts: distinct users who have created at least one event.
+    host_ids = await events.distinct("created_by")
+    active_hosts = len(host_ids)
+
+    avg_attendees = round(total_attendees / total_events, 1) if total_events else 0.0
+
+    # Plan mix (non-admin users). Absent field counts as free.
+    plan_mix = {"free": 0, "starter": 0, "pro": 0}
+    async for row in users.aggregate(
+        [
+            {"$match": {"is_admin": {"$ne": True}}},
+            {"$group": {"_id": {"$ifNull": ["$plan", "free"]}, "n": {"$sum": 1}}},
+        ]
+    ):
+        key = row["_id"] if row["_id"] in plan_mix else "free"
+        plan_mix[key] += row["n"]
+
+    # Daily signups over the window.
+    counts = {}
+    async for row in users.aggregate(
+        [
+            {"$match": {"is_admin": {"$ne": True}, "created_at": {"$gte": cutoff}}},
+            {
+                "$group": {
+                    "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+                    "n": {"$sum": 1},
+                }
+            },
+        ]
+    ):
+        counts[row["_id"]] = row["n"]
+    series = []
+    for i in range(days):
+        d = (cutoff + timedelta(days=i + 1)).strftime("%Y-%m-%d")
+        series.append({"date": d, "count": counts.get(d, 0)})
+    signups_in_window = sum(p["count"] for p in series)
+
+    return {
+        "totals": {
+            "users": total_users,
+            "events": total_events,
+            "contacts_saved": total_contacts,
+            "messages_sent": total_messages,
+            "active_hosts": active_hosts,
+            "avg_attendees_per_event": avg_attendees,
+        },
+        "plan_mix": plan_mix,
+        "window_days": days,
+        "signups_in_window": signups_in_window,
+        "signups_series": series,
     }
 
 

@@ -20,6 +20,7 @@ import AdminUsers from "./pages/AdminUsers.jsx";
 import AdminBlog from "./pages/AdminBlog.jsx";
 import AdminNews from "./pages/AdminNews.jsx";
 import AdminSalesTemplates from "./pages/AdminSalesTemplates.jsx";
+import AdminAnalytics from "./pages/AdminAnalytics.jsx";
 import AdminOutreach from "./pages/AdminOutreach.jsx";
 import JoinEvent from "./pages/JoinEvent.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
@@ -175,6 +176,14 @@ export default function App() {
             element={
               <RequireAuth adminOnly allowIncompleteProfile>
                 <AdminNews />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              <RequireAuth adminOnly allowIncompleteProfile>
+                <AdminAnalytics />
               </RequireAuth>
             }
           />
