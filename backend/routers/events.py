@@ -37,12 +37,19 @@ router = APIRouter()
 async def create_event(
     payload: EventCreateRequest, user: dict = Depends(get_current_user)
 ):
-    if not user.get("is_admin"):
+    import billing
+
+    limit = billing.event_limit_for(user)
+    if limit is not None:
         hosted = await events.count_documents({"created_by": user["_id"]})
-        if hosted >= FREE_EVENT_LIMIT:
+        if hosted >= limit:
+            plan = billing.plan_of(user)
             raise HTTPException(
                 status_code=403,
-                detail="Your free plan includes one event. Upgrade to host more.",
+                detail=(
+                    f"Your {plan} plan includes {limit} "
+                    f"event{'s' if limit != 1 else ''}. Upgrade to host more."
+                ),
             )
     code = generate_join_code()
     while await events.find_one({"join_code": code}):

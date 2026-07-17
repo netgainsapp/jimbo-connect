@@ -127,6 +127,7 @@ def serialize_user(user: dict) -> dict:
         "email": user["email"],
         "is_admin": bool(user.get("is_admin")),
         "email_verified": bool(user.get("email_verified")),
+        "plan": user.get("plan") or "free",
         "profile": Profile(**profile).model_dump(),
         "created_at": user.get("created_at", datetime.now(timezone.utc)),
     }

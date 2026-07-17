@@ -179,6 +179,13 @@ export function newsPublicUrl(slug) {
   return `${BACKEND_URL}/news/${slug}`;
 }
 
+export const billingApi = {
+  status: () => api.get("/api/billing/status"),
+  // Starts Stripe Checkout for "starter" | "pro" and returns { url }.
+  // Caller redirects: const { url } = await billingApi.checkout("pro"); location.href = url;
+  checkout: (plan) => api.post("/api/billing/checkout", { plan }),
+};
+
 export const newsApi = {
   list: () => api.get("/api/admin/news"),
   create: (article) => api.post("/api/admin/news", article),

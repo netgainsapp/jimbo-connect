@@ -57,6 +57,7 @@ SECRET_GATED = {
     ("POST", "/api/nurture/tick"),
     ("POST", "/api/invites/tick"),
     ("POST", "/api/webhooks/resend"),
+    ("POST", "/api/webhooks/stripe"),
 }
 
 _PARAM_RE = re.compile(r"\{[^}]+\}")
