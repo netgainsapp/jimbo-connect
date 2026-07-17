@@ -19,6 +19,7 @@ from database import (
 import email_send
 import outreach
 from news.schema import NewsArticleInput
+from sales_templates import SalesTemplateInput
 from template_seeds import DEFAULT_TEMPLATES, CATEGORIES as TEMPLATE_CATEGORIES
 from auth import hash_password, get_current_admin
 from models import (
@@ -568,3 +569,52 @@ async def admin_news_unpublish(article_id: str, _: dict = Depends(get_current_ad
     if res is None:
         raise HTTPException(status_code=404, detail="Article not found")
     return _serialize_news(res)
+
+
+# ---------- Admin: sales / outreach template library (copy-paste) ----------
+
+@router.get("/api/admin/sales-templates")
+async def admin_sales_list(_: dict = Depends(get_current_admin)):
+    import sales_templates
+
+    return await sales_templates.list_all()
+
+
+@router.post("/api/admin/sales-templates")
+async def admin_sales_create(
+    payload: SalesTemplateInput, _: dict = Depends(get_current_admin)
+):
+    import sales_templates
+
+    return await sales_templates.create(payload)
+
+
+@router.put("/api/admin/sales-templates/{tid}")
+async def admin_sales_update(
+    tid: str, payload: SalesTemplateInput, _: dict = Depends(get_current_admin)
+):
+    import sales_templates
+
+    out = await sales_templates.update(tid, payload)
+    if out is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return out
+
+
+@router.post("/api/admin/sales-templates/{tid}/duplicate")
+async def admin_sales_duplicate(tid: str, _: dict = Depends(get_current_admin)):
+    import sales_templates
+
+    out = await sales_templates.duplicate(tid)
+    if out is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return out
+
+
+@router.delete("/api/admin/sales-templates/{tid}")
+async def admin_sales_delete(tid: str, _: dict = Depends(get_current_admin)):
+    import sales_templates
+
+    if not await sales_templates.delete(tid):
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"ok": True}

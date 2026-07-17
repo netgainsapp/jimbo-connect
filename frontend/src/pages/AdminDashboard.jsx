@@ -9,6 +9,7 @@ import {
   FileText,
   Newspaper,
   Send,
+  MessageSquareText,
   HelpCircle,
   MapPin,
   ArrowRight,
@@ -99,6 +100,12 @@ export default function AdminDashboard() {
           icon={<Newspaper className="w-5 h-5" />}
           title="News"
           body="Write and publish source-attributed articles for /news."
+        />
+        <ActionCard
+          to="/admin/sales-templates"
+          icon={<MessageSquareText className="w-5 h-5" />}
+          title="Sales templates"
+          body="Reusable sales and outreach emails to copy and send by hand."
         />
         <ActionCard
           to="/admin/outreach"

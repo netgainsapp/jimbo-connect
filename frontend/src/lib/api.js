@@ -179,6 +179,14 @@ export function newsPublicUrl(slug) {
   return `${BACKEND_URL}/news/${slug}`;
 }
 
+export const salesTemplatesApi = {
+  list: () => api.get("/api/admin/sales-templates"),
+  create: (t) => api.post("/api/admin/sales-templates", t),
+  update: (id, t) => api.put(`/api/admin/sales-templates/${id}`, t),
+  duplicate: (id) => api.post(`/api/admin/sales-templates/${id}/duplicate`),
+  remove: (id) => api.del(`/api/admin/sales-templates/${id}`),
+};
+
 export const billingApi = {
   status: () => api.get("/api/billing/status"),
   // Starts Stripe Checkout for "starter" | "pro" and returns { url }.

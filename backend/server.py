@@ -88,6 +88,8 @@ async def lifespan(app: FastAPI):
     await seed_data()
     await seed_email_templates()
     await migrate_template_branding()
+    import sales_templates
+    await sales_templates.seed_starters()
     yield
 
 
