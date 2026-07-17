@@ -103,19 +103,52 @@ async def push_to_signal_scout(leads) -> dict:
                 headers={"Authorization": f"Bearer {SIGNAL_SCOUT_API_KEY}"},
                 json=payload,
             )
-        ok = resp.status_code < 300
-        if not ok:
+        http_ok = resp.status_code < 300
+        if not http_ok:
             # Log the raw body server-side; do not forward it to the admin UI
             # (it could carry signal-scout internal diagnostics).
             print(
                 f"[outreach] signal-scout push {resp.status_code}: {resp.text[:500]}",
                 file=sys.stderr,
             )
+            return {
+                "ok": False,
+                "status_code": resp.status_code,
+                "pushed": 0,
+                "detail": f"HTTP {resp.status_code}",
+            }
+        # A 200 does NOT mean the leads landed: signal-scout reports per-lead
+        # outcomes in the body ({imported, sequences_scheduled, errors}) and
+        # still returns 200 when every lead errored. Trust the body, not the
+        # status, or the cockpit shows a green "pushed" for a no-op import.
+        try:
+            body = resp.json()
+        except ValueError:
+            print(
+                f"[outreach] signal-scout push 200 with unparseable body: {resp.text[:300]}",
+                file=sys.stderr,
+            )
+            return {
+                "ok": False,
+                "status_code": resp.status_code,
+                "pushed": 0,
+                "detail": "signal-scout returned an unreadable response",
+            }
+        imported = int(body.get("imported") or 0)
+        errors = body.get("errors") or []
+        if errors:
+            print(f"[outreach] signal-scout import errors: {str(errors)[:500]}", file=sys.stderr)
         return {
-            "ok": ok,
+            "ok": imported > 0 and not errors,
             "status_code": resp.status_code,
-            "pushed": len(leads) if ok else 0,
-            "detail": f"HTTP {resp.status_code}",
+            "pushed": imported,
+            "sequences_scheduled": int(body.get("sequences_scheduled") or 0),
+            "already_scheduled": int(body.get("already_scheduled") or 0),
+            "error_count": len(errors),
+            "detail": (
+                f"imported {imported}/{len(leads)}"
+                + (f", {len(errors)} error(s)" if errors else "")
+            ),
         }
     except Exception as exc:  # network / DNS / timeout
         return {"ok": False, "error": str(exc)[:300]}
