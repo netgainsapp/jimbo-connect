@@ -3,9 +3,10 @@ export default function Footer() {
     <footer className="border-t border-border-default mt-16 py-6">
       <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-text-muted">
         <a
-          href="https://intro-connect.com"
+          href="https://www.frontrangedev.co"
           target="_blank"
           rel="noopener noreferrer"
+          aria-label="Front Range Dev Co."
           className="flex items-center gap-3 hover:opacity-80 transition group"
         >
           {/* Drop a PNG at frontend/public/frontrange-logo.png to use
