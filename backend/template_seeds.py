@@ -28,10 +28,10 @@ DEFAULT_TEMPLATES = [
         "subject": "Reset your Intro Connect password",
         "body": (
             "Hi {attendee_name},\n\n"
-            "Tap this link to set a new password (or just log in — same link works):\n\n"
+            "Tap this link to set a new password. The same link also logs you in:\n\n"
             "{reset_url}\n\n"
-            "Link expires in 2 hours. If you didn't request this, ignore this email.\n\n"
-            "— {host_name}"
+            "The link expires in 2 hours. If you didn't request this, ignore this email.\n\n"
+            "{host_name}"
         ),
     },
     {
@@ -50,7 +50,7 @@ DEFAULT_TEMPLATES = [
             "  Password: {temp_password}\n\n"
             "The directory fills in as more people join. After the event you can save "
             "contacts and add private notes.\n\n"
-            "— {host_name}"
+            "{host_name}"
         ),
     },
 
@@ -59,7 +59,7 @@ DEFAULT_TEMPLATES = [
         "template_id": "save-the-date",
         "category": "event",
         "title": "Save the date",
-        "blurb": "Pre-event invite — get them to commit.",
+        "blurb": "Pre-event invite that gets them to commit.",
         "system": False,
         "subject": "You're invited: {event_name}",
         "body": (
@@ -67,17 +67,17 @@ DEFAULT_TEMPLATES = [
             "I'm hosting {event_name} on {event_date} at {event_location}, and I'd "
             "love for you to be there.\n\n"
             "After the event, I'll add you to a private directory of everyone who "
-            "came — a place to follow up, save contacts, and remember who you met. "
+            "came, a place to follow up, save contacts, and remember who you met. "
             "It's free, and the directory is yours forever.\n\n"
             "Reply and I'll add you to the list.\n\n"
-            "— {host_name}"
+            "{host_name}"
         ),
     },
     {
         "template_id": "youre-in",
         "category": "event",
         "title": "You're in (manual)",
-        "blurb": "Same as the auto invitation — copy if you'd rather hand-send.",
+        "blurb": "Same as the auto invitation. Copy if you'd rather hand-send.",
         "system": False,
         "subject": "Welcome to {event_name}",
         "body": (
@@ -87,7 +87,7 @@ DEFAULT_TEMPLATES = [
             "  Email:    {attendee_email}\n"
             "  Password: {temp_password}\n\n"
             "After the event you can save contacts and add private follow-up notes.\n\n"
-            "— {host_name}"
+            "{host_name}"
         ),
     },
     {
@@ -99,11 +99,11 @@ DEFAULT_TEMPLATES = [
         "subject": "Tonight: {event_name}",
         "body": (
             "Hi {attendee_name},\n\n"
-            "Quick reminder — {event_name} is today at {event_time}, "
+            "Quick reminder: {event_name} is today at {event_time}, "
             "{event_location}.\n\n"
             "After the event, log in at {site_url} to save contacts and stay in "
             "touch with the folks you meet.\n\n"
-            "See you tonight,\n— {host_name}"
+            "See you tonight,\n{host_name}"
         ),
     },
     {
@@ -118,10 +118,10 @@ DEFAULT_TEMPLATES = [
             "Thanks for coming last night.\n\n"
             "The full attendee directory is open: {site_url}\n\n"
             "Browse, save contacts, add private notes for follow-up. The directory "
-            "is yours forever — no subscription, no fees.\n\n"
+            "is yours forever, no subscription, no fees.\n\n"
             "If anyone you wanted to meet wasn't there, let me know and I'll connect "
             "you next time.\n\n"
-            "— {host_name}"
+            "{host_name}"
         ),
     },
     {
@@ -138,7 +138,7 @@ DEFAULT_TEMPLATES = [
             "A few of your fellow attendees have moved companies, launched things, "
             "raised rounds since: {site_url}\n\n"
             "If there's someone you want a warm intro to, just reply.\n\n"
-            "— {host_name}"
+            "{host_name}"
         ),
     },
 
@@ -152,7 +152,7 @@ DEFAULT_TEMPLATES = [
         "subject": "A better way to follow up after networking events",
         "body": (
             "Hi,\n\n"
-            "Quick share — I've started using something called Intro Connect for "
+            "Quick share: I've started using something called Intro Connect for "
             "the networking events I host.\n\n"
             "It's a private directory of everyone who came: name, role, company, "
             "contact info, what they're looking for. After the event, attendees can "
@@ -162,7 +162,7 @@ DEFAULT_TEMPLATES = [
             "What it is: a way to make sure the people you met don't disappear into "
             "a pile of half-remembered business cards.\n\n"
             "If you'd like an invite to the next event I host, just reply.\n\n"
-            "— {host_name}"
+            "{host_name}"
         ),
     },
     {
@@ -177,12 +177,12 @@ DEFAULT_TEMPLATES = [
             "I'm hosting {event_name} on {event_date}. Audience: "
             "{audience_description}.\n\n"
             "Wondering if you'd be open to sponsoring. Here's how it works:\n"
-            "  1. Your tile sits at the top of the attendee directory — visible "
+            "  1. Your tile sits at the top of the attendee directory, visible "
             "before, during, and forever after the event.\n"
             "  2. Optional 60-second intro from you at the event itself.\n\n"
-            "There's no platform fee — sponsorship goes directly to event costs.\n\n"
+            "There's no platform fee, sponsorship goes directly to event costs.\n\n"
             "Happy to share more if interested.\n\n"
-            "— {host_name}"
+            "{host_name}"
         ),
     },
     {
@@ -194,14 +194,14 @@ DEFAULT_TEMPLATES = [
         "subject": "Quick intro",
         "body": (
             "Hi {attendee_name},\n\n"
-            "Quick intro — I'm {host_name}. I host small, curated networking events "
+            "Quick intro: I'm {host_name}. I host small, curated networking events "
             "for founders, operators, and investors in the front range.\n\n"
             "If you've ever left a networking event and forgotten half the names, "
             "you'll like what we do next: a private directory of everyone who came "
             "stays online forever, with contact info and what each person is "
             "working on.\n\n"
             "If you'd like to come to the next one, reply and I'll send a join link.\n\n"
-            "— {host_name}"
+            "{host_name}"
         ),
     },
 ]

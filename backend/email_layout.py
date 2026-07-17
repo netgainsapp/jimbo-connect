@@ -82,7 +82,9 @@ def render(
     )
     body = "".join(
         f'<p style="margin:0 0 16px;font-family:{FONT};font-size:16px;'
-        f'line-height:1.6;color:#26323f">{_esc(p)}</p>'
+        # Single newlines inside a paragraph (credential blocks, addresses)
+        # must survive as line breaks, not collapse into spaces.
+        f'line-height:1.6;color:#26323f">{_esc(p).replace(chr(10), "<br>")}</p>'
         for p in paragraphs
     )
     btn = _button(button["label"], button["url"]) if button else ""

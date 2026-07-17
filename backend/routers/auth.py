@@ -26,7 +26,7 @@ from models import (
     ResetPasswordRequest,
 )
 from core import (
-    FRONTEND_URL,
+    APP_URL,
     serialize_user,
     set_auth_cookie,
     _cookie_secure,
@@ -36,7 +36,6 @@ from core import (
     issue_email_verification,
     apply_email_verification,
     render_email_template,
-    body_to_html,
     _VERIFY_OK_HTML,
     _VERIFY_BAD_HTML,
 )
@@ -163,7 +162,7 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
             {"_id": user["_id"]},
             {"$set": {"reset_token": _hash_token(token), "reset_token_expires": expires}},
         )
-        reset_url = f"{FRONTEND_URL}/reset-password/{token}"
+        reset_url = f"{APP_URL}/reset-password/{token}"
         profile = user.get("profile") or {}
         rendered = await render_email_template(
             "password-reset",
@@ -171,17 +170,17 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
                 "attendee_name": profile.get("name") or "",
                 "attendee_email": user["email"],
                 "host_name": "Intro Connect",
-                "site_url": FRONTEND_URL,
+                "site_url": APP_URL,
                 "reset_url": reset_url,
             },
         )
         sent = False
         if email_send.is_configured() and rendered:
-            result = await email_send.send_email(
+            result = await email_send.send_template_branded(
                 to=user["email"],
-                subject=rendered["subject"],
-                html=body_to_html(rendered["body"]),
-                text=rendered["body"],
+                rendered=rendered,
+                button_label="Set a new password",
+                button_url=reset_url,
             )
             sent = bool(result.get("sent"))
         # Never return the reset link in the response body (that would let anyone

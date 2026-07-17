@@ -18,11 +18,10 @@ from models import (
     InviteGuestsRequest,
 )
 from core import (
-    FRONTEND_URL,
+    APP_URL,
     generate_join_code,
     serialize_event,
     serialize_attendee,
-    body_to_html,
     FREE_EVENT_LIMIT,
     _can_manage_event,
     _thread_id,
@@ -343,7 +342,7 @@ async def request_invite(
         [s for s in [profile.get("role"), profile.get("company")] if s]
     )
 
-    text = f"📬 Invite request: {name}"
+    text = f"Invite request: {name}"
     if role_company:
         text += f" ({role_company})"
     text += f' would like to join "{e["name"]}".'
@@ -362,13 +361,16 @@ async def request_invite(
     )
 
     if email_send.is_configured():
-        await email_send.send_email(
+        await email_send.send_branded(
             to=host["email"],
             subject=f"Invite request: {e['name']}",
-            html=body_to_html(
-                text + f"\n\nReply: {FRONTEND_URL}/messages/{str(user['_id'])}"
-            ),
-            text=text,
+            heading="New invite request",
+            paragraphs=text.split("\n\n"),
+            button={
+                "label": "Reply",
+                "url": f"{APP_URL}/messages/{str(user['_id'])}",
+            },
+            marketing=False,
         )
 
     return {"ok": True}

@@ -12,10 +12,9 @@ from auth import get_current_user
 from core import serialize_user
 from database import users
 
-router = APIRouter()
+from app_url import APP_URL as _APP_URL  # where Stripe returns the user after checkout
 
-# Where Stripe returns the user after checkout (the product app).
-_APP_URL = os.getenv("FRONTEND_URL", "https://app.intro-connect.com").split(",")[0].rstrip("/")
+router = APIRouter()
 
 
 @router.get("/api/billing/status")

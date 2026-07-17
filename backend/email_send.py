@@ -115,6 +115,32 @@ async def send_branded(
     return await send_email(to, subject, html, text=text, reply_to=reply_to)
 
 
+async def send_template_branded(
+    to: str,
+    rendered: dict,
+    *,
+    button_label: Optional[str] = None,
+    button_url: Optional[str] = None,
+    reply_to: Optional[str] = None,
+) -> dict:
+    """Send an admin-editable template ({"subject","body"} from
+    render_email_template) through the branded layout as transactional mail.
+    The body splits on blank lines into paragraphs; a paragraph that is exactly
+    the button URL becomes the bulletproof button instead of a raw link. The
+    plain-text alternative keeps the raw URL so every client has a usable copy."""
+    body = rendered["body"]
+    paragraphs = [p.strip("\n") for p in body.split("\n\n") if p.strip()]
+    button = None
+    if button_url and button_label:
+        paragraphs = [p for p in paragraphs if p.strip() != button_url]
+        button = {"label": button_label, "url": button_url}
+    html = email_layout.render(
+        heading=rendered["subject"], paragraphs=paragraphs, button=button
+    )
+    text = email_layout.to_text(paragraphs, button)
+    return await send_email(to, rendered["subject"], html, text=text, reply_to=reply_to)
+
+
 async def send_marketing_email(
     to: str,
     subject: str,

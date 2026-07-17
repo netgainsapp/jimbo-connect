@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 from fastapi import Response
 from dotenv import load_dotenv
+from app_url import APP_URL  # noqa: F401  (re-exported for routers)
 
 from database import (
     users,

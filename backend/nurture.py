@@ -14,7 +14,8 @@ from database import users, events
 import email_send
 
 # App links (where a host sets up an event) and the marketing pricing page.
-APP_URL = os.getenv("FRONTEND_URL", "https://app.intro-connect.com").split(",")[0].rstrip("/")
+from app_url import APP_URL
+
 MARKETING_URL = os.getenv("MARKETING_URL", "https://intro-connect.com").rstrip("/")
 FIRST_EVENT_URL = f"{APP_URL}/events"
 

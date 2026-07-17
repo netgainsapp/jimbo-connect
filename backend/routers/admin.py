@@ -31,10 +31,9 @@ from models import (
     OutreachAddRequest,
 )
 from core import (
-    FRONTEND_URL,
+    APP_URL,
     serialize_template,
     render_email_template,
-    body_to_html,
     _hard_delete_user,
 )
 
@@ -437,15 +436,15 @@ async def admin_bulk_import(
                             if event_doc
                             else "",
                             "host_name": admin_profile.get("name") or "Jim",
-                            "site_url": FRONTEND_URL,
+                            "site_url": APP_URL,
                         },
                     )
                     if rendered:
-                        await email_send.send_email(
+                        await email_send.send_template_branded(
                             to=email,
-                            subject=rendered["subject"],
-                            html=body_to_html(rendered["body"]),
-                            text=rendered["body"],
+                            rendered=rendered,
+                            button_label="Open your directory",
+                            button_url=APP_URL,
                         )
 
             if event_oid:
