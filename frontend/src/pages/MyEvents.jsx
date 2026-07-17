@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Calendar, MapPin, Plus, Users, LogOut, Copy, Trash2, Mail } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
@@ -22,6 +22,17 @@ export default function MyEvents() {
   const navigate = useNavigate();
   const toast = useToast();
   const confirm = useConfirm();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Stripe Checkout returns here with ?upgraded=1. The webhook applies the
+  // plan server-side within moments; greet the host and clean the URL.
+  useEffect(() => {
+    if (searchParams.get("upgraded") === "1") {
+      toast.show("Payment received. Your new plan is being applied now.");
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -80,7 +91,8 @@ export default function MyEvents() {
       toast.show(`Created ${ev.name}. Share code ${ev.join_code} with your guests.`);
     } catch (err) {
       if (err.status === 403) {
-        toast.show("Your free plan includes one event. Upgrade to host more.", "error");
+        toast.show("Your plan is at its event limit. Pick a plan to host more.", "error");
+        navigate("/upgrade");
       } else {
         toast.show(err.message, "error");
       }
@@ -212,7 +224,10 @@ export default function MyEvents() {
               {creating ? "Creating…" : "Create event"}
             </button>
             <span className="text-xs text-text-muted">
-              Free plan includes one event. We generate a join code to share.
+              Free plan includes one event. We generate a join code to share.{" "}
+              <Link to="/upgrade" className="text-primary font-semibold hover:underline">
+                See plans
+              </Link>
             </span>
           </div>
         </form>

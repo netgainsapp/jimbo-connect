@@ -24,6 +24,7 @@ import AdminAnalytics from "./pages/AdminAnalytics.jsx";
 import AdminSuppressions from "./pages/AdminSuppressions.jsx";
 import AdminOutreach from "./pages/AdminOutreach.jsx";
 import JoinEvent from "./pages/JoinEvent.jsx";
+import Upgrade from "./pages/Upgrade.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 
 export default function App() {
@@ -88,6 +89,16 @@ export default function App() {
             element={
               <RequireAuth>
                 <EventDirectory />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/upgrade"
+            element={
+              // Incomplete profiles may still pick a plan; paying should never
+              // be blocked behind profile setup.
+              <RequireAuth allowIncompleteProfile>
+                <Upgrade />
               </RequireAuth>
             }
           />
