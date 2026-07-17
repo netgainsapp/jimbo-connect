@@ -420,16 +420,18 @@ def _hash_token(token: str) -> str:
 _VERIFY_EXPIRY_DAYS = 7
 
 
-def verify_email_body(name: str, verify_url: str) -> str:
-    return (
-        f"Hi {name or 'there'},\n\n"
+VERIFY_HEADING = "Confirm your email"
+
+
+def verify_email_paragraphs(name: str) -> list:
+    return [
+        f"Hi {name or 'there'},",
         "Please confirm this email address so we know it is really yours. One "
-        "click does it:\n\n"
-        f"{verify_url}\n\n"
+        "click does it.",
         "The link works for seven days. If you did not create an Intro Connect "
-        "account, you can ignore this email.\n\n"
-        "Scott"
-    )
+        "account, you can ignore this email.",
+        "Scott",
+    ]
 
 
 async def issue_email_verification(user: dict) -> None:
@@ -450,12 +452,14 @@ async def issue_email_verification(user: dict) -> None:
     )
     verify_url = f"{suppression.API_PUBLIC_URL}/api/auth/verify-email?token={raw}"
     profile = user.get("profile") or {}
-    body = verify_email_body(profile.get("name") or "", verify_url)
-    await email_send.send_email(
+    # Transactional (not marketing): branded layout, no unsubscribe footer.
+    await email_send.send_branded(
         to=user["email"],
         subject="confirm your email for Intro Connect",
-        html=nurture._html(body),
-        text=body,
+        heading=VERIFY_HEADING,
+        paragraphs=verify_email_paragraphs(profile.get("name") or ""),
+        button={"label": "Confirm my email", "url": verify_url},
+        marketing=False,
     )
 
 

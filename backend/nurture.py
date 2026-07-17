@@ -15,7 +15,7 @@ import email_send
 
 # App links (where a host sets up an event) and the marketing pricing page.
 APP_URL = os.getenv("FRONTEND_URL", "https://app.intro-connect.com").split(",")[0].rstrip("/")
-MARKETING_URL = os.getenv("MARKETING_URL", "https://jimbo-connect.vercel.app").rstrip("/")
+MARKETING_URL = os.getenv("MARKETING_URL", "https://intro-connect.com").rstrip("/")
 FIRST_EVENT_URL = f"{APP_URL}/events"
 
 
@@ -32,97 +32,109 @@ def _name(user: dict) -> str:
 
 
 WELCOME_SUBJECT = "welcome to Intro Connect"
+WELCOME_HEADING = "Welcome to Intro Connect"
 
 
-def welcome_body(name: str) -> str:
-    return (
-        f"Hi {name},\n\n"
+def welcome_paragraphs(name: str) -> list:
+    return [
+        f"Hi {name},",
         "You are in. Intro Connect turns each event you host into a private, "
         "searchable directory of everyone who came, so the connections keep "
-        "going after the night ends.\n\n"
+        "going after the night ends.",
         "The fastest way to feel it is to set up your first event. It takes "
-        "about five minutes and you get a join code to share.\n\n"
-        f"Set up your first event: {FIRST_EVENT_URL}\n\n"
-        "Reply to this email any time. A real person reads it.\n\n"
-        "Scott"
-    )
+        "about five minutes and you get a join code to share.",
+        "Reply to this email any time. A real person reads it.",
+        "Scott",
+    ]
 
 
 # Drip steps after the welcome. gate: "no_event" only sends if they have not
 # hosted yet; "has_event" only if they have; "always" regardless. A step whose
-# gate does not match is skipped (advanced without sending).
+# gate does not match is skipped (advanced without sending). Each step supplies
+# a heading, paragraph list, and a button rendered by the branded email layout.
 STEPS = [
     {
         "after_days": 2,
         "gate": "no_event",
         "subject": "the five minute setup",
-        "body": lambda name: (
-            f"Hi {name},\n\n"
+        "heading": "The five minute setup",
+        "paragraphs": lambda name: [
+            f"Hi {name},",
             "If you have five minutes, here is all it takes to get your first "
-            "event live:\n\n"
-            "1. Name the event and pick a date. We generate the join code.\n"
-            "2. Share the code or link with your guests.\n"
-            "3. Ask people to add a photo when they join, so the room remembers "
-            "them.\n\n"
+            "event live: name the event and pick a date and we generate the join "
+            "code, share the code or link with your guests, and ask people to add "
+            "a photo when they join so the room remembers them.",
             "You can even paste your guest list from any tool and we will create "
-            "the accounts for you.\n\n"
-            f"Start here: {FIRST_EVENT_URL}\n\n"
-            "Scott"
-        ),
+            "the accounts for you.",
+            "Scott",
+        ],
+        "button": {"label": "Start your first event", "url": FIRST_EVENT_URL},
     },
     {
         "after_days": 5,
         "gate": "always",
         "subject": "the part that happens after the event",
-        "body": lambda name: (
-            f"Hi {name},\n\n"
+        "heading": "The part that happens after the event",
+        "paragraphs": lambda name: [
+            f"Hi {name},",
             "The night itself is only half the value. The other half is the week "
             "after, when your attendees open the directory, save the people they "
-            "met, and send the messages they meant to send.\n\n"
-            "A few things that help it land:\n\n"
-            "Remind guests at the event that the directory is live. Add a short "
-            "welcome note so the room feels like yours. Drop in any speakers or "
-            "sponsors so attendees can find them too.\n\n"
-            f"Open your event: {FIRST_EVENT_URL}\n\n"
-            "Scott"
-        ),
+            "met, and send the messages they meant to send.",
+            "A few things that help it land: remind guests at the event that the "
+            "directory is live, add a short welcome note so the room feels like "
+            "yours, and drop in any speakers or sponsors so attendees can find "
+            "them too.",
+            "Scott",
+        ],
+        "button": {"label": "Open your event", "url": FIRST_EVENT_URL},
     },
     {
         "after_days": 10,
         "gate": "has_event",
         "subject": "when you are ready for more rooms",
-        "body": lambda name: (
-            f"Hi {name},\n\n"
+        "heading": "When you are ready for more rooms",
+        "paragraphs": lambda name: [
+            f"Hi {name},",
             "Glad to see Intro Connect working for you. The free plan covers one "
             "event and a directory that stays live for a month. When you are "
             "ready to run more rooms, keep directories permanent, or connect "
-            "attendees across every event you host, the paid plans open that "
-            "up.\n\n"
-            "Starter, 39 dollars a month: a few events and bigger rooms.\n"
+            "attendees across every event you host, the paid plans open that up.",
+            "Starter, 39 dollars a month: a few events and bigger rooms. "
             "Pro, 99 dollars a month: unlimited events, your whole network in "
-            "one place, and your own custom domain.\n\n"
-            f"See the plans: {MARKETING_URL}/#pricing\n\n"
-            "No rush, the free plan is yours for as long as you want it.\n\n"
-            "Scott"
-        ),
+            "one place, and your own custom domain.",
+            "No rush, the free plan is yours for as long as you want it.",
+            "Scott",
+        ],
+        "button": {"label": "See the plans", "url": f"{MARKETING_URL}/#pricing"},
     },
 ]
 
 
-async def _send(user: dict, subject: str, body: str) -> bool:
+async def _send(user: dict, subject: str, heading: str, paragraphs: list, button: dict) -> bool:
     if not email_send.is_configured():
         return False
-    # Marketing send: enforces the suppression list and carries the
-    # unsubscribe footer + List-Unsubscribe headers.
-    result = await email_send.send_marketing_email(
-        to=user["email"], subject=subject, html=_html(body), text=body
+    # Marketing send: branded layout + suppression list + unsubscribe footer
+    # and List-Unsubscribe headers.
+    result = await email_send.send_branded(
+        to=user["email"],
+        subject=subject,
+        heading=heading,
+        paragraphs=paragraphs,
+        button=button,
+        marketing=True,
     )
     return bool(result.get("sent"))
 
 
 async def send_welcome(user: dict) -> bool:
     """Best-effort welcome on register. No-op without Resend."""
-    return await _send(user, WELCOME_SUBJECT, welcome_body(_name(user)))
+    return await _send(
+        user,
+        WELCOME_SUBJECT,
+        WELCOME_HEADING,
+        welcome_paragraphs(_name(user)),
+        {"label": "Set up your first event", "url": FIRST_EVENT_URL},
+    )
 
 
 async def _has_event(user_id) -> bool:
@@ -168,6 +180,9 @@ async def run_nurture_tick() -> dict:
         )
         if claimed is None:
             continue
-        if await _send(u, step["subject"], step["body"](_name(u))):
+        name = _name(u)
+        if await _send(
+            u, step["subject"], step["heading"], step["paragraphs"](name), step["button"]
+        ):
             sent += 1
     return {"ok": True, "processed": processed, "sent": sent, "advanced": advanced}

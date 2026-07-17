@@ -11,6 +11,7 @@ import os
 import httpx
 from typing import Optional
 
+import email_layout
 import suppression
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
@@ -72,6 +73,46 @@ _FOOTER_HTML = (
     '<a href="{url}" style="color:#8a8a8a">Unsubscribe</a></p>'
 )
 _FOOTER_TEXT = "\n\nYou can stop these emails any time. Unsubscribe: {url}"
+
+
+async def send_branded(
+    to: str,
+    subject: str,
+    *,
+    heading: str,
+    paragraphs,
+    button: Optional[dict] = None,
+    marketing: bool = True,
+    reply_to: Optional[str] = None,
+) -> dict:
+    """Render structured content through the branded, email-client-safe layout
+    and send it. Marketing mail is suppression-checked and carries the
+    unsubscribe footer + List-Unsubscribe headers; transactional mail is not
+    (only a hard bounce blocks it, enforced in send_email)."""
+    if not RESEND_API_KEY:
+        return {"sent": False, "reason": "RESEND_API_KEY not set"}
+    if marketing:
+        if await suppression.is_suppressed(to):
+            return {"sent": False, "reason": "suppressed"}
+        unsub = suppression.unsubscribe_url(to)
+        html = email_layout.render(
+            heading=heading, paragraphs=paragraphs, button=button, unsubscribe_url=unsub
+        )
+        text = email_layout.to_text(paragraphs, button, unsub)
+        return await send_email(
+            to,
+            subject,
+            html,
+            text=text,
+            reply_to=reply_to,
+            headers={
+                "List-Unsubscribe": f"<{unsub}>",
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+        )
+    html = email_layout.render(heading=heading, paragraphs=paragraphs, button=button)
+    text = email_layout.to_text(paragraphs, button)
+    return await send_email(to, subject, html, text=text, reply_to=reply_to)
 
 
 async def send_marketing_email(

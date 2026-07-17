@@ -4,8 +4,9 @@ Run from backend/: python -m pytest tests/test_invites.py
 """
 from invites import (
     normalize_emails,
-    invite_body,
-    reminder_body,
+    invite_heading,
+    invite_paragraphs,
+    reminder_paragraphs,
     invite_subject,
     REMINDER_DAYS,
     MAX_REMINDERS,
@@ -23,25 +24,26 @@ def test_normalize_emails_from_list():
     assert out == ["foo@bar.com"]
 
 
-def test_invite_body_has_event_host_and_join_link():
-    body = invite_body("Denver Founders Dinner", "Eric", "https://app/join/ABC123")
-    assert "Denver Founders Dinner" in body
-    assert "Eric" in body
-    assert "https://app/join/ABC123" in body
+def test_invite_content_has_event_host_and_heading():
+    joined = " ".join(invite_paragraphs("Denver Founders Dinner", "Eric"))
+    assert "Denver Founders Dinner" in joined
+    assert "Eric" in joined
+    assert "Denver Founders Dinner" in invite_heading("Denver Founders Dinner")
 
 
-def test_reminder_body_mentions_not_joined_and_link():
-    body = reminder_body("Pitch Night", "Ian", "https://app/join/XYZ")
-    assert "Pitch Night" in body
-    assert "https://app/join/XYZ" in body
+def test_reminder_content_mentions_not_joined():
+    joined = " ".join(reminder_paragraphs("Pitch Night", "Ian"))
+    assert "Pitch Night" in joined
+    assert "Ian" in joined
+    assert "not joined" in joined
 
 
 def test_copy_is_dash_free():
-    blobs = [
-        invite_body("E", "H", "u"),
-        reminder_body("E", "H", "u"),
-        invite_subject("E"),
-    ]
+    blobs = (
+        invite_paragraphs("E", "H")
+        + reminder_paragraphs("E", "H")
+        + [invite_subject("E"), invite_heading("E")]
+    )
     for b in blobs:
         assert "—" not in b and "–" not in b
 

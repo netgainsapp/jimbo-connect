@@ -56,29 +56,28 @@ def invite_subject(event_name: str) -> str:
     return f"You are invited to {event_name}"
 
 
-def invite_body(event_name: str, host_name: str, join_url: str) -> str:
+def invite_heading(event_name: str) -> str:
+    return f"You are invited to {event_name}"
+
+
+def invite_paragraphs(event_name: str, host_name: str) -> list:
     host = host_name or "Your host"
-    return (
-        f"Hi,\n\n"
+    return [
         f"{host} invited you to {event_name} on Intro Connect. After the event, "
         "everyone who came is in one private, searchable directory, so you can "
-        "save the people you meet, keep a private note, and message them later.\n\n"
-        f"Join here: {join_url}\n\n"
-        "It takes a minute and it is free for guests.\n\n"
-        "See you there."
-    )
+        "save the people you meet, keep a private note, and message them later.",
+        "It takes a minute and it is free for guests. See you there.",
+    ]
 
 
-def reminder_body(event_name: str, host_name: str, join_url: str) -> str:
+def reminder_paragraphs(event_name: str, host_name: str) -> list:
     host = host_name or "your host"
-    return (
-        f"Hi,\n\n"
+    return [
         f"A quick nudge: you were invited to {event_name} by {host}, and you have "
         "not joined yet. Joining puts you in the event directory so you can find "
-        "and message the people you meet.\n\n"
-        f"Join here: {join_url}\n\n"
-        "Free for guests, takes a minute."
-    )
+        "and message the people you meet.",
+        "Free for guests, takes a minute.",
+    ]
 
 
 async def send_event_invites(event: dict, raw_emails, host_name: str) -> dict:
@@ -116,11 +115,13 @@ async def send_event_invites(event: dict, raw_emails, host_name: str) -> dict:
             },
             upsert=True,
         )
-        result = await email_send.send_marketing_email(
+        result = await email_send.send_branded(
             to=email,
             subject=invite_subject(event["name"]),
-            html=_html(invite_body(event["name"], host_name, join_url)),
-            text=invite_body(event["name"], host_name, join_url),
+            heading=invite_heading(event["name"]),
+            paragraphs=invite_paragraphs(event["name"], host_name),
+            button={"label": "Join the event", "url": join_url},
+            marketing=True,
         )
         if result.get("sent"):
             sent += 1
@@ -178,11 +179,13 @@ async def run_invite_reminder_tick() -> dict:
         if claimed is None:
             continue
         join_url = _join_url(e["join_code"])
-        result = await email_send.send_marketing_email(
+        result = await email_send.send_branded(
             to=inv["email"],
             subject=invite_subject(e["name"]),
-            html=_html(reminder_body(e["name"], inv.get("host_name", ""), join_url)),
-            text=reminder_body(e["name"], inv.get("host_name", ""), join_url),
+            heading=invite_heading(e["name"]),
+            paragraphs=reminder_paragraphs(e["name"], inv.get("host_name", "")),
+            button={"label": "Join the event", "url": join_url},
+            marketing=True,
         )
         if result.get("sent"):
             sent += 1

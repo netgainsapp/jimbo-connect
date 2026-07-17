@@ -2,14 +2,21 @@
 DB-driven tick need Resend + Mongo and are not exercised here.
 Run from backend/: python -m pytest tests/test_nurture.py
 """
-from nurture import STEPS, WELCOME_SUBJECT, welcome_body, _html, _name
+from nurture import (
+    STEPS,
+    WELCOME_SUBJECT,
+    WELCOME_HEADING,
+    welcome_paragraphs,
+    _html,
+    _name,
+)
 
 
-def test_welcome_includes_name_and_setup_link():
-    body = welcome_body("Sarah")
-    assert "Sarah" in body
-    assert "/events" in body  # the set-up-your-first-event link
-    assert WELCOME_SUBJECT
+def test_welcome_includes_name_and_heading():
+    paras = welcome_paragraphs("Sarah")
+    joined = " ".join(paras)
+    assert "Sarah" in joined
+    assert WELCOME_SUBJECT and WELCOME_HEADING
 
 
 def test_steps_are_ordered_and_gated():
@@ -18,16 +25,19 @@ def test_steps_are_ordered_and_gated():
     assert days == sorted(days)  # 2, 5, 10 ascending
     gates = {s["gate"] for s in STEPS}
     assert gates <= {"no_event", "has_event", "always"}
-    # each step body renders with a name and is non-trivial
+    # each step renders paragraphs with the name, a heading, and a button URL
     for s in STEPS:
-        body = s["body"]("Alex")
-        assert "Alex" in body
-        assert len(body) > 80
+        paras = s["paragraphs"]("Alex")
+        assert any("Alex" in p for p in paras)
+        assert len(" ".join(paras)) > 80
+        assert s["heading"]
+        assert s["button"]["label"] and s["button"]["url"].startswith("http")
 
 
 def test_no_dashes_in_copy():
     # brand voice: no em or en dashes anywhere in the sequence
-    blobs = [welcome_body("X")] + [s["body"]("X") for s in STEPS]
+    blobs = [" ".join(welcome_paragraphs("X"))]
+    blobs += [" ".join(s["paragraphs"]("X")) + " " + s["heading"] for s in STEPS]
     for body in blobs:
         assert "—" not in body  # em dash
         assert "–" not in body  # en dash

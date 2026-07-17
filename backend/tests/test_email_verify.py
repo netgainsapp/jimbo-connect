@@ -107,9 +107,11 @@ def test_naive_expiry_datetime_handled(monkeypatch):
 # ---- copy + serialization ----
 
 def test_verify_body_has_url_and_no_dashes():
-    body = server.verify_email_body("Sam", "https://x.test/verify?token=abc")
-    assert "https://x.test/verify?token=abc" in body
-    assert "—" not in body and "–" not in body
+    paras = server.verify_email_paragraphs("Sam")
+    joined = " ".join(paras)
+    assert "Sam" in joined
+    assert "seven days" in joined
+    assert "—" not in joined and "–" not in joined
 
 
 def test_serialize_user_includes_email_verified():

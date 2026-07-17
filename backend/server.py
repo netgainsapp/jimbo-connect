@@ -50,7 +50,7 @@ from core import (
     _new_reset_token,
     _hash_token,
     _VERIFY_EXPIRY_DAYS,
-    verify_email_body,
+    verify_email_paragraphs,
     issue_email_verification,
     apply_email_verification,
     _VERIFY_OK_HTML,
