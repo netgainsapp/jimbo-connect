@@ -69,9 +69,9 @@ test("upgrade page renders plans and offers checkout to a free user", async ({
   await page.fill('input[type="email"]', ACCT.email);
   await page.fill('input[type="password"]', ACCT.password);
   await page.click('button[type="submit"]');
-  await expect(page).toHaveURL(/\/(events|profile)/);
-
-  await page.goto(`${WEB_URL}/upgrade`);
+  // Login honors the deep link the visitor came for (RequireAuth state.from),
+  // so it lands straight back on /upgrade.
+  await expect(page).toHaveURL(/\/upgrade/);
   await expect(
     page.getByRole("heading", { name: "Plans" })
   ).toBeVisible();
