@@ -190,6 +190,72 @@ async def admin_analytics(days: int = 30, _: dict = Depends(get_current_admin)):
     }
 
 
+@router.get("/api/admin/events/{event_id}/insights")
+async def admin_event_insights(event_id: str, _: dict = Depends(get_current_admin)):
+    """The value story for a host: attendance, invite conversion, and the
+    connections + conversations that formed among the people at this event."""
+    from database import event_invites, messages
+
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    if not await events.find_one({"_id": oid}):
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    attendee_ids = [
+        l["user_id"] async for l in event_attendees.find({"event_id": oid}, {"user_id": 1})
+    ]
+    id_set = set(attendee_ids)
+
+    invited = await event_invites.count_documents({"event_id": oid})
+    joined = await event_invites.count_documents(
+        {"event_id": oid, "joined_at": {"$ne": None}}
+    )
+    join_rate = round(100 * joined / invited) if invited else None
+
+    # Connections + messages that stayed within this event's attendee set.
+    connections = 0
+    save_counts: dict = {}
+    if id_set:
+        async for sc in saved_contacts.find(
+            {"owner_id": {"$in": attendee_ids}}, {"owner_id": 1, "contact_id": 1}
+        ):
+            if sc.get("contact_id") in id_set:
+                connections += 1
+                cid = sc["contact_id"]
+                save_counts[cid] = save_counts.get(cid, 0) + 1
+
+    messages_exchanged = 0
+    if id_set:
+        async for m in messages.find(
+            {"from_user_id": {"$in": attendee_ids}}, {"from_user_id": 1, "to_user_id": 1}
+        ):
+            if m.get("to_user_id") in id_set:
+                messages_exchanged += 1
+
+    # Top saved attendees (most sought-after people in the room).
+    top_ids = sorted(save_counts, key=save_counts.get, reverse=True)[:3]
+    top_saved = []
+    for uid in top_ids:
+        u = await users.find_one({"_id": uid}, {"profile": 1, "email": 1})
+        if u:
+            prof = u.get("profile") or {}
+            top_saved.append(
+                {"name": prof.get("name") or u.get("email", ""), "saved_by": save_counts[uid]}
+            )
+
+    return {
+        "attendees": len(attendee_ids),
+        "invited": invited,
+        "joined": joined,
+        "join_rate": join_rate,  # percent, or null if no invites tracked
+        "connections": connections,
+        "messages": messages_exchanged,
+        "top_saved": top_saved,
+    }
+
+
 @router.get("/api/admin/suppressions")
 async def admin_suppressions(_: dict = Depends(get_current_admin)):
     """CAN-SPAM transparency: who is suppressed and why (unsubscribe, complaint,

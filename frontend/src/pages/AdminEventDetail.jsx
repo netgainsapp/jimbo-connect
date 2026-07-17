@@ -26,6 +26,7 @@ export default function AdminEventDetail() {
   const { id } = useParams();
   const [event, setEvent] = useState(null);
   const [attendees, setAttendees] = useState([]);
+  const [insights, setInsights] = useState(null);
   const [sponsors, setSponsors] = useState([]);
   const [sponsorUrl, setSponsorUrl] = useState("");
   const [addingSponsor, setAddingSponsor] = useState(false);
@@ -43,11 +44,13 @@ export default function AdminEventDetail() {
       eventsApi.get(id),
       eventsApi.attendees(id),
       sponsorsApi.list(id),
+      adminApi.eventInsights(id).catch(() => null),
     ])
-      .then(([ev, list, sp]) => {
+      .then(([ev, list, sp, ins]) => {
         setEvent(ev);
         setAttendees(list);
         setSponsors(sp);
+        setInsights(ins);
       })
       .catch((e) => toast.show(e.message, "error"))
       .finally(() => setLoading(false));
@@ -254,6 +257,36 @@ export default function AdminEventDetail() {
         </div>
       </div>
 
+      {insights && (
+        <div className="card p-5 mb-6">
+          <div className="text-xs uppercase tracking-wider text-text-muted font-semibold mb-3">
+            Event insights
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Metric label="Attendees" value={insights.attendees} />
+            <Metric
+              label="Join rate"
+              value={insights.join_rate == null ? "—" : `${insights.join_rate}%`}
+              sub={insights.invited ? `${insights.joined}/${insights.invited} invited` : "no invites tracked"}
+            />
+            <Metric label="Connections" value={insights.connections} sub="contacts saved in-event" />
+            <Metric label="Messages" value={insights.messages} sub="between attendees" />
+          </div>
+          {insights.top_saved?.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-border-default">
+              <div className="text-xs text-text-muted font-semibold mb-1">Most saved</div>
+              <div className="flex flex-wrap gap-2">
+                {insights.top_saved.map((p, i) => (
+                  <span key={i} className="text-sm bg-bg-secondary rounded-full px-3 py-1 text-text-secondary">
+                    {p.name} · saved by {p.saved_by}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-end justify-between gap-2 mb-3 flex-wrap">
         <h2 className="font-bold text-text-primary text-lg">Sponsors</h2>
         <form
@@ -443,6 +476,16 @@ export default function AdminEventDetail() {
         open={Boolean(active)}
         onClose={() => setActive(null)}
       />
+    </div>
+  );
+}
+
+function Metric({ label, value, sub }) {
+  return (
+    <div>
+      <div className="text-2xl font-bold text-text-primary">{value}</div>
+      <div className="text-sm font-semibold text-text-secondary">{label}</div>
+      {sub && <div className="text-xs text-text-muted mt-0.5">{sub}</div>}
     </div>
   );
 }
