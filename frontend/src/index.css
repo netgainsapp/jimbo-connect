@@ -50,3 +50,17 @@ body {
     @apply inline-flex items-center px-3 py-1 rounded-pill bg-bg-secondary text-text-secondary text-xs font-semibold;
   }
 }
+
+/* Host branding (Pro): scoped to a single event page via the host-branded
+   class + CSS variables set inline. Only primary-action color shifts; layout,
+   type, and everything else stay platform tokens. */
+.host-branded .btn-primary {
+  background: var(--host-accent-dark);
+}
+.host-branded .btn-primary:hover {
+  background: var(--host-accent-dark);
+  filter: brightness(1.12);
+}
+.host-branded .text-primary {
+  color: var(--host-accent-dark);
+}

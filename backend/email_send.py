@@ -84,6 +84,7 @@ async def send_branded(
     button: Optional[dict] = None,
     marketing: bool = True,
     reply_to: Optional[str] = None,
+    brand: Optional[dict] = None,
 ) -> dict:
     """Render structured content through the branded, email-client-safe layout
     and send it. Marketing mail is suppression-checked and carries the
@@ -96,7 +97,11 @@ async def send_branded(
             return {"sent": False, "reason": "suppressed"}
         unsub = suppression.unsubscribe_url(to)
         html = email_layout.render(
-            heading=heading, paragraphs=paragraphs, button=button, unsubscribe_url=unsub
+            heading=heading,
+            paragraphs=paragraphs,
+            button=button,
+            unsubscribe_url=unsub,
+            brand=brand,
         )
         text = email_layout.to_text(paragraphs, button, unsub)
         return await send_email(
@@ -110,7 +115,9 @@ async def send_branded(
                 "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
             },
         )
-    html = email_layout.render(heading=heading, paragraphs=paragraphs, button=button)
+    html = email_layout.render(
+        heading=heading, paragraphs=paragraphs, button=button, brand=brand
+    )
     text = email_layout.to_text(paragraphs, button)
     return await send_email(to, subject, html, text=text, reply_to=reply_to)
 
@@ -122,6 +129,7 @@ async def send_template_branded(
     button_label: Optional[str] = None,
     button_url: Optional[str] = None,
     reply_to: Optional[str] = None,
+    brand: Optional[dict] = None,
 ) -> dict:
     """Send an admin-editable template ({"subject","body"} from
     render_email_template) through the branded layout as transactional mail.
@@ -135,7 +143,7 @@ async def send_template_branded(
         paragraphs = [p for p in paragraphs if p.strip() != button_url]
         button = {"label": button_label, "url": button_url}
     html = email_layout.render(
-        heading=rendered["subject"], paragraphs=paragraphs, button=button
+        heading=rendered["subject"], paragraphs=paragraphs, button=button, brand=brand
     )
     text = email_layout.to_text(paragraphs, button)
     return await send_email(to, rendered["subject"], html, text=text, reply_to=reply_to)

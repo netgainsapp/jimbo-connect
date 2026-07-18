@@ -16,6 +16,7 @@ from database import (
     email_templates,
     outreach_leads,
 )
+import branding
 import email_send
 import outreach
 from news.schema import NewsArticleInput
@@ -445,6 +446,7 @@ async def admin_bulk_import(
                             rendered=rendered,
                             button_label="Open your directory",
                             button_url=APP_URL,
+                            brand=branding.email_brand(admin),
                         )
 
             if event_oid:

@@ -5,6 +5,7 @@ import { profileApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import Avatar from "../components/Avatar.jsx";
+import BrandCard from "../components/BrandCard.jsx";
 import { Camera, Trash2 } from "lucide-react";
 
 export default function ProfileSetup({ editMode = false }) {
@@ -203,6 +204,12 @@ export default function ProfileSetup({ editMode = false }) {
           </button>
         </div>
       </form>
+
+      {editMode && (
+        <div className="mt-8">
+          <BrandCard />
+        </div>
+      )}
 
       {editMode && !user?.is_admin && (
         <div className="mt-10 pt-6 border-t border-border-default">

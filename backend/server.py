@@ -80,6 +80,7 @@ from routers.sponsors import router as sponsors_router
 from routers.admin import router as admin_router
 from routers.public import router as public_router
 from routers.billing import router as billing_router
+from routers.branding import router as branding_router
 
 
 @asynccontextmanager
@@ -187,3 +188,4 @@ app.include_router(sponsors_router)
 app.include_router(admin_router)
 app.include_router(public_router)
 app.include_router(billing_router)
+app.include_router(branding_router)

@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from bson import ObjectId
 
 from database import users, events, event_attendees, event_sponsors, messages
+import branding
 import email_send
 import invites
 import rate_limit
@@ -113,7 +114,8 @@ async def get_event(event_id: str, user: dict = Depends(get_current_user)):
         if not joined:
             raise HTTPException(status_code=403, detail="Not joined to this event")
     count = await event_attendees.count_documents({"event_id": oid})
-    return serialize_event(e, count)
+    host = await users.find_one({"_id": e["created_by"]}) if e.get("created_by") else None
+    return serialize_event(e, count, host_branding=branding.public_branding(host) if host else None)
 
 
 @router.put("/api/events/{event_id}")
@@ -211,7 +213,8 @@ async def join_event(code: str, user: dict = Depends(get_current_user)):
     # Stop any pending invite reminders for this guest on this event.
     await invites.mark_joined(e["_id"], user.get("email", ""))
     count = await event_attendees.count_documents({"event_id": e["_id"]})
-    return serialize_event(e, count)
+    host = await users.find_one({"_id": e["created_by"]}) if e.get("created_by") else None
+    return serialize_event(e, count, host_branding=branding.public_branding(host) if host else None)
 
 
 @router.post("/api/events/{event_id}/invite")
@@ -233,7 +236,9 @@ async def invite_guests(
     if not _can_manage_event(user, e):
         raise HTTPException(status_code=403, detail="Not your event")
     host_name = (user.get("profile") or {}).get("name") or ""
-    return await invites.send_event_invites(e, payload.emails, host_name)
+    return await invites.send_event_invites(
+        e, payload.emails, host_name, host_brand=branding.email_brand(user)
+    )
 
 
 @router.get("/api/events/{event_id}/attendees")
@@ -371,6 +376,7 @@ async def request_invite(
                 "url": f"{APP_URL}/messages/{str(user['_id'])}",
             },
             marketing=False,
+            brand=branding.email_brand(host),
         )
 
     return {"ok": True}

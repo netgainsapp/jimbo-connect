@@ -11,7 +11,8 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 
-from database import event_invites, events
+from database import event_invites, events, users
+import branding
 import email_send
 
 from app_url import APP_URL
@@ -80,7 +81,9 @@ def reminder_paragraphs(event_name: str, host_name: str) -> list:
     ]
 
 
-async def send_event_invites(event: dict, raw_emails, host_name: str) -> dict:
+async def send_event_invites(
+    event: dict, raw_emails, host_name: str, host_brand: dict | None = None
+) -> dict:
     """Record and email invites for an event. Dormant when Resend is not
     configured (no records written either), so the invite + reminder state never
     gets ahead of actually-sent mail."""
@@ -122,6 +125,7 @@ async def send_event_invites(event: dict, raw_emails, host_name: str) -> dict:
             paragraphs=invite_paragraphs(event["name"], host_name),
             button={"label": "Join the event", "url": join_url},
             marketing=True,
+            brand=host_brand,
         )
         if result.get("sent"):
             sent += 1
@@ -179,6 +183,7 @@ async def run_invite_reminder_tick() -> dict:
         if claimed is None:
             continue
         join_url = _join_url(e["join_code"])
+        host = await users.find_one({"_id": e["created_by"]}) if e.get("created_by") else None
         result = await email_send.send_branded(
             to=inv["email"],
             subject=invite_subject(e["name"]),
@@ -186,6 +191,7 @@ async def run_invite_reminder_tick() -> dict:
             paragraphs=reminder_paragraphs(e["name"], inv.get("host_name", "")),
             button={"label": "Join the event", "url": join_url},
             marketing=True,
+            brand=branding.email_brand(host) if host else None,
         )
         if result.get("sent"):
             sent += 1

@@ -45,11 +45,27 @@ def _logo() -> str:
     )
 
 
-def _button(label: str, url: str) -> str:
+def _host_logo(brand: dict) -> str:
+    """Header lockup for a Pro host's branded event email: the host's logo on
+    the left, a small 'via Intro Connect' credit on the right. The platform
+    stays visible on every branded surface (not white-label)."""
+    return (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'border="0"><tr>'
+        '<td style="vertical-align:middle">'
+        f'<img src="{_esc(brand["logo_url"])}" height="34" alt="Event host" '
+        'style="display:block;border:0;outline:none;max-width:180px"></td>'
+        f'<td align="right" style="vertical-align:middle;font-family:{FONT};'
+        f'font-size:12px;font-weight:600;color:{STONE}">via Intro Connect</td>'
+        "</tr></table>"
+    )
+
+
+def _button(label: str, url: str, color: str = BLUE) -> str:
     return (
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0" '
         'style="margin:26px 0"><tr>'
-        f'<td bgcolor="{BLUE}" style="border-radius:8px">'
+        f'<td bgcolor="{color}" style="border-radius:8px">'
         f'<a href="{_esc(url)}" style="display:inline-block;padding:13px 28px;'
         f'font-family:{FONT};font-size:15px;font-weight:700;color:#ffffff;'
         'text-decoration:none;border-radius:8px">' + _esc(label) + "</a>"
@@ -64,9 +80,13 @@ def render(
     button: dict | None = None,
     unsubscribe_url: str = "",
     preheader: str = "",
+    brand: dict | None = None,
 ) -> str:
     """Full branded HTML email. `button` is {"label","url"} or None. When
-    `unsubscribe_url` is given, the footer carries an unsubscribe link."""
+    `unsubscribe_url` is given, the footer carries an unsubscribe link.
+    `brand` is an optional host brand {"logo_url","accent_dark"} (Pro hosts):
+    it swaps the header for the host's logo lockup and colors the button with
+    the host's contrast-safe accent. None renders the platform default."""
     pre = (
         f'<div style="display:none;max-height:0;overflow:hidden;opacity:0">'
         f"{_esc(preheader)}</div>"
@@ -87,7 +107,9 @@ def render(
         f'line-height:1.6;color:#26323f">{_esc(p).replace(chr(10), "<br>")}</p>'
         for p in paragraphs
     )
-    btn = _button(button["label"], button["url"]) if button else ""
+    accent = (brand or {}).get("accent_dark") or BLUE
+    btn = _button(button["label"], button["url"], color=accent) if button else ""
+    header = _host_logo(brand) if brand and brand.get("logo_url") else _logo()
     unsub = (
         f'<br><a href="{_esc(unsubscribe_url)}" '
         f'style="color:{STONE};text-decoration:underline">Unsubscribe</a>'
@@ -105,7 +127,7 @@ def render(
         '<table role="presentation" width="600" cellpadding="0" cellspacing="0" '
         'border="0" style="width:600px;max-width:100%">'
         # header
-        f'<tr><td style="padding:4px 4px 20px">{_logo()}</td></tr>'
+        f'<tr><td style="padding:4px 4px 20px">{header}</td></tr>'
         # card
         '<tr><td style="background:#ffffff;border:1px solid ' + LINE + ';'
         'border-radius:14px;padding:36px 32px">'

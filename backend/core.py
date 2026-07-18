@@ -143,8 +143,8 @@ def serialize_attendee(user: dict) -> dict:
     }
 
 
-def serialize_event(event: dict, attendee_count: int = 0) -> dict:
-    return {
+def serialize_event(event: dict, attendee_count: int = 0, host_branding=None) -> dict:
+    out = {
         "id": str(event["_id"]),
         "name": event["name"],
         "date": event["date"],
@@ -155,6 +155,11 @@ def serialize_event(event: dict, attendee_count: int = 0) -> dict:
         "created_at": event["created_at"],
         "attendee_count": attendee_count,
     }
+    # Host branding (Pro) rides along only where the caller resolved it, so
+    # list endpoints stay cheap and existing consumers see no shape change.
+    if host_branding is not None:
+        out["host_branding"] = host_branding
+    return out
 
 
 async def seed_data():

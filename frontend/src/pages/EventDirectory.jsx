@@ -126,9 +126,31 @@ export default function EventDirectory() {
     }
   };
 
+  // Host branding (Pro): accent recolors this page's primary actions via CSS
+  // variables scoped to the container; the logo sits above the cohort header.
+  const hb = !isAll ? event?.host_branding : null;
+  const brandStyle = hb?.accent_dark
+    ? { "--host-accent": hb.accent, "--host-accent-dark": hb.accent_dark }
+    : undefined;
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+    <div
+      className={`max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 ${brandStyle ? "host-branded" : ""}`}
+      style={brandStyle}
+    >
       <div className="mb-6">
+        {hb?.logo_url && (
+          <div className="flex items-center gap-2 mb-3">
+            <img
+              src={hb.logo_url}
+              alt="Event host logo"
+              className="h-10 max-w-[200px] object-contain"
+            />
+            <span className="text-xs text-text-muted font-semibold">
+              via Intro Connect
+            </span>
+          </div>
+        )}
         <div className="text-xs uppercase tracking-wider text-text-muted font-semibold mb-1">
           {isAll ? "Everyone you've met" : "Cohort"}
         </div>

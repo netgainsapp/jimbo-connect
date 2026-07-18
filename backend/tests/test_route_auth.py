@@ -48,6 +48,9 @@ PUBLIC = {
     ("GET", "/sitemap.xml"),
     ("GET", "/api/unsubscribe"),
     ("POST", "/api/unsubscribe"),
+    # Public by design: guests and email clients load host logos anonymously.
+    # Not called here (touches the DB); served only while branding is active.
+    ("GET", "/api/branding/{user_id}/logo.png"),
 }
 
 # Shared-secret gated (cron ticks, webhook): callable without a session but

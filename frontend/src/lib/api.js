@@ -190,6 +190,35 @@ export const salesTemplatesApi = {
   remove: (id) => api.del(`/api/admin/sales-templates/${id}`),
 };
 
+export const brandingApi = {
+  get: () => api.get("/api/branding"),
+  setAccent: (accent) => api.put("/api/branding", { accent }),
+  reset: () => api.del("/api/branding"),
+  // Multipart upload: bypasses the JSON request helper so the browser sets the
+  // multipart boundary itself. Session still rides the httpOnly cookie.
+  uploadLogo: async (file) => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${BACKEND_URL}/api/branding/logo`, {
+      method: "POST",
+      credentials: "include",
+      body: form,
+    });
+    if (!res.ok) {
+      let detail = "Upload failed";
+      try {
+        detail = (await res.json()).detail || detail;
+      } catch {
+        detail = res.statusText;
+      }
+      const err = new Error(detail);
+      err.status = res.status;
+      throw err;
+    }
+    return res.json();
+  },
+};
+
 export const billingApi = {
   status: () => api.get("/api/billing/status"),
   // Starts Stripe Checkout for "starter" | "pro" and returns { url }.
