@@ -3,10 +3,19 @@ and the admin kill switch. See docs/HOST-BRANDING-SPEC.md."""
 from datetime import datetime, timezone
 
 from bson import Binary, ObjectId
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+)
 
 import billing
 import branding
+import rate_limit
 from auth import get_current_admin, get_current_user
 from database import users
 
@@ -43,7 +52,13 @@ async def get_branding(user: dict = Depends(get_current_user)):
 
 
 @router.put("/api/branding")
-async def set_accent(payload: dict, user: dict = Depends(get_current_user)):
+async def set_accent(
+    payload: dict, request: Request, user: dict = Depends(get_current_user)
+):
+    rate_limit.guard(
+        request, "branding_write", limit=30, window_seconds=3600,
+        identifier=user.get("email"),
+    )
     _require_branding_access(user)
     try:
         accent = branding.normalize_accent(payload.get("accent"))
@@ -60,10 +75,18 @@ async def set_accent(payload: dict, user: dict = Depends(get_current_user)):
 
 @router.post("/api/branding/logo")
 async def upload_logo(
-    file: UploadFile = File(...), user: dict = Depends(get_current_user)
+    request: Request,
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user),
 ):
+    rate_limit.guard(
+        request, "branding_write", limit=30, window_seconds=3600,
+        identifier=user.get("email"),
+    )
     _require_branding_access(user)
-    data = await file.read()
+    # Read at most cap+1 bytes so an oversized body is rejected by size, not
+    # buffered whole into memory first.
+    data = await file.read(branding.MAX_UPLOAD_BYTES + 1)
     try:
         clean = branding.process_logo(data)
     except ValueError as e:

@@ -1,8 +1,10 @@
 # Host Branding (Pro feature) — Spec
 
-Status: SPECCED, not built. Every decision below is final so the build can run
-start to finish with no approval checkpoints. Not white-label: Intro Connect
-stays visible everywhere; the host's brand rides on top of it.
+Status: BUILT AND LIVE (2026-07-17, `aec20c9` + hardening follow-ups). The
+paid happy path is proven by the opt-in e2e suite: `E2E_PRO_FLOW=1` in e2e/
+runs a real test-mode Stripe checkout and verifies branding end to end.
+Not white-label: Intro Connect stays visible everywhere; the host's brand
+rides on top of it.
 
 ## What a Pro host gets
 

@@ -36,6 +36,7 @@ const PLANS = [
     recommended: true,
     features: [
       "Host unlimited events",
+      "Your logo and color on event pages and guest emails",
       "Unlimited attendees per event",
       "Attendee directory and messaging",
       "Email invites with join links",

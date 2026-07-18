@@ -43,9 +43,10 @@ checklist to turn it on. All steps are yours (they need the Stripe account).
 
 ## Still to build (not blocking, needs the above first)
 
-- An in-app upgrade UI (a pricing/upgrade page or a prompt on the "free plan
-  includes 1 event" 403) that calls `billingApi.checkout(plan)` and redirects to
-  the returned Stripe URL. The API is ready; only the page is missing.
+- ~~An in-app upgrade UI~~ DONE: the /upgrade plans page (frontend/src/pages/
+  Upgrade.jsx) calls `billingApi.checkout(plan)` and redirects to Stripe; the
+  event-limit 403 routes hosts there. Verified live, including a full paid
+  test checkout (see e2e/tests/pro-flow.spec.js, opt-in via E2E_PRO_FLOW=1).
 - Optionally a Stripe Customer Portal link for managing/canceling subscriptions.
 
 ## Test-mode note
