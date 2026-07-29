@@ -23,7 +23,14 @@ router = APIRouter()
 
 @router.get("/api/health")
 async def health():
-    return {"ok": True}
+    """Liveness plus the build that is serving. Render injects
+    RENDER_GIT_COMMIT, so `commit` makes it possible to tell from outside
+    whether a push has actually rolled out instead of guessing from timing.
+    The repo is public, so the SHA discloses nothing."""
+    return {
+        "ok": True,
+        "commit": (os.getenv("RENDER_GIT_COMMIT") or "")[:7],
+    }
 
 
 # ---------- robots.txt + sitemap.xml (canonical origin from seo.content_base) ----------
