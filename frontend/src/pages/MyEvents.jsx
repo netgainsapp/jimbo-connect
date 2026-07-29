@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Calendar, MapPin, Plus, Users, LogOut, Copy, Trash2, Mail } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
+import HostCta from "../components/HostCta.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { formatDateTime, copyToClipboard } from "../lib/utils.js";
@@ -26,9 +27,14 @@ export default function MyEvents() {
 
   // Stripe Checkout returns here with ?upgraded=1. The webhook applies the
   // plan server-side within moments; greet the host and clean the URL.
+  // ?host=1 is the attendee to host deep link (HostCta, nurture emails): it
+  // opens the create form so the next click is the event itself.
   useEffect(() => {
     if (searchParams.get("upgraded") === "1") {
       toast.show("Payment received. Your new plan is being applied now.");
+      setSearchParams({}, { replace: true });
+    } else if (searchParams.get("host") === "1") {
+      setShowCreate(true);
       setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -430,6 +436,12 @@ export default function MyEvents() {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Attendee to host: they have joined a room but run none of their
+              own, which is exactly who should see this. */}
+          {hosted.length === 0 && events.length > 0 && (
+            <HostCta className="mt-8" />
           )}
         </>
       )}

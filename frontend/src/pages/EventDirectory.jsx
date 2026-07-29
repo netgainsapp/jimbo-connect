@@ -7,6 +7,7 @@ import { useAuth } from "../hooks/useAuth.jsx";
 import { formatDateTime } from "../lib/utils.js";
 import AttendeeCard from "../components/AttendeeCard.jsx";
 import AttendeeProfileModal from "../components/AttendeeProfileModal.jsx";
+import HostCta from "../components/HostCta.jsx";
 import SponsorTile from "../components/SponsorTile.jsx";
 
 export default function EventDirectory() {
@@ -25,6 +26,8 @@ export default function EventDirectory() {
   const [industry, setIndustry] = useState("all");
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState(null);
+  // Attendee to host loop: the CTA only makes sense for guests who host nothing.
+  const [hostsNothing, setHostsNothing] = useState(false);
 
   const isAll = id === "all";
 
@@ -32,11 +35,13 @@ export default function EventDirectory() {
     setLoading(true);
     try {
       if (isAll) {
-        const [list, saved, mine] = await Promise.all([
+        const [list, saved, mine, hosted] = await Promise.all([
           eventsApi.allMyAttendees(),
           contactsApi.list(),
           eventsApi.myEvents().catch(() => []),
+          eventsApi.myHostedEvents().catch(() => []),
         ]);
+        setHostsNothing(hosted.length === 0);
         setEvent(null);
         setAttendees(list.filter((a) => a.id !== user.id));
         setSavedSet(new Set(saved.map((s) => s.contact_id)));
@@ -48,13 +53,15 @@ export default function EventDirectory() {
         setSponsors([]);
         setMyEvents(mine);
       } else {
-        const [ev, list, saved, sp, mine] = await Promise.all([
+        const [ev, list, saved, sp, mine, hosted] = await Promise.all([
           eventsApi.get(id),
           eventsApi.attendees(id),
           contactsApi.list(),
           sponsorsApi.list(id).catch(() => []),
           eventsApi.myEvents().catch(() => []),
+          eventsApi.myHostedEvents().catch(() => []),
         ]);
+        setHostsNothing(hosted.length === 0);
         setEvent(ev);
         setAttendees(list.filter((a) => a.id !== user.id));
         setSavedSet(new Set(saved.map((s) => s.contact_id)));
@@ -264,6 +271,8 @@ export default function EventDirectory() {
           ))}
         </div>
       )}
+
+      {!loading && hostsNothing && <HostCta className="mt-8" />}
 
       <AttendeeProfileModal
         attendee={active}

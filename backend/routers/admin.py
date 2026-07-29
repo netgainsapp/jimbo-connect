@@ -143,6 +143,28 @@ async def admin_analytics(days: int = 30, _: dict = Depends(get_current_admin)):
 
     avg_attendees = round(total_attendees / total_events, 1) if total_events else 0.0
 
+    # Attendee to host conversion: hosts who first showed up as somebody else's
+    # guest. This is the product led growth loop, so it gets measured rather
+    # than assumed. One aggregation, not a query per host.
+    guest_ids = set()
+    async for row in event_attendees.aggregate(
+        [
+            {
+                "$lookup": {
+                    "from": "events",
+                    "localField": "event_id",
+                    "foreignField": "_id",
+                    "as": "ev",
+                }
+            },
+            {"$unwind": "$ev"},
+            {"$match": {"$expr": {"$ne": ["$user_id", "$ev.created_by"]}}},
+            {"$group": {"_id": "$user_id"}},
+        ]
+    ):
+        guest_ids.add(row["_id"])
+    attendee_to_host = len(guest_ids & set(host_ids))
+
     # Plan mix (non-admin users). Absent field counts as free.
     plan_mix = {"free": 0, "starter": 0, "pro": 0}
     async for row in users.aggregate(
@@ -181,6 +203,7 @@ async def admin_analytics(days: int = 30, _: dict = Depends(get_current_admin)):
             "contacts_saved": total_contacts,
             "messages_sent": total_messages,
             "active_hosts": active_hosts,
+            "attendee_to_host": attendee_to_host,
             "avg_attendees_per_event": avg_attendees,
         },
         "plan_mix": plan_mix,

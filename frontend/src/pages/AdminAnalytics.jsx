@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, Calendar, UserCheck, MessageSquare, Bookmark, BarChart3 } from "lucide-react";
+import { Users, Calendar, UserCheck, MessageSquare, Bookmark, BarChart3, Repeat } from "lucide-react";
 import { adminApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 
@@ -40,6 +40,12 @@ export default function AdminAnalytics() {
         <Tile icon={<Bookmark className="w-5 h-5" />} label="Contacts saved" value={t.contacts_saved} />
         <Tile icon={<MessageSquare className="w-5 h-5" />} label="Messages sent" value={t.messages_sent} />
         <Tile icon={<BarChart3 className="w-5 h-5" />} label="Avg attendees / event" value={t.avg_attendees_per_event} />
+        {/* The product led loop: guests who went on to host their own. */}
+        <Tile
+          icon={<Repeat className="w-5 h-5" />}
+          label="Guests turned host"
+          value={t.attendee_to_host ?? 0}
+        />
       </div>
 
       <div className="card p-5 mt-6">

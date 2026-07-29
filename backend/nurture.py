@@ -10,7 +10,7 @@ import html
 import os
 from datetime import datetime, timezone
 
-from database import users, events
+from database import users, events, event_attendees
 import email_send
 
 # App links (where a host sets up an event) and the marketing pricing page.
@@ -18,6 +18,8 @@ from app_url import APP_URL
 
 MARKETING_URL = os.getenv("MARKETING_URL", "https://intro-connect.com").rstrip("/")
 FIRST_EVENT_URL = f"{APP_URL}/events"
+# Deep link that opens the create form on arrival (see MyEvents ?host=1).
+HOST_EVENT_URL = f"{APP_URL}/events?host=1"
 
 
 def _html(body: str) -> str:
@@ -49,14 +51,19 @@ def welcome_paragraphs(name: str) -> list:
     ]
 
 
-# Drip steps after the welcome. gate: "no_event" only sends if they have not
-# hosted yet; "has_event" only if they have; "always" regardless. A step whose
-# gate does not match is skipped (advanced without sending). Each step supplies
-# a heading, paragraph list, and a button rendered by the branded email layout.
+# Drip steps after the welcome. Gates, mutually exclusive for the first three
+# so nobody gets two host pitches in one lifecycle:
+#   "cold_host" they host nothing and have joined nothing (signed up on spec)
+#   "attendee"  they host nothing but have been a guest in someone else's room
+#   "has_event" they host at least one event
+#   "always"    everyone
+# A step whose gate does not match is skipped (advanced without sending). Each
+# step supplies a heading, paragraph list, and a button rendered by the branded
+# email layout.
 STEPS = [
     {
         "after_days": 2,
-        "gate": "no_event",
+        "gate": "cold_host",
         "subject": "the five minute setup",
         "heading": "The five minute setup",
         "paragraphs": lambda name: [
@@ -70,6 +77,26 @@ STEPS = [
             "Scott",
         ],
         "button": {"label": "Start your first event", "url": FIRST_EVENT_URL},
+    },
+    {
+        # The attendee to host loop. Guests have already felt the directory
+        # work, so this speaks from that experience instead of pitching cold.
+        "after_days": 3,
+        "gate": "attendee",
+        "subject": "the room you were just in",
+        "heading": "The room you were just in",
+        "paragraphs": lambda name: [
+            f"Hi {name},",
+            "You joined an event on Intro Connect, so you have already seen the "
+            "part that matters. The directory stays live after the night ends, "
+            "and the people you met are still there next week when you actually "
+            "need them.",
+            "If you run anything of your own, a dinner, a meetup, a class, a "
+            "chamber morning, you can give your guests the same thing. It takes "
+            "about five minutes to set up and your first event is free.",
+            "Scott",
+        ],
+        "button": {"label": "Host your own event", "url": HOST_EVENT_URL},
     },
     {
         "after_days": 5,
@@ -142,6 +169,37 @@ async def _has_event(user_id) -> bool:
     return (await events.count_documents({"created_by": user_id})) > 0
 
 
+async def _has_joined_others(user_id) -> bool:
+    """True when the user has joined an event somebody else hosts. That is the
+    attendee signal: they have experienced the directory as a guest, which is
+    what the attendee to host step speaks to."""
+    ids = [
+        link["event_id"]
+        async for link in event_attendees.find({"user_id": user_id}, {"event_id": 1})
+    ]
+    if not ids:
+        return False
+    return (
+        await events.count_documents(
+            {"_id": {"$in": ids}, "created_by": {"$ne": user_id}}
+        )
+    ) > 0
+
+
+def gate_matches(gate: str, has_event: bool, joined_others: bool) -> bool:
+    """Whether a step applies to this user. Pure so the routing is testable
+    without a database. Unknown gates never send (fail closed)."""
+    if gate == "always":
+        return True
+    if gate == "has_event":
+        return has_event
+    if gate == "attendee":
+        return not has_event and joined_others
+    if gate == "cold_host":
+        return not has_event and not joined_others
+    return False
+
+
 async def run_nurture_tick() -> dict:
     """Advance each enrolled user by at most one step, when due. Idempotent: the
     user's nurture_step only moves forward, so re-running is safe."""
@@ -167,8 +225,14 @@ async def run_nurture_tick() -> dict:
         if age_days < step["after_days"]:
             continue
         has_evt = await _has_event(u["_id"])
-        gate = step["gate"]
-        if (gate == "no_event" and has_evt) or (gate == "has_event" and not has_evt):
+        # Only the attendee/cold_host split needs the join lookup, so skip the
+        # extra queries for steps that cannot care.
+        joined = (
+            await _has_joined_others(u["_id"])
+            if step["gate"] in ("attendee", "cold_host")
+            else False
+        )
+        if not gate_matches(step["gate"], has_evt, joined):
             await users.update_one({"_id": u["_id"]}, {"$set": {"nurture_step": idx + 1}})
             advanced += 1
             continue
