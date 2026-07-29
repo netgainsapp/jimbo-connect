@@ -43,6 +43,7 @@ from core import (
     seed_email_templates,
     _rebrand_text,
     migrate_template_branding,
+    repair_system_templates,
     _origins,
     _cookie_secure,
     set_auth_cookie,
@@ -89,6 +90,7 @@ async def lifespan(app: FastAPI):
     await seed_data()
     await seed_email_templates()
     await migrate_template_branding()
+    await repair_system_templates()
     import sales_templates
     await sales_templates.seed_starters()
     yield

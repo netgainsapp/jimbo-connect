@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from app_url import APP_URL  # noqa: F401  (re-exported for routers)
 
 from database import (
+    app_flags,
     users,
     events,
     event_attendees,
@@ -378,6 +379,62 @@ async def migrate_template_branding():
         if updates:
             updates["updated_at"] = datetime.now(timezone.utc)
             await email_templates.update_one({"_id": doc["_id"]}, {"$set": updates})
+
+
+SYSTEM_TEMPLATE_REPAIR_FLAG = "system_templates_repaired_2026_07"
+
+
+def _seed_for(template_id: str):
+    for t in DEFAULT_TEMPLATES:
+        if t["template_id"] == template_id:
+            return t
+    return None
+
+
+async def repair_system_templates():
+    """One-time, idempotent: restore the SERVER-SENT templates (password reset,
+    invitation) to the current seed copy.
+
+    Those rows drifted from the code: they carried em dashes (against brand
+    voice) and a host name baked in as literal text, and because the send path
+    prefers the stored row, every outgoing email used the stale copy no matter
+    what the seeds said. Gated on an app_flags marker so it runs exactly once
+    and never fights an intentional admin edit afterwards. Only `system`
+    templates are touched; the copy-paste library is left alone.
+    """
+    flag = await app_flags.find_one({"_id": SYSTEM_TEMPLATE_REPAIR_FLAG})
+    if flag:
+        return {"skipped": "already_repaired"}
+    repaired = []
+    for seed in DEFAULT_TEMPLATES:
+        if not seed.get("system"):
+            continue
+        doc = await email_templates.find_one({"template_id": seed["template_id"]})
+        if not doc:
+            continue
+        if doc.get("subject") == seed["subject"] and doc.get("body") == seed["body"]:
+            continue
+        await email_templates.update_one(
+            {"_id": doc["_id"]},
+            {
+                "$set": {
+                    "subject": seed["subject"],
+                    "body": seed["body"],
+                    "title": seed["title"],
+                    "blurb": seed["blurb"],
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
+        )
+        repaired.append(seed["template_id"])
+    await app_flags.update_one(
+        {"_id": SYSTEM_TEMPLATE_REPAIR_FLAG},
+        {"$set": {"ran_at": datetime.now(timezone.utc), "repaired": repaired}},
+        upsert=True,
+    )
+    if repaired:
+        print(f"[migration] repaired system templates: {repaired}", file=sys.stderr)
+    return {"repaired": repaired}
 
 
 _origins = [o.strip() for o in FRONTEND_URL.split(",") if o.strip()]
