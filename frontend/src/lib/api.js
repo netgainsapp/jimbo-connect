@@ -277,4 +277,7 @@ export const agendaApi = {
   // Creates the event from a saved agenda and links the two. Server side in
   // one call so the plan limit and join-code generation stay in one place.
   convert: (id) => api.post(`/api/agenda/${id}/convert`),
+  // The schedule as an attendee sees it. Gated on access to the EVENT, not
+  // ownership of the agenda, and private notes are stripped server side.
+  forEvent: (eventId) => api.get(`/api/events/${eventId}/agenda`),
 };

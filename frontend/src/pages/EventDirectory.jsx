@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, Calendar, MapPin, Search, Users, ChevronDown } from "lucide-react";
-import { eventsApi, contactsApi, sponsorsApi } from "../lib/api.js";
+import { eventsApi, contactsApi, sponsorsApi, agendaApi } from "../lib/api.js";
+import EventAgenda from "../components/agenda/EventAgenda.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { formatDateTime } from "../lib/utils.js";
@@ -20,6 +21,7 @@ export default function EventDirectory() {
   const [myEvents, setMyEvents] = useState([]);
   const [attendees, setAttendees] = useState([]);
   const [sponsors, setSponsors] = useState([]);
+  const [agenda, setAgenda] = useState(null);
   const [savedSet, setSavedSet] = useState(new Set());
   const [notesMap, setNotesMap] = useState({});
   const [query, setQuery] = useState("");
@@ -53,14 +55,18 @@ export default function EventDirectory() {
         setSponsors([]);
         setMyEvents(mine);
       } else {
-        const [ev, list, saved, sp, mine, hosted] = await Promise.all([
+        const [ev, list, saved, sp, mine, hosted, ag] = await Promise.all([
           eventsApi.get(id),
           eventsApi.attendees(id),
           contactsApi.list(),
           sponsorsApi.list(id).catch(() => []),
           eventsApi.myEvents().catch(() => []),
           eventsApi.myHostedEvents().catch(() => []),
+          // 404 is the normal answer for an event with no agenda, which is
+          // most of them. Swallow it rather than failing the whole page.
+          agendaApi.forEvent(id).catch(() => null),
         ]);
+        setAgenda(ag);
         setHostsNothing(hosted.length === 0);
         setEvent(ev);
         setAttendees(list.filter((a) => a.id !== user.id));
@@ -250,6 +256,10 @@ export default function EventDirectory() {
             </p>
           </div>
         )}
+
+      {/* Above the sponsors and the attendee grid: on the day, the schedule is
+          what someone opens this page to find. */}
+      <EventAgenda agenda={agenda} />
 
       {sponsors.length > 0 && (
         <div className="mb-6">

@@ -37,7 +37,15 @@ class _Agendas:
         return type("R", (), {"inserted_id": oid})()
 
     async def find_one(self, query):
-        return self.docs.get(query.get("_id"))
+        if "_id" in query:
+            return self.docs.get(query["_id"])
+        # Match on any other field, so lookups like {"event_id": ...} work
+        # rather than silently returning None and failing the test for the
+        # wrong reason.
+        for doc in self.docs.values():
+            if all(doc.get(k) == v for k, v in query.items()):
+                return doc
+        return None
 
     async def update_one(self, query, update):
         doc = self.docs.get(query["_id"])
@@ -232,6 +240,46 @@ def test_attach_event_respects_ownership():
     created = _run(store.create("user-1", _payload()))
     with pytest.raises(store.AgendaNotFound):
         _run(store.attach_event(created["id"], "user-2", ObjectId()))
+
+
+def test_event_agenda_strips_private_notes():
+    """The builder labels notes 'never appear in the download'. An agenda an
+    attendee can read is a bigger leak than the download would have been."""
+    payload = _payload(
+        items=[{
+            "date": date(2026, 8, 1), "start_time": "18:00", "end_time": "19:00",
+            "title": "Welcome", "notes": "SECRET chase the caterer",
+        }]
+    )
+    created = _run(store.create("user-1", payload))
+    event_id = ObjectId()
+    _run(store.attach_event(created["id"], "user-1", event_id))
+
+    public = _run(store.get_for_event(event_id))
+    assert public["items"][0]["title"] == "Welcome"
+    assert "notes" not in public["items"][0]
+    assert "SECRET" not in str(public)
+
+
+def test_event_agenda_is_none_when_the_event_has_no_agenda():
+    assert _run(store.get_for_event(ObjectId())) is None
+
+
+def test_event_agenda_keeps_everything_an_attendee_should_see():
+    payload = _payload(
+        items=[{
+            "date": date(2026, 8, 1), "start_time": "18:00", "end_time": "19:00",
+            "title": "Welcome", "speaker": "Scott", "location": "Main room",
+            "description": "Drinks first.", "external_url": "https://example.com/x",
+        }]
+    )
+    created = _run(store.create("user-1", payload))
+    event_id = ObjectId()
+    _run(store.attach_event(created["id"], "user-1", event_id))
+    item = _run(store.get_for_event(event_id))["items"][0]
+    for field in ("title", "speaker", "location", "description", "external_url",
+                  "start_time", "end_time", "date"):
+        assert item.get(field), f"{field} should survive for attendees"
 
 
 def test_unlink_event_detaches_and_resets_to_draft():

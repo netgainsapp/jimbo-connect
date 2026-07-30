@@ -158,6 +158,31 @@ async def _owned(agenda_id: str, user_id) -> dict:
     return doc
 
 
+#: Fields on a session that belong to the organizer alone. Stripped from
+#: anything an attendee can read. `notes` is labelled "never appear in the
+#: download" in the builder, and an attendee-visible agenda is a bigger leak
+#: than the download would have been.
+PRIVATE_ITEM_FIELDS = ("notes",)
+
+
+async def get_for_event(event_id) -> dict | None:
+    """The agenda attached to an event, as an attendee may see it.
+
+    Scoped by the EVENT rather than by agenda ownership: the people who should
+    read this are the ones who can see the event, not the one who owns the
+    agenda. The caller is responsible for checking event access.
+    """
+    doc = await agendas.find_one({"event_id": event_id})
+    if not doc:
+        return None
+    public = _doc_to_public(doc)
+    public["items"] = [
+        {k: v for k, v in item.items() if k not in PRIVATE_ITEM_FIELDS}
+        for item in public.get("items", [])
+    ]
+    return public
+
+
 async def unlink_event(event_id) -> int:
     """Detach any agenda pointing at an event that no longer exists.
 

@@ -167,6 +167,35 @@ async def update_event(
     return serialize_event(e, count)
 
 
+@router.get("/api/events/{event_id}/agenda")
+async def get_event_agenda(event_id: str, user: dict = Depends(get_current_user)):
+    """The agenda for an event, readable by anyone who can see the event.
+
+    Gated on event access rather than agenda ownership: the whole point is that
+    attendees can read the schedule, and they do not own the agenda. Private
+    per-session notes are stripped by the store before this returns.
+    """
+    from agenda import store as agenda_store
+
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not _can_manage_event(user, e):
+        joined = await event_attendees.find_one(
+            {"event_id": oid, "user_id": user["_id"]}
+        )
+        if not joined:
+            raise HTTPException(status_code=403, detail="Not joined to this event")
+    agenda = await agenda_store.get_for_event(oid)
+    if not agenda:
+        raise HTTPException(status_code=404, detail="No agenda for this event")
+    return agenda
+
+
 @router.delete("/api/events/{event_id}")
 async def delete_event(event_id: str, user: dict = Depends(get_current_user)):
     try:
