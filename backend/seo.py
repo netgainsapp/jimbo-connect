@@ -12,6 +12,8 @@ import json
 import os
 from datetime import datetime, timezone
 
+from app_url import APP_URL as _CANONICAL_APP_URL
+
 # Canonical origin for all public content URLs. Falls back to the marketing
 # domain, then to the legacy BLOG_BASE_URL if that is the only thing set.
 def content_base() -> str:
@@ -23,12 +25,10 @@ def content_base() -> str:
 
 
 def app_url() -> str:
-    """Where the product app lives (for CTAs / home links)."""
-    return (
-        os.getenv("FRONTEND_URL", "https://app.intro-connect.com")
-        .split(",")[0]
-        .rstrip("/")
-    )
+    """Where the product app lives (for CTAs / home links). Delegates to the
+    shared canonical resolver so public SEO-facing pages never link out to a
+    bare *.onrender.com URL, the same leak already fixed for email links."""
+    return _CANONICAL_APP_URL
 
 
 def _esc(text) -> str:

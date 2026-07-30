@@ -93,3 +93,14 @@ def test_render_robots_points_at_sitemap(monkeypatch):
     assert "User-agent: *" in r
     assert "Disallow: /api/" in r
     assert "Sitemap: https://intro-connect.com/sitemap.xml" in r
+
+
+def test_seo_app_url_delegates_to_canonical_resolver():
+    """The public news/blog CTA ("Start for free") links through this. It used
+    to reimplement its own naive FRONTEND_URL.split(",")[0], which leaked the
+    bare *.onrender.com URL onto public pages, the same bug class already
+    fixed for email links. Guard against re-diverging: it must stay a pure
+    delegate to the one shared resolver, not grow its own logic again."""
+    import app_url
+
+    assert seo.app_url() == app_url.APP_URL
