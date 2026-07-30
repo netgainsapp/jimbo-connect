@@ -124,6 +124,46 @@ export function useAgendaDraft() {
   // actually changed rather than on every autosave.
   const syncedLogo = useRef(agenda.logo ?? null);
   const claiming = useRef(false);
+  const hydrating = useRef(false);
+  const hydrated = useRef(false);
+
+  // Load the saved agenda back from the server.
+  //
+  // Without this the tool looks like it loses your work: claiming deletes the
+  // local copy, so on the next page load there is nothing in localStorage and
+  // nothing fetches what the server now owns. The builder came up empty and
+  // /agenda/convert reported that there was no agenda at all, while the data
+  // was sitting safely in the database the whole time.
+  //
+  // Only runs when there is nothing local worth keeping. A draft with content
+  // and no id belongs to the claim effect below, and must not be overwritten
+  // by whatever was saved previously.
+  useEffect(() => {
+    if (!user || agenda.id || hydrated.current || hydrating.current) return;
+    if (agenda.event_name || agenda.items.length > 0) return;
+    hydrating.current = true;
+    agendaApi
+      .list()
+      .then(async (rows) => {
+        if (rows && rows.length) {
+          // Newest first from the server, so the most recently edited agenda
+          // is the one an organizer expects to find waiting for them.
+          const full = await agendaApi.get(rows[0].id);
+          syncedLogo.current = full.logo ?? null;
+          setAgenda({
+            ...EMPTY_AGENDA,
+            ...full,
+            items: (full.items || []).map((i) => ({ ...blankItem(), ...i })),
+          });
+        }
+        hydrated.current = true;
+      })
+      .catch(() => {
+        // Leave it un-hydrated so a later render can retry rather than
+        // stranding the organizer on an empty builder for good.
+        hydrating.current = false;
+      });
+  }, [user, agenda]);
 
   // Claim a draft built before signing in. Runs once when a session appears
   // and the draft has no server id yet.
@@ -285,6 +325,9 @@ export function useAgendaDraft() {
     setAgenda({ ...EMPTY_AGENDA });
     syncedLogo.current = null;
     claiming.current = false;
+    // Stay hydrated: a deliberate reset means "start a new one", not "go and
+    // fetch the old one back".
+    hydrated.current = true;
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
