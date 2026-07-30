@@ -98,7 +98,9 @@ def test_checkout_configured_but_no_price(monkeypatch):
             success_url="s", cancel_url="c",
         )
     )
-    assert out == {"skipped": "no_price_configured_for_pro"}
+    # The reason now names the period too, since a plan can have a monthly
+    # price configured and an annual one missing.
+    assert out == {"skipped": "no_price_configured_for_pro_monthly"}
 
 
 # ---- webhook signature gate ----

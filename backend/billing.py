@@ -83,11 +83,31 @@ def attendee_limit_for(user: dict):
     return FREE_ATTENDEE_LIMIT
 
 
-def price_id_for(plan: str):
-    return {
-        "starter": os.getenv("STRIPE_PRICE_STARTER", ""),
-        "pro": os.getenv("STRIPE_PRICE_PRO", ""),
-    }.get(plan, "")
+PERIODS = ("monthly", "annual")
+
+#: (plan, period) -> env var holding that Stripe price id. Monthly keeps the
+#: original names so nothing that is already configured has to move.
+_PRICE_ENV = {
+    ("starter", "monthly"): "STRIPE_PRICE_STARTER",
+    ("starter", "annual"): "STRIPE_PRICE_STARTER_ANNUAL",
+    ("pro", "monthly"): "STRIPE_PRICE_PRO",
+    ("pro", "annual"): "STRIPE_PRICE_PRO_ANNUAL",
+}
+
+
+def price_id_for(plan: str, period: str = "monthly") -> str:
+    env = _PRICE_ENV.get((plan, period))
+    return os.getenv(env, "") if env else ""
+
+
+def available_periods(plan: str) -> list:
+    """Billing periods actually purchasable for a plan right now.
+
+    Driven by which price ids are configured, so the UI cannot offer an annual
+    option that would fail at checkout. Annual stays hidden until its price
+    exists rather than 503-ing someone who clicks it.
+    """
+    return [p for p in PERIODS if price_id_for(plan, p)]
 
 
 #: Subscription is paid up: grant the plan its price maps to.
@@ -113,23 +133,33 @@ def _plan_for_price(price_id: str):
     """
     if not price_id:
         return None
-    if price_id == os.getenv("STRIPE_PRICE_PRO", ""):
-        return "pro"
-    if price_id == os.getenv("STRIPE_PRICE_STARTER", ""):
-        return "starter"
+    # Every configured price maps back, annual included. Miss one here and the
+    # "unknown price" branch leaves annual subscribers on free forever: they
+    # pay, the webhook shrugs, and nothing upgrades. Built from the same table
+    # as price_id_for so adding a period cannot update one direction only.
+    for (plan, _period), env in _PRICE_ENV.items():
+        configured = os.getenv(env, "")
+        # An unset env var is "", which must never match anything.
+        if configured and price_id == configured:
+            return plan
     return None
 
 
-async def create_checkout_session(user: dict, plan: str, *, success_url: str, cancel_url: str) -> dict:
+async def create_checkout_session(
+    user: dict, plan: str, *, success_url: str, cancel_url: str,
+    period: str = "monthly",
+) -> dict:
     """Create a Stripe Checkout session for a subscription. Returns
     {"url": ...} or {"error"/"skipped": ...}. Never raises on config gaps."""
     if plan not in ("starter", "pro"):
         return {"error": "unknown plan"}
+    if period not in PERIODS:
+        return {"error": "unknown period"}
     if not is_configured():
         return {"skipped": "not_configured"}
-    price = price_id_for(plan)
+    price = price_id_for(plan, period)
     if not price:
-        return {"skipped": f"no_price_configured_for_{plan}"}
+        return {"skipped": f"no_price_configured_for_{plan}_{period}"}
     import stripe
 
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -141,7 +171,7 @@ async def create_checkout_session(user: dict, plan: str, *, success_url: str, ca
             client_reference_id=str(user["_id"]),
             success_url=success_url,
             cancel_url=cancel_url,
-            metadata={"user_id": str(user["_id"]), "plan": plan},
+            metadata={"user_id": str(user["_id"]), "plan": plan, "period": period},
         )
         return {"url": session.url}
     except Exception as exc:  # network / Stripe API error

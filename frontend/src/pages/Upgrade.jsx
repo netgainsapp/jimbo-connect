@@ -3,43 +3,49 @@ import { Check } from "lucide-react";
 import { billingApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 
+// Numbers here must match billing.py and the marketing pricing table. They had
+// drifted: this page still promised "unlimited attendees" on every tier and 10
+// events on Starter, both of which stopped being true when the caps became
+// real. A plan page that overstates what you get is worse than no plan page.
 const PLANS = [
   {
     id: "free",
     name: "Free",
     price: 0,
+    annual: 0,
     tagline: "Try hosting with a single event.",
     features: [
       "Host 1 event",
-      "Unlimited attendees per event",
+      "Up to 50 attendees per event",
       "Attendee directory and messaging",
       "Email invites with join links",
+      "Free agenda builder with Word export",
     ],
   },
   {
     id: "starter",
     name: "Starter",
     price: 39,
+    annual: 390,
     tagline: "For hosts who run events all year.",
     features: [
-      "Host up to 10 events",
-      "Unlimited attendees per event",
-      "Attendee directory and messaging",
-      "Email invites with join links",
+      "Host up to 3 events",
+      "Up to 250 attendees per event",
+      "Everything in Free",
     ],
   },
   {
     id: "pro",
     name: "Pro",
     price: 99,
+    annual: 990,
     tagline: "For organizations with a full calendar.",
     recommended: true,
     features: [
       "Host unlimited events",
+      "Up to 2,000 attendees per event",
       "Your logo and color on event pages and guest emails",
-      "Unlimited attendees per event",
-      "Attendee directory and messaging",
-      "Email invites with join links",
+      "Everything in Starter",
     ],
   },
 ];
@@ -51,6 +57,7 @@ export default function Upgrade() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyPlan, setBusyPlan] = useState(null);
+  const [period, setPeriod] = useState("monthly");
   const toast = useToast();
 
   useEffect(() => {
@@ -64,10 +71,17 @@ export default function Upgrade() {
   const currentPlan = status?.plan || "free";
   const upgradable = UPGRADES_FROM[currentPlan] || [];
 
+  // Annual is offered only where a price id is actually configured in Stripe,
+  // so the toggle can never send someone to a checkout that 503s.
+  const annualAvailable = ["starter", "pro"].some((p) =>
+    (status?.periods?.[p] || []).includes("annual")
+  );
+  const effectivePeriod = annualAvailable ? period : "monthly";
+
   const startCheckout = async (plan) => {
     setBusyPlan(plan);
     try {
-      const { url } = await billingApi.checkout(plan);
+      const { url } = await billingApi.checkout(plan, effectivePeriod);
       window.location.href = url;
     } catch (err) {
       toast.show(
@@ -89,6 +103,39 @@ export default function Upgrade() {
           many events you can host.
         </p>
       </div>
+
+      {annualAvailable && (
+        <div className="mb-6 flex justify-center">
+          <div className="inline-flex rounded-pill border border-border-default bg-white p-1">
+            {[
+              ["monthly", "Monthly"],
+              ["annual", "Yearly"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPeriod(value)}
+                className={`rounded-pill px-4 py-1.5 text-sm font-semibold transition ${
+                  period === value
+                    ? "bg-primary text-white"
+                    : "text-text-secondary hover:bg-bg-secondary"
+                }`}
+              >
+                {label}
+                {value === "annual" && (
+                  <span
+                    className={
+                      period === value ? "ml-1.5 opacity-80" : "ml-1.5 text-primary"
+                    }
+                  >
+                    2 months free
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-text-muted text-center">Loading…</div>
@@ -120,10 +167,21 @@ export default function Upgrade() {
                   </div>
                   <div className="mt-2 flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-text-primary tabular-nums">
-                      ${p.price}
+                      ${effectivePeriod === "annual" ? p.annual : p.price}
                     </span>
-                    <span className="text-sm text-text-muted">per month</span>
+                    <span className="text-sm text-text-muted">
+                      {p.price === 0
+                        ? "forever"
+                        : effectivePeriod === "annual"
+                          ? "per year"
+                          : "per month"}
+                    </span>
                   </div>
+                  {effectivePeriod === "annual" && p.price > 0 && (
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      ${(p.annual / 12).toFixed(2)} a month, billed yearly
+                    </p>
+                  )}
                   <p className="text-sm text-text-secondary mt-1">{p.tagline}</p>
                 </div>
 

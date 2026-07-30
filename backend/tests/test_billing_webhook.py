@@ -139,6 +139,58 @@ def test_ended_statuses_downgrade_to_free(status):
 # Events we do not act on, and malformed ones
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Annual billing
+# ---------------------------------------------------------------------------
+
+PRO_ANNUAL = "price_live_pro_annual_789"
+STARTER_ANNUAL = "price_live_starter_annual_012"
+
+
+def test_annual_prices_map_back_to_their_plan(monkeypatch):
+    """The trap this guards: add an annual price to checkout but forget it in
+    the reverse mapping, and an annual subscriber pays, the webhook shrugs at
+    an 'unknown price', and they stay on free forever."""
+    monkeypatch.setenv("STRIPE_PRICE_PRO_ANNUAL", PRO_ANNUAL)
+    monkeypatch.setenv("STRIPE_PRICE_STARTER_ANNUAL", STARTER_ANNUAL)
+    assert billing._plan_for_price(PRO_ANNUAL) == "pro"
+    assert billing._plan_for_price(STARTER_ANNUAL) == "starter"
+
+
+def test_an_annual_subscription_upgrades_the_plan(monkeypatch):
+    monkeypatch.setenv("STRIPE_PRICE_PRO_ANNUAL", PRO_ANNUAL)
+    _, fields = billing.plan_update_from_event(_sub_event("active", PRO_ANNUAL))
+    assert fields["plan"] == "pro"
+
+
+def test_every_configured_price_env_resolves(monkeypatch):
+    """Walks the same table checkout uses, so a period added to one direction
+    and not the other fails here rather than in production."""
+    for (plan, period), env in billing._PRICE_ENV.items():
+        monkeypatch.setenv(env, f"price_{plan}_{period}")
+    for (plan, period), env in billing._PRICE_ENV.items():
+        price = billing.price_id_for(plan, period)
+        assert price, f"{plan}/{period} has no price id"
+        assert billing._plan_for_price(price) == plan, f"{price} maps to the wrong plan"
+
+
+def test_an_unset_price_env_never_matches_an_empty_price(monkeypatch):
+    """An unset env var is '', and '' must not silently match."""
+    monkeypatch.delenv("STRIPE_PRICE_PRO_ANNUAL", raising=False)
+    assert billing._plan_for_price("") is None
+
+
+def test_available_periods_reflects_what_is_configured(monkeypatch):
+    monkeypatch.delenv("STRIPE_PRICE_PRO_ANNUAL", raising=False)
+    assert billing.available_periods("pro") == ["monthly"]
+    monkeypatch.setenv("STRIPE_PRICE_PRO_ANNUAL", PRO_ANNUAL)
+    assert billing.available_periods("pro") == ["monthly", "annual"]
+
+
+def test_price_lookup_rejects_an_unknown_period():
+    assert billing.price_id_for("pro", "weekly") == ""
+
+
 def test_unrelated_events_are_ignored():
     assert billing.plan_update_from_event({"type": "invoice.paid", "data": {"object": {}}}) is None
 

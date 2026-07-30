@@ -32,6 +32,12 @@ async def billing_status(user: dict = Depends(get_current_user)):
         # list just to count it.
         "events_hosted": await events.count_documents({"created_by": user["_id"]}),
         "subscription_status": user.get("subscription_status"),
+        # Which billing periods are actually purchasable, so the UI never
+        # offers an annual toggle that would 503 on click. Empty until the
+        # annual price ids are configured in Stripe.
+        "periods": {
+            plan: billing.available_periods(plan) for plan in ("starter", "pro")
+        },
     }
 
 
@@ -40,9 +46,13 @@ async def billing_checkout(payload: dict, user: dict = Depends(get_current_user)
     plan = (payload or {}).get("plan", "")
     if plan not in ("starter", "pro"):
         raise HTTPException(status_code=400, detail="Choose the starter or pro plan")
+    period = (payload or {}).get("period") or "monthly"
+    if period not in billing.PERIODS:
+        raise HTTPException(status_code=400, detail="Choose monthly or annual billing")
     result = await billing.create_checkout_session(
         user,
         plan,
+        period=period,
         success_url=f"{_APP_URL}/events?upgraded=1",
         cancel_url=f"{_APP_URL}/events",
     )

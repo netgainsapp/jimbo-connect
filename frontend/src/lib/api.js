@@ -223,7 +223,8 @@ export const billingApi = {
   status: () => api.get("/api/billing/status"),
   // Starts Stripe Checkout for "starter" | "pro" and returns { url }.
   // Caller redirects: const { url } = await billingApi.checkout("pro"); location.href = url;
-  checkout: (plan) => api.post("/api/billing/checkout", { plan }),
+  checkout: (plan, period = "monthly") =>
+    api.post("/api/billing/checkout", { plan, period }),
 };
 
 export const newsApi = {
