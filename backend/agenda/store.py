@@ -158,8 +158,53 @@ async def _owned(agenda_id: str, user_id) -> dict:
     return doc
 
 
+async def unlink_event(event_id) -> int:
+    """Detach any agenda pointing at an event that no longer exists.
+
+    Called when an event is deleted. Without this the agenda keeps claiming to
+    be converted into something that is gone, and because /convert refuses to
+    run twice, the organizer is left holding an agenda they can neither open as
+    an event nor turn into a new one. Returns how many were detached.
+    """
+    result = await agendas.update_many(
+        {"event_id": event_id},
+        {
+            "$set": {
+                "event_id": None,
+                "status": "draft",
+                "updated_at": datetime.now(timezone.utc),
+            }
+        },
+    )
+    return result.modified_count
+
+
+async def _heal_if_orphaned(doc: dict) -> dict:
+    """Repair an agenda whose event was deleted before unlink_event existed.
+
+    Self-healing on read rather than a one-off migration: it fixes records
+    already in that state, and it also covers an event removed by any future
+    path that forgets to unlink. Costs one lookup, and only for an agenda that
+    actually claims to have an event.
+    """
+    if not doc.get("event_id"):
+        return doc
+    from database import events
+
+    if await events.find_one({"_id": doc["event_id"]}, {"_id": 1}):
+        return doc
+    await agendas.update_one(
+        {"_id": doc["_id"]},
+        {"$set": {"event_id": None, "status": "draft"}},
+    )
+    doc["event_id"] = None
+    doc["status"] = "draft"
+    return doc
+
+
 async def get(agenda_id: str, user_id) -> dict:
-    return _doc_to_public(await _owned(agenda_id, user_id))
+    doc = await _heal_if_orphaned(await _owned(agenda_id, user_id))
+    return _doc_to_public(doc)
 
 
 async def update(

@@ -180,6 +180,13 @@ async def delete_event(event_id: str, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Not your event")
     await event_attendees.delete_many({"event_id": oid})
     await event_sponsors.delete_many({"event_id": oid})
+    # Detach any agenda that was converted into this event. Leaving the link
+    # behind strands the organizer: the agenda still says "converted" while the
+    # event is gone, and /convert refuses to run twice, so they can neither
+    # open it nor make a new event from it.
+    from agenda import store as agenda_store
+
+    await agenda_store.unlink_event(oid)
     await events.delete_one({"_id": oid})
     return {"ok": True}
 

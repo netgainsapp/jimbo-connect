@@ -44,6 +44,14 @@ class _Agendas:
         if doc:
             doc.update(update["$set"])
 
+    async def update_many(self, query, update):
+        modified = 0
+        for doc in self.docs.values():
+            if all(doc.get(k) == v for k, v in query.items()):
+                doc.update(update["$set"])
+                modified += 1
+        return type("R", (), {"modified_count": modified})()
+
     async def delete_one(self, query):
         self.docs.pop(query["_id"], None)
 
@@ -224,6 +232,76 @@ def test_attach_event_respects_ownership():
     created = _run(store.create("user-1", _payload()))
     with pytest.raises(store.AgendaNotFound):
         _run(store.attach_event(created["id"], "user-2", ObjectId()))
+
+
+def test_unlink_event_detaches_and_resets_to_draft():
+    created = _run(store.create("user-1", _payload()))
+    event_id = ObjectId()
+    _run(store.attach_event(created["id"], "user-1", event_id))
+    assert _run(store.unlink_event(event_id)) == 1
+    after = _run(store.get(created["id"], "user-1"))
+    assert after["event_id"] is None
+    assert after["status"] == "draft"
+
+
+def test_unlink_event_leaves_other_agendas_alone(monkeypatch):
+    # The events collection has to be stubbed: reading a linked agenda now
+    # verifies its event still exists, which would otherwise reach for a real
+    # Mongo that is not running in this suite.
+    class _HasEvent:
+        async def find_one(self, *_a, **_k):
+            return {"_id": "live"}
+
+    import database
+
+    monkeypatch.setattr(database, "events", _HasEvent())
+
+    mine = _run(store.create("user-1", _payload()))
+    other = _run(store.create("user-1", _payload()))
+    _run(store.attach_event(mine["id"], "user-1", ObjectId()))
+    _run(store.attach_event(other["id"], "user-1", ObjectId()))
+    _run(store.unlink_event(ObjectId()))  # an unrelated event
+    assert _run(store.get(mine["id"], "user-1"))["status"] == "converted"
+    assert _run(store.get(other["id"], "user-1"))["status"] == "converted"
+
+
+def test_an_agenda_whose_event_vanished_heals_itself_on_read(monkeypatch):
+    """Repairs records orphaned before unlink_event existed, and covers any
+    future path that deletes an event without unlinking."""
+    created = _run(store.create("user-1", _payload()))
+    _run(store.attach_event(created["id"], "user-1", ObjectId()))
+
+    class _NoEvents:
+        async def find_one(self, *_a, **_k):
+            return None
+
+    import database
+
+    monkeypatch.setattr(database, "events", _NoEvents())
+    healed = _run(store.get(created["id"], "user-1"))
+    assert healed["event_id"] is None
+    assert healed["status"] == "draft"
+    # and the repair was written back, not just returned
+    assert _run(store.get(created["id"], "user-1"))["status"] == "draft"
+
+
+def test_a_live_event_link_is_left_intact(monkeypatch):
+    """Counterpart to the healing test: proves it can tell the two apart
+    rather than clearing every link it sees."""
+    created = _run(store.create("user-1", _payload()))
+    event_id = ObjectId()
+    _run(store.attach_event(created["id"], "user-1", event_id))
+
+    class _HasEvent:
+        async def find_one(self, *_a, **_k):
+            return {"_id": event_id}
+
+    import database
+
+    monkeypatch.setattr(database, "events", _HasEvent())
+    still = _run(store.get(created["id"], "user-1"))
+    assert still["event_id"] == str(event_id)
+    assert still["status"] == "converted"
 
 
 def test_event_datetime_combines_start_date_and_time():
