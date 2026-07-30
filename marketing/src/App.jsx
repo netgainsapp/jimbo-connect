@@ -1,6 +1,7 @@
 import Nav from "./components/Nav.jsx";
 import Hero from "./components/Hero.jsx";
 import SocialProof from "./components/SocialProof.jsx";
+import AgendaTool from "./components/AgendaTool.jsx";
 import Problem from "./components/Problem.jsx";
 import PhotoBand from "./components/PhotoBand.jsx";
 import HowItWorks from "./components/HowItWorks.jsx";
@@ -17,6 +18,10 @@ export default function App() {
       <main className="flex-1">
         <Hero />
         <SocialProof />
+        {/* High on the page on purpose: the free tool is the lowest commitment
+            thing on offer, so it belongs before the paid product pitch rather
+            than buried in the nav and the footer. */}
+        <AgendaTool />
         <Problem />
         <PhotoBand />
         <HowItWorks />
