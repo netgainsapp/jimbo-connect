@@ -15,6 +15,7 @@ from typing import Optional
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 from .schema import AgendaExportRequest, AgendaItem, group_by_day
@@ -24,6 +25,11 @@ from .schema import AgendaExportRequest, AgendaItem, group_by_day
 HEADING_COLOR = RGBColor(0x1D, 0x4E, 0xD8)
 MUTED_COLOR = RGBColor(0x6B, 0x72, 0x80)
 BODY_COLOR = RGBColor(0x0A, 0x0C, 0x10)
+
+# Matches the product's own UI font (frontend/tailwind.config.js sets Calibri
+# as the sans stack), so a downloaded agenda looks like the tool that made it.
+BODY_FONT = "Calibri"
+BODY_SIZE_PT = 11
 
 LOGO_MAX_WIDTH_INCHES = 1.4
 FOOTER_TEXT = "Agenda created with Intro Connect"
@@ -77,6 +83,24 @@ def date_range_line(agenda: AgendaExportRequest) -> str:
     if len(days) == 1:
         return format_date(days[0])
     return f"{format_date(days[0])} to {format_date(days[-1])}"
+
+
+def _set_default_font(doc: Document) -> None:
+    """Make Calibri the document default.
+
+    Setting style.font.name alone is not enough. Word resolves a run's typeface
+    through rFonts, and python-docx's default template leaves theme fonts in
+    those slots, so the name can be quietly ignored and substituted. Write the
+    ascii, high-ANSI, complex-script and east-asian slots explicitly, then every
+    paragraph and table cell inherits Calibri without tagging each run.
+    """
+    style = doc.styles["Normal"]
+    style.font.name = BODY_FONT
+    style.font.size = Pt(BODY_SIZE_PT)
+    rpr = style.element.get_or_add_rPr()
+    rfonts = rpr.get_or_add_rFonts()
+    for slot in ("w:ascii", "w:hAnsi", "w:cs", "w:eastAsia"):
+        rfonts.set(qn(slot), BODY_FONT)
 
 
 def _run(paragraph, text, *, bold=False, size=11, color=BODY_COLOR, italic=False):
@@ -174,6 +198,7 @@ def _add_organizer(doc: Document, agenda: AgendaExportRequest) -> None:
 def build_docx(agenda: AgendaExportRequest, logo_png: Optional[bytes] = None) -> bytes:
     """Render the agenda and return the .docx bytes."""
     doc = Document()
+    _set_default_font(doc)
     doc.core_properties.title = agenda.display_name()
     if agenda.organizer_name:
         doc.core_properties.author = agenda.organizer_name

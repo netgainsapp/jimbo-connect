@@ -280,6 +280,23 @@ def test_private_notes_are_never_rendered_into_the_export():
     assert "caterer" not in _docx_text(build_docx(agenda))
 
 
+def test_document_default_font_is_calibri():
+    """Asserted on the rFonts slots, not just style.font.name: Word resolves
+    typefaces through rFonts, so a document can carry the right style name and
+    still render in a substituted font."""
+    from docx.oxml.ns import qn
+
+    from agenda.docx import BODY_FONT
+
+    doc = Document(io.BytesIO(build_docx(AgendaExportRequest(event_name="Summit"))))
+    normal = doc.styles["Normal"]
+    assert normal.font.name == BODY_FONT
+
+    rfonts = normal.element.get_or_add_rPr().get_or_add_rFonts()
+    for slot in ("w:ascii", "w:hAnsi", "w:cs", "w:eastAsia"):
+        assert rfonts.get(qn(slot)) == BODY_FONT, f"{slot} not set to {BODY_FONT}"
+
+
 def test_document_carries_the_footer_credit():
     doc = Document(io.BytesIO(build_docx(AgendaExportRequest(event_name="Summit"))))
     footer_text = "\n".join(p.text for p in doc.sections[0].footer.paragraphs)
