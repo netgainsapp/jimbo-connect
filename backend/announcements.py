@@ -78,8 +78,12 @@ async def list_for_event(event_id: ObjectId, user_id) -> list:
     """Newest first, each flagged unread relative to this reader."""
     read = await announcement_reads.find_one({"event_id": event_id, "user_id": user_id})
     last_read = read.get("last_read_at") if read else None
+    # Secondary sort on _id, because two announcements written in the same
+    # instant share a created_at and would otherwise come back in arbitrary
+    # order. ObjectId embeds a timestamp and a counter, so it breaks the tie
+    # in real insertion order.
     rows = await event_announcements.find({"event_id": event_id}).sort(
-        "created_at", -1
+        [("created_at", -1), ("_id", -1)]
     ).to_list(MAX_PER_EVENT)
     out = []
     for doc in rows:
@@ -89,7 +93,13 @@ async def list_for_event(event_id: ObjectId, user_id) -> list:
         if last_read is not None and created is not None:
             a = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
             b = last_read if last_read.tzinfo else last_read.replace(tzinfo=timezone.utc)
-            unread = a > b
+            # >= not >. An announcement posted in the same clock tick as a
+            # reader marking the page read is ambiguous, and the two failure
+            # directions are not equal: treating it as read HIDES it from that
+            # reader for good, treating it as unread merely shows a badge for
+            # something they may already have seen. Windows clock resolution is
+            # around 15ms, so this collision is ordinary, not theoretical.
+            unread = a >= b
         else:
             unread = True
         out.append(_serialize(doc, unread=unread))
@@ -100,8 +110,10 @@ async def unread_count(event_id: ObjectId, user_id) -> int:
     read = await announcement_reads.find_one({"event_id": event_id, "user_id": user_id})
     if not read or not read.get("last_read_at"):
         return await event_announcements.count_documents({"event_id": event_id})
+    # $gte, matching list_for_event: see the note there on why an exact tie
+    # must count as unread rather than read.
     return await event_announcements.count_documents(
-        {"event_id": event_id, "created_at": {"$gt": read["last_read_at"]}}
+        {"event_id": event_id, "created_at": {"$gte": read["last_read_at"]}}
     )
 
 

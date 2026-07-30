@@ -90,12 +90,34 @@ def price_id_for(plan: str):
     }.get(plan, "")
 
 
-def _plan_for_price(price_id: str) -> str:
-    if price_id and price_id == os.getenv("STRIPE_PRICE_PRO", ""):
+#: Subscription is paid up: grant the plan its price maps to.
+ACTIVE_STATUSES = ("active", "trialing")
+#: Payment is failing but Stripe is still retrying, which it does for weeks.
+#: Access is KEPT here on purpose. Dropping someone to free the moment a card
+#: is declined loses them their events over a temporary bank decline, and
+#: Stripe will send a definitive cancellation if it never recovers.
+GRACE_STATUSES = ("past_due", "unpaid")
+#: Definitively over.
+ENDED_STATUSES = ("canceled", "incomplete_expired")
+
+
+def _plan_for_price(price_id: str):
+    """The plan a Stripe price maps to, or None when the price is unrecognised.
+
+    None rather than "free" on purpose. Returning "free" for an unknown price
+    means a single wrong STRIPE_PRICE_* value silently DOWNGRADES paying
+    customers on their next renewal, because every renewal sends
+    customer.subscription.updated. Unknown must mean "I do not know", so the
+    caller can leave a paying customer alone instead of quietly cancelling
+    them.
+    """
+    if not price_id:
+        return None
+    if price_id == os.getenv("STRIPE_PRICE_PRO", ""):
         return "pro"
-    if price_id and price_id == os.getenv("STRIPE_PRICE_STARTER", ""):
+    if price_id == os.getenv("STRIPE_PRICE_STARTER", ""):
         return "starter"
-    return "free"
+    return None
 
 
 async def create_checkout_session(user: dict, plan: str, *, success_url: str, cancel_url: str) -> dict:
@@ -173,13 +195,41 @@ def plan_update_from_event(event: dict):
         items = ((obj.get("items") or {}).get("data") or [])
         price_id = items[0].get("price", {}).get("id") if items else ""
         status = obj.get("status", "")
-        active = status in ("active", "trialing")
+
+        if status in ENDED_STATUSES:
+            return (
+                {"stripe_customer_id": customer},
+                {"plan": "free", "subscription_status": status},
+            )
+
+        if status in ACTIVE_STATUSES:
+            plan = _plan_for_price(price_id)
+            if plan is None:
+                # Unrecognised price on an ACTIVE subscription. Almost always a
+                # misconfigured STRIPE_PRICE_* env var. Record the status but
+                # leave the plan alone: the customer is paying, and guessing
+                # "free" here would cancel someone mid-subscription over a
+                # config mistake.
+                print(
+                    f"[billing] active subscription on unknown price {price_id!r}; "
+                    "leaving plan unchanged. Check STRIPE_PRICE_STARTER/PRO.",
+                    file=sys.stderr,
+                )
+                return (
+                    {"stripe_customer_id": customer},
+                    {"subscription_status": status},
+                )
+            return (
+                {"stripe_customer_id": customer},
+                {"plan": plan, "subscription_status": status},
+            )
+
+        # past_due, unpaid, incomplete, paused: record it, keep their access.
+        # Stripe retries a failing card for weeks and sends a definitive
+        # cancellation if it never recovers, which ENDED_STATUSES handles.
         return (
             {"stripe_customer_id": customer},
-            {
-                "plan": _plan_for_price(price_id) if active else "free",
-                "subscription_status": status,
-            },
+            {"subscription_status": status},
         )
 
     if etype == "customer.subscription.deleted":
