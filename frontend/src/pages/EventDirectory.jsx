@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Calendar, MapPin, Search, Users, ChevronDown } from "lucide-react";
-import { eventsApi, contactsApi, sponsorsApi, agendaApi } from "../lib/api.js";
+import { AlertTriangle, ArrowLeft, Calendar, CalendarPlus, MapPin, Search, Users, ChevronDown } from "lucide-react";
+import { eventsApi, contactsApi, sponsorsApi, agendaApi, downloadEventIcs } from "../lib/api.js";
 import EventAgenda from "../components/agenda/EventAgenda.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
@@ -22,6 +22,22 @@ export default function EventDirectory() {
   const [attendees, setAttendees] = useState([]);
   const [sponsors, setSponsors] = useState([]);
   const [agenda, setAgenda] = useState(null);
+
+  const addToCalendar = async () => {
+    try {
+      const { blob, filename } = await downloadEventIcs(id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.show(e.message, "error");
+    }
+  };
   const [savedSet, setSavedSet] = useState(new Set());
   const [notesMap, setNotesMap] = useState({});
   const [query, setQuery] = useState("");
@@ -211,6 +227,14 @@ export default function EventDirectory() {
                   <MapPin className="w-4 h-4" /> {event.location}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={addToCalendar}
+                className="inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 font-medium text-primary transition hover:bg-primary/10"
+                title="Download a calendar file for this event"
+              >
+                <CalendarPlus className="w-4 h-4" /> Add to calendar
+              </button>
               <span className="inline-flex items-center gap-1.5">
                 <Users className="w-4 h-4" />
                 {/* attendee_limit is only sent to whoever manages the event, so

@@ -46,6 +46,7 @@ const TIERS = [
       "Save contacts and private notes",
       "In-app messaging",
       "Sponsor tiles on your event page",
+      "Add to calendar for every attendee",
       "Email templates for before and after",
       "CSV import and export",
       "Free agenda builder with Word export",

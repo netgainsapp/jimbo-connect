@@ -3,7 +3,7 @@ routes. Moved verbatim from server.py (M13). Route registration order is
 preserved from the original file."""
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from bson import ObjectId
 
 from database import users, events, event_attendees, event_sponsors, messages
@@ -165,6 +165,39 @@ async def update_event(
         e = await events.find_one({"_id": oid})
     count = await event_attendees.count_documents({"event_id": oid})
     return serialize_event(e, count)
+
+
+@router.get("/api/events/{event_id}/calendar.ics")
+async def get_event_ics(event_id: str, user: dict = Depends(get_current_user)):
+    """The event as a calendar file, for anyone who can see the event."""
+    import calendar_ics
+    from app_url import APP_URL
+
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not _can_manage_event(user, e):
+        joined = await event_attendees.find_one(
+            {"event_id": oid, "user_id": user["_id"]}
+        )
+        if not joined:
+            raise HTTPException(status_code=403, detail="Not joined to this event")
+
+    e["id"] = str(e["_id"])
+    body = calendar_ics.build_event_ics(e, url=f"{APP_URL}/events/{event_id}")
+    return Response(
+        content=body,
+        media_type="text/calendar; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{calendar_ics.filename_for(e)}"'
+            )
+        },
+    )
 
 
 @router.get("/api/events/{event_id}/agenda")

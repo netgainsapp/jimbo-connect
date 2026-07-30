@@ -37,12 +37,14 @@ const MARQUEE = [
   },
 ];
 
-// Removed 2026-07-30, none of these exist in the product yet. Restore each
-// line as it ships, not before:
+// Removed 2026-07-30, none of these existed in the product. Restore each line
+// as it ships, not before:
 //   "Custom personal tags"      saved contacts carry a private note, no tags
-//   ".ics calendar invites"     no .ics generation anywhere
 //   "Custom post-event surveys" no survey feature at all
 //   "Clone any event"           no event duplication
+// ".ics calendar invites" was on that list and has since been BUILT, so it is
+// back below. Note the wording: the old copy promised it in "every invitation
+// email", which is still not true. It is a download on the event page.
 // "Custom branding per event" was also wrong in a smaller way: branding is set
 // once per host and applies across their events, and it is a Pro feature.
 const ALSO = [
@@ -50,6 +52,7 @@ const ALSO = [
   ["Private notes on contacts", "Why you met and what to follow up on. Only you see them."],
   ["Editable email templates", "Save the date, day-of, post-event. Edit any of them."],
   ["Sponsor tiles from a URL", "Paste a link and we pull the headline, image, and description."],
+  ["Add to calendar", "One tap on the event page saves it to any calendar app."],
   ["CSV import from anywhere", "Eventbrite, Meetup, your spreadsheet."],
   ["Your logo and your color", "On your event pages and guest emails, on Pro."],
   ["Free agenda builder", "Build a schedule and download it as a Word file. No account needed."],

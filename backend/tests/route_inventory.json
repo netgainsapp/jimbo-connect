@@ -43,6 +43,7 @@
  "GET /api/events/{event_id}",
  "GET /api/events/{event_id}/agenda",
  "GET /api/events/{event_id}/attendees",
+ "GET /api/events/{event_id}/calendar.ics",
  "GET /api/events/{event_id}/sponsors",
  "GET /api/health",
  "GET /api/messages/threads",

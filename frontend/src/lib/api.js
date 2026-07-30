@@ -235,6 +235,19 @@ export const newsApi = {
   unpublish: (id) => api.post(`/api/admin/news/${id}/unpublish`),
 };
 
+// Downloads the event as a .ics file. Fetched with credentials and handed over
+// as a blob rather than linked directly: the session cookie belongs to the API
+// origin, and a plain cross-origin <a download> would not reliably carry it.
+export async function downloadEventIcs(eventId) {
+  const res = await fetch(`${BACKEND_URL}/api/events/${eventId}/calendar.ics`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("We could not build that calendar file.");
+  const disposition = res.headers.get("content-disposition") || "";
+  const match = disposition.match(/filename="([^"]+)"/);
+  return { blob: await res.blob(), filename: match ? match[1] : "event.ics" };
+}
+
 export const agendaApi = {
   // Returns a .docx, so it bypasses the JSON request helper. Public: the
   // Agenda Builder works before the visitor has an account, and the endpoint
