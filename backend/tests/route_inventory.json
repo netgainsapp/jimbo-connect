@@ -94,6 +94,7 @@
  "POST /api/webhooks/resend",
  "POST /api/webhooks/stripe",
  "PUT /api/admin/blog/flags",
+ "PUT /api/admin/blog/posts/{post_id}",
  "PUT /api/admin/news/{article_id}",
  "PUT /api/admin/sales-templates/{tid}",
  "PUT /api/branding",

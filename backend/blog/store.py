@@ -91,6 +91,31 @@ def _oid(post_id: str):
         return None
 
 
+async def update_post(post_id: str, post: GeneratedPost) -> dict:
+    """Rewrite a draft or published post's content. Slug stays immutable, same
+    reasoning as the news section: once published a post's URL may already be
+    linked or indexed, so re-slugging on a content edit is never worth the
+    risk of a broken link. This does not re-run the generation guardrails;
+    an admin editing content by hand is trusted the same way an admin
+    authoring a news article is."""
+    oid = _oid(post_id)
+    if oid is None:
+        return None
+    doc = await blog_post.find_one({"_id": oid})
+    if not doc:
+        return None
+    patch = {
+        "title": post.title,
+        "summary": post.summary,
+        "sections": [s.model_dump() for s in post.sections],
+        "cta": post.cta,
+        "updated_at": datetime.now(timezone.utc),
+    }
+    await blog_post.update_one({"_id": oid}, {"$set": patch})
+    doc.update(patch)
+    return doc
+
+
 async def get_by_id(post_id: str) -> dict:
     """Any status, for the admin review view before publish/reject. Unlike
     get_by_slug (public, published-only), an admin must be able to read a

@@ -19,6 +19,7 @@ from database import (
 import branding
 import email_send
 import outreach
+from blog.schema import GeneratedPost
 from news.schema import NewsArticleInput
 from sales_templates import SalesTemplateInput
 from template_seeds import DEFAULT_TEMPLATES, CATEGORIES as TEMPLATE_CATEGORIES
@@ -629,6 +630,29 @@ async def admin_blog_post_detail(post_id: str, _: dict = Depends(get_current_adm
         {"heading": s.get("heading", ""), "body": s.get("body", "")}
         for s in (doc.get("sections") or [])
     ]
+    out["cta"] = doc.get("cta", "")
+    return out
+
+
+@router.put("/api/admin/blog/posts/{post_id}")
+async def admin_blog_post_update(
+    post_id: str, payload: GeneratedPost, _: dict = Depends(get_current_admin)
+):
+    """Rewrite a post's content (title, summary, sections, cta). Lets a near
+    miss (guardrails passed but the close did not land, say) be fixed instead
+    of discarded outright. Slug stays immutable, same reasoning as news: once
+    a post is published its URL may already be linked or indexed."""
+    from blog.store import update_post
+
+    doc = await update_post(post_id, payload)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    out = _serialize_blog_post(doc)
+    out["sections"] = [
+        {"heading": s.get("heading", ""), "body": s.get("body", "")}
+        for s in (doc.get("sections") or [])
+    ]
+    out["cta"] = doc.get("cta", "")
     return out
 
 
