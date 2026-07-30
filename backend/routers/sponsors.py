@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from bson import ObjectId
 
 from database import events, event_attendees, event_sponsors
-from auth import get_current_user, get_current_admin
+from auth import get_current_user
 from models import SponsorCreateRequest, SponsorUpdateRequest
 from core import serialize_sponsor, _can_manage_event
 from ogfetch import fetch_og_metadata
@@ -32,13 +32,33 @@ async def _require_event_access(event_id: str, user: dict):
     return oid, e
 
 
+async def _require_event_manage(event_id: str, user: dict):
+    """Stricter than _require_event_access, which also admits joined attendees
+    because it backs a read. Writing a sponsor is a host action, so this admits
+    only a platform admin or the host who created the event."""
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not _can_manage_event(user, e):
+        raise HTTPException(status_code=403, detail="Not your event")
+    return oid, e
+
+
 @router.get("/api/events/{event_id}/sponsors")
 async def list_event_sponsors(event_id: str, user: dict = Depends(get_current_user)):
-    oid, _ = await _require_event_access(event_id, user)
+    oid, event = await _require_event_access(event_id, user)
+    # Hidden sponsors are visible to whoever manages the event, not just to a
+    # platform admin. Gating this on is_admin meant a host could hide a sponsor
+    # and then never see it again to bring it back.
+    can_manage = _can_manage_event(user, event)
     out = []
     cursor = event_sponsors.find({"event_id": oid}).sort("added_at", 1)
     async for doc in cursor:
-        if user.get("is_admin") or doc.get("active", True):
+        if can_manage or doc.get("active", True):
             out.append(serialize_sponsor(doc))
     return out
 
@@ -47,14 +67,9 @@ async def list_event_sponsors(event_id: str, user: dict = Depends(get_current_us
 async def create_event_sponsor(
     event_id: str,
     payload: SponsorCreateRequest,
-    admin: dict = Depends(get_current_admin),
+    user: dict = Depends(get_current_user),
 ):
-    try:
-        oid = ObjectId(event_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid event id")
-    if not await events.find_one({"_id": oid}):
-        raise HTTPException(status_code=404, detail="Event not found")
+    oid, _ = await _require_event_manage(event_id, user)
 
     url = payload.url.strip()
     if not url:
@@ -83,10 +98,10 @@ async def update_event_sponsor(
     event_id: str,
     sponsor_id: str,
     payload: SponsorUpdateRequest,
-    admin: dict = Depends(get_current_admin),
+    user: dict = Depends(get_current_user),
 ):
+    e_oid, _ = await _require_event_manage(event_id, user)
     try:
-        e_oid = ObjectId(event_id)
         s_oid = ObjectId(sponsor_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid id")
@@ -105,10 +120,10 @@ async def update_event_sponsor(
 async def refresh_event_sponsor(
     event_id: str,
     sponsor_id: str,
-    admin: dict = Depends(get_current_admin),
+    user: dict = Depends(get_current_user),
 ):
+    e_oid, _ = await _require_event_manage(event_id, user)
     try:
-        e_oid = ObjectId(event_id)
         s_oid = ObjectId(sponsor_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid id")
@@ -131,10 +146,10 @@ async def refresh_event_sponsor(
 async def delete_event_sponsor(
     event_id: str,
     sponsor_id: str,
-    admin: dict = Depends(get_current_admin),
+    user: dict = Depends(get_current_user),
 ):
+    e_oid, _ = await _require_event_manage(event_id, user)
     try:
-        e_oid = ObjectId(event_id)
         s_oid = ObjectId(sponsor_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid id")

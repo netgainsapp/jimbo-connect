@@ -9,7 +9,6 @@ import {
   Users,
   Mail,
   MessageCircle,
-  Compass,
   Menu,
   X,
 } from "lucide-react";
@@ -104,12 +103,10 @@ export default function Nav() {
       >
         <Calendar className="w-4 h-4" /> My Events
       </NavLink>
-      <NavLink
-        to="/discover"
-        className={({ isActive }) => `${navItem} ${isActive ? activeNavItem : ""}`}
-      >
-        <Compass className="w-4 h-4" /> Discover
-      </NavLink>
+      {/* Discover is suppressed from the header for now. The /discover route
+          still exists and works, so any existing link or bookmark keeps
+          resolving; it is simply not advertised. Restore this NavLink to bring
+          it back. */}
       <NavLink
         to="/contacts"
         className={({ isActive }) => `${navItem} ${isActive ? activeNavItem : ""}`}
