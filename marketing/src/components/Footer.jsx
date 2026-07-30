@@ -29,6 +29,9 @@ export default function Footer() {
             <a href="/blog" className="hover:text-ink font-semibold">
               Blog
             </a>
+            <a href="/news" className="hover:text-ink font-semibold">
+              News
+            </a>
             <a href="/privacy.html" className="hover:text-ink font-semibold">
               Privacy
             </a>

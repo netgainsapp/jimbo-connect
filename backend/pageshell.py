@@ -23,10 +23,20 @@ _CSS = """
 *{box-sizing:border-box}
 body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:var(--ink);background:#fff;line-height:1.7}
 a{color:var(--primary);text-decoration:none}
-.nav{border-bottom:1px solid var(--line)}
-.nav .in{max-width:760px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:9px}
+.nav{border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);z-index:40}
+.nav .in{max-width:1120px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.nav .brandlink{display:flex;align-items:center;gap:9px}
 .brand{font-weight:800;letter-spacing:-0.01em;color:var(--ink)}
 .brand span{font-weight:500}
+.nav .links{display:none;align-items:center;gap:2px}
+.nav .links a{padding:7px 12px;border-radius:999px;font-size:14px;font-weight:600;color:var(--stone)}
+.nav .links a:hover{color:var(--ink);background:var(--cream)}
+.nav .navcta{display:none;align-items:center;gap:8px}
+.btn-ghost{padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;color:var(--stone)}
+.btn-ghost:hover{background:var(--cream)}
+.btn-primary{background:var(--primary);color:#fff!important;padding:9px 18px;border-radius:999px;font-size:14px;font-weight:700}
+.btn-primary:hover{opacity:.92}
+@media(min-width:768px){.nav .links{display:flex}.nav .navcta{display:flex}}
 .wrap{max-width:760px;margin:0 auto;padding:48px 24px 96px}
 .crumbs{font-size:13px;color:var(--stone);margin-bottom:8px}
 .crumbs a{color:var(--stone)}
@@ -49,7 +59,17 @@ p,li{font-size:17px;color:#26323f}
 .cta{margin-top:44px;background:var(--ink);color:#fff;border-radius:14px;padding:28px}
 .cta a{display:inline-block;margin-top:14px;background:#fff;color:var(--ink);font-weight:700;padding:11px 20px;border-radius:999px}
 .foot{border-top:1px solid var(--line);margin-top:64px}
-.foot .in{max-width:760px;margin:0 auto;padding:24px;color:var(--stone);font-size:13px;display:flex;gap:18px;flex-wrap:wrap}
+.foot .in{max-width:1120px;margin:0 auto;padding:48px 24px}
+.foot .row{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:24px;font-size:14px}
+.foot .fbrand{display:flex;align-items:center;gap:12px}
+.foot .fbrand .word{font-weight:800;letter-spacing:-0.01em;color:var(--ink);line-height:1}
+.foot .fbrand .word span{font-weight:500}
+.foot .fbrand .copy{font-size:10px;text-transform:uppercase;letter-spacing:0.18em;font-weight:700;color:var(--stone);margin-top:4px}
+.foot .flinks{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;color:var(--stone)}
+.foot .flinks a{font-weight:600;color:var(--stone)}
+.foot .flinks a:hover{color:var(--ink)}
+.foot .tagline{margin-top:32px;padding-top:24px;border-top:1px solid var(--line);text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.22em;font-weight:800;color:var(--primary)}
+@media(min-width:640px){.foot .row{flex-direction:row}}
 .back{font-size:14px;font-weight:600}
 """
 
@@ -100,13 +120,33 @@ def page(
         '<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>'
         f"<title>{_esc(title)}</title>{desc}{seo_head}{_HEAD_FONT}{extra_head}"
         f"<style>{_CSS}</style></head><body>"
-        f'<nav class="nav"><a class="in" href="{seo.app_url()}">{_MARK}'
-        '<span class="brand">Intro <span>Connect</span></span></a></nav>'
-        f"{body}"
-        '<footer class="foot"><div class="in">'
-        "<span>© 2026 Intro Connect</span>"
+        # Same chrome as the marketing homepage (Nav.jsx / Footer.jsx): these
+        # pages are served on the marketing domain, not the logged-in app, so
+        # they share that site's header and footer, not the app's. Anchor
+        # links go through "/" first since a blog or news page is not the
+        # homepage those sections live on.
+        '<nav class="nav"><div class="in">'
+        f'<a class="brandlink" href="/">{_MARK}'
+        '<span class="brand">Intro <span>Connect</span></span></a>'
+        '<div class="links">'
+        '<a href="/#how">How it works</a><a href="/#features">Features</a>'
+        '<a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>'
         '<a href="/blog">Blog</a><a href="/news">News</a>'
+        "</div>"
+        '<div class="navcta">'
+        f'<a class="btn-ghost" href="{seo.app_url()}">Log in</a>'
+        '<a class="btn-primary" href="/#pricing">Start for free</a>'
+        "</div></div></nav>"
+        f"{body}"
+        '<footer class="foot"><div class="in"><div class="row">'
+        '<div class="fbrand">' + _MARK + '<div><div class="word">Intro '
+        '<span>Connect</span></div><div class="copy">© 2026 Intro Connect</div></div></div>'
+        '<div class="flinks">'
+        '<a href="/#features">Features</a><a href="/#pricing">Pricing</a>'
+        '<a href="/#faq">FAQ</a><a href="/blog">Blog</a><a href="/news">News</a>'
         '<a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a>'
-        f'<a href="{seo.app_url()}">Home</a>'
+        '<a href="mailto:hello@intro-connect.com">Contact</a>'
+        "</div></div>"
+        '<div class="tagline">Host better. Connect deeper. Build what matters.</div>'
         "</div></footer></body></html>"
     )
