@@ -2,6 +2,37 @@ import { ArrowRight, Check } from "lucide-react";
 
 const REGISTER = "https://app.intro-connect.com/register";
 
+// Every line here must be something the product actually does today.
+//
+// Removed 2026-07-30 after auditing these against the codebase, to be restored
+// individually as each one ships:
+//   Free      "Directory live for 30 days"   no expiry is implemented
+//   Starter   "Permanent directory, ..."     nothing expires, so this sold a
+//                                            difference that does not exist
+//   Starter   "Host announcements"           no such feature
+//   Starter   "Remove Intro Connect ..."     the product is deliberately not
+//                                            white-label; branded email adds a
+//                                            "via Intro Connect" credit
+//   Pro       "Cross-event network"          not implemented
+//   Pro       "Your own custom domain"       not implemented
+//   Pro       "Post-event surveys"           not implemented
+//   Pro       "calendar invites"             no .ics generation exists
+//   Ent       "Multiple host accounts"       not implemented
+//   Ent       "SSO via Google or Microsoft"  not implemented
+//   Ent       "White-label"                  contradicts the branding spec
+//
+// Attendee counts are stated ceilings that no code enforces yet. They are left
+// in because they under-promise: a customer gets more than the page says, not
+// less. The same is true of Starter's event count, which reads 3 while
+// billing.STARTER_EVENT_LIMIT is 10.
+//
+// Worth knowing when editing this file: in the whole codebase exactly TWO
+// things are gated by plan. Event count (billing.event_limit_for) and host
+// branding (branding.plan_allows, Pro only). Everything else, including
+// sponsors, messaging, the directory, saved contacts, CSV and email templates,
+// works on Free. So features are listed under Free where they actually live,
+// and the paid tiers inherit rather than repeating them as if they were
+// unlocks. Do not move a line up a tier without adding a real gate for it.
 const TIERS = [
   {
     name: "Free",
@@ -16,7 +47,10 @@ const TIERS = [
       "Searchable directory + profiles",
       "Save contacts and private notes",
       "In-app messaging",
-      "Directory live for 30 days",
+      "Sponsor tiles on your event page",
+      "Email templates for before and after",
+      "CSV import and export",
+      "Free agenda builder with Word export",
     ],
   },
   {
@@ -24,17 +58,13 @@ const TIERS = [
     price: "$39",
     period: "/month",
     annual: "$390 billed yearly",
-    blurb: "For hosts who outgrew the free plan and want a permanent directory.",
+    blurb: "For hosts running more than the occasional event.",
     cta: "Choose Starter",
     href: REGISTER,
     features: [
+      "Everything in Free",
       "Up to 3 active events",
       "Up to 250 attendees per event",
-      "Permanent directory, never expires",
-      "Attendee to attendee messaging",
-      "Host announcements",
-      "CSV export",
-      "Remove Intro Connect branding",
     ],
   },
   {
@@ -50,11 +80,7 @@ const TIERS = [
       "Everything in Starter",
       "Unlimited events",
       "Up to 2,000 attendees per event",
-      "Cross-event network: all your events, one directory",
-      "Your own custom domain",
-      "Post-event surveys with analytics",
-      "Sponsor tiles and calendar invites",
-      "CSV import from any tool",
+      "Your logo and color on event pages and guest emails",
       "Priority support",
     ],
   },
@@ -66,9 +92,7 @@ const TIERS = [
     cta: "Schedule a call",
     href: "mailto:hello@intro-connect.com?subject=Intro%20Connect%20Enterprise",
     features: [
-      "Multiple host accounts",
-      "SSO via Google or Microsoft",
-      "White-label",
+      "Everything in Pro",
       "Custom integrations and CRMs",
       "Dedicated support",
       "Custom contracts and SLAs",
