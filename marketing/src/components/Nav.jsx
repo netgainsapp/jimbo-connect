@@ -7,6 +7,9 @@ const LINKS = [
   { href: "#features", label: "Features" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
+  // Free tool. A linkable tool page is the strongest organic surface the site
+  // has, so it gets a nav slot rather than being buried in the footer.
+  { href: "/agenda", label: "Agenda Builder" },
   { href: "/blog", label: "Blog" },
   { href: "/news", label: "News" },
 ];

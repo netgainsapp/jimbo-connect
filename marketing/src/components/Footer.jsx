@@ -26,6 +26,9 @@ export default function Footer() {
             <a href="#faq" className="hover:text-ink font-semibold">
               FAQ
             </a>
+            <a href="/agenda" className="hover:text-ink font-semibold">
+              Agenda Builder
+            </a>
             <a href="/blog" className="hover:text-ink font-semibold">
               Blog
             </a>
