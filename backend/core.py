@@ -144,7 +144,12 @@ def serialize_attendee(user: dict) -> dict:
     }
 
 
-def serialize_event(event: dict, attendee_count: int = 0, host_branding=None) -> dict:
+def serialize_event(
+    event: dict,
+    attendee_count: int = 0,
+    host_branding=None,
+    attendee_limit=None,
+) -> dict:
     out = {
         "id": str(event["_id"]),
         "name": event["name"],
@@ -165,6 +170,11 @@ def serialize_event(event: dict, attendee_count: int = 0, host_branding=None) ->
     # list endpoints stay cheap and existing consumers see no shape change.
     if host_branding is not None:
         out["host_branding"] = host_branding
+    # Only sent to someone who manages the event: an attendee has no business
+    # knowing the host's plan ceiling, and it is the host who needs to see the
+    # wall coming rather than meet it.
+    if attendee_limit is not None:
+        out["attendee_limit"] = attendee_limit
     return out
 
 

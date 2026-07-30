@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, MapPin, Search, Users, ChevronDown } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Calendar, MapPin, Search, Users, ChevronDown } from "lucide-react";
 import { eventsApi, contactsApi, sponsorsApi } from "../lib/api.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
@@ -206,12 +206,50 @@ export default function EventDirectory() {
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5">
-                <Users className="w-4 h-4" /> {event.attendee_count} attendees
+                <Users className="w-4 h-4" />
+                {/* attendee_limit is only sent to whoever manages the event, so
+                    its presence is what marks the host view. An attendee just
+                    sees the count. */}
+                {event.attendee_limit
+                  ? `${event.attendee_count} of ${event.attendee_limit} attendees`
+                  : `${event.attendee_count} attendees`}
               </span>
             </div>
           )
         )}
       </div>
+
+      {/* Warn the host as the cap approaches rather than when a guest is
+          turned away at the door. Ten percent of headroom, or three seats,
+          whichever is larger, so it is useful on a 50 cap and on a 2000 one. */}
+      {event.attendee_limit &&
+        event.attendee_count >=
+          event.attendee_limit - Math.max(3, Math.round(event.attendee_limit * 0.1)) && (
+          <div className="mb-6 flex gap-3 rounded-card border border-amber-300 bg-amber-50 p-4">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
+            <p className="text-sm text-amber-800">
+              {event.attendee_count >= event.attendee_limit ? (
+                <>
+                  <span className="font-semibold text-amber-900">
+                    This event is full.
+                  </span>{" "}
+                  New guests cannot join until you upgrade.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-amber-900">
+                    Nearly full.
+                  </span>{" "}
+                  {event.attendee_limit - event.attendee_count} of{" "}
+                  {event.attendee_limit} places left.
+                </>
+              )}{" "}
+              <Link to="/upgrade" className="font-semibold underline">
+                See plans
+              </Link>
+            </p>
+          </div>
+        )}
 
       {sponsors.length > 0 && (
         <div className="mb-6">

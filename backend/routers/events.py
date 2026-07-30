@@ -129,7 +129,19 @@ async def get_event(event_id: str, user: dict = Depends(get_current_user)):
             raise HTTPException(status_code=403, detail="Not joined to this event")
     count = await event_attendees.count_documents({"event_id": oid})
     host = await users.find_one({"_id": e["created_by"]}) if e.get("created_by") else None
-    return serialize_event(e, count, host_branding=branding.public_branding(host) if host else None)
+    # The ceiling goes only to whoever manages the event, so the host can see
+    # the cap approaching instead of discovering it when a guest is turned away.
+    limit = None
+    if _can_manage_event(user, e) and host:
+        import billing
+
+        limit = billing.attendee_limit_for(host)
+    return serialize_event(
+        e,
+        count,
+        host_branding=branding.public_branding(host) if host else None,
+        attendee_limit=limit,
+    )
 
 
 @router.put("/api/events/{event_id}")

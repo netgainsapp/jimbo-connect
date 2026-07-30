@@ -119,6 +119,34 @@ def test_a_guest_facing_message_can_be_supplied(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# Who is allowed to see the ceiling
+# ---------------------------------------------------------------------------
+
+def _event_doc():
+    return {
+        "_id": "evt",
+        "name": "Dinner",
+        "date": "2026-08-01",
+        "join_code": "ABC123",
+        "created_by": "host-1",
+        "created_at": "2026-07-01",
+    }
+
+
+def test_the_limit_is_included_for_the_host():
+    out = core.serialize_event(_event_doc(), 12, attendee_limit=50)
+    assert out["attendee_limit"] == 50
+    assert out["attendee_count"] == 12
+
+
+def test_the_limit_is_absent_for_an_attendee():
+    """An attendee has no business knowing the host's plan ceiling, and its
+    absence is what the UI uses to tell the two views apart."""
+    out = core.serialize_event(_event_doc(), 12)
+    assert "attendee_limit" not in out
+
+
+# ---------------------------------------------------------------------------
 # A cap enforced on only some paths is not a cap
 # ---------------------------------------------------------------------------
 
