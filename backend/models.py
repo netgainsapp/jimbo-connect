@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from phone import normalize_phone
+
 
 class _EmailNormalized(BaseModel):
     """Mixin that lowercases and trims any `email` field, so registration,
@@ -76,6 +78,15 @@ class ProfileUpdateRequest(BaseModel):
     phone: Optional[str] = Field(default=None, max_length=40)
     linkedin: Optional[str] = Field(default=None, max_length=300)
     photo_url: Optional[str] = Field(default=None, max_length=2_200_000)
+
+    @field_validator("phone")
+    @classmethod
+    def _phone_is_ten_digits(cls, v):
+        # None means the client did not send the field at all, which is a
+        # partial update and must not be turned into "".
+        if v is None:
+            return v
+        return normalize_phone(v)
 
     @field_validator("photo_url")
     @classmethod
@@ -175,6 +186,14 @@ class BulkImportRow(_EmailNormalized):
     looking_for: Optional[str] = Field(default="", max_length=1000)
     phone: Optional[str] = Field(default="", max_length=40)
     linkedin: Optional[str] = Field(default="", max_length=300)
+
+    @field_validator("phone")
+    @classmethod
+    def _phone_is_ten_digits(cls, v):
+        # A spreadsheet is the likeliest source of a malformed number, so this
+        # is the path that most needs the check. A bad row fails validation and
+        # names the field, rather than importing a broken contact.
+        return normalize_phone(v)
 
 
 class BulkImportRequest(BaseModel):

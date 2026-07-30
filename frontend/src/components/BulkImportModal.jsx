@@ -12,6 +12,7 @@ import Modal from "./Modal.jsx";
 import Avatar from "./Avatar.jsx";
 import { adminApi, eventsApi } from "../lib/api.js";
 import { copyToClipboard } from "../lib/utils.js";
+import { formatPhone, isValidPhone } from "../lib/phone.js";
 import { useToast } from "../hooks/useToast.jsx";
 
 const KNOWN_FIELDS = [
@@ -107,9 +108,21 @@ function parsePaste(text) {
     }
     if (!row.email) {
       errors.push({ line: idx + (headers ? 2 : 1), reason: "No email found" });
-    } else {
-      rows.push(row);
+      return;
     }
+    // Phone numbers out of a spreadsheet are the likeliest to be malformed.
+    // A number that is already ten digits is reformatted silently; anything
+    // else drops the whole row, named, rather than importing a contact whose
+    // number looks fine and does not work. The server enforces this too.
+    if (row.phone && !isValidPhone(row.phone)) {
+      errors.push({
+        line: idx + (headers ? 2 : 1),
+        reason: `Phone "${row.phone}" is not 10 digits`,
+      });
+      return;
+    }
+    if (row.phone) row.phone = formatPhone(row.phone);
+    rows.push(row);
   });
 
   return { rows, errors };
@@ -322,9 +335,18 @@ ben@example.com`}
                 <span className="text-text-secondary">Nothing parsed yet.</span>
               )}
               {parsed.errors.length > 0 && (
-                <span className="text-red-600 inline-flex items-center gap-1">
+                // Rows can now be skipped for a bad phone as well as a missing
+                // email, so the reason comes from the row rather than being
+                // hardcoded. Showing one example makes it fixable.
+                <span
+                  className="text-red-600 inline-flex items-center gap-1"
+                  title={parsed.errors
+                    .slice(0, 5)
+                    .map((e) => `Line ${e.line}: ${e.reason}`)
+                    .join("\n")}
+                >
                   <AlertCircle className="w-3.5 h-3.5" />
-                  {parsed.errors.length} skipped (no email)
+                  {parsed.errors.length} skipped ({parsed.errors[0].reason})
                 </span>
               )}
             </div>

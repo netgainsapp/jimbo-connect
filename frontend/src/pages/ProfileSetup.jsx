@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { profileApi } from "../lib/api.js";
 import { safeNext } from "../lib/nextPath.js";
+import { PHONE_ERROR, formatPhone, isValidPhone } from "../lib/phone.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import Avatar from "../components/Avatar.jsx";
@@ -58,6 +59,13 @@ export default function ProfileSetup({ editMode = false }) {
     e.preventDefault();
     if (!form.name || !form.role || !form.company) {
       toast.show("Name, role, and company are required", "error");
+      return;
+    }
+    // The field formats as you type and caps at ten digits, so this is mostly
+    // unreachable. It still exists because a value can arrive by paste or
+    // autofill without passing through the keystroke handler.
+    if (!isValidPhone(form.phone)) {
+      toast.show(PHONE_ERROR, "error");
       return;
     }
     setSaving(true);
@@ -179,10 +187,31 @@ export default function ProfileSetup({ editMode = false }) {
             <input
               id="profile-phone"
               className="input"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
               value={form.phone}
-              onChange={setField("phone")}
+              // Formats as you type. No maxLength on purpose: the browser
+              // would truncate a pasted "+1 303 555 0101" into a different,
+              // valid looking number. Over-length input stays visible and is
+              // refused on save instead.
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: formatPhone(e.target.value) }))
+              }
               placeholder="303-555-0100"
+              aria-describedby="profile-phone-hint"
+              aria-invalid={!isValidPhone(form.phone)}
             />
+            <p
+              id="profile-phone-hint"
+              className={`mt-1 text-xs ${
+                isValidPhone(form.phone) ? "text-text-muted" : "text-red-600"
+              }`}
+            >
+              {isValidPhone(form.phone)
+                ? "10 digits, like 303-555-0100."
+                : PHONE_ERROR}
+            </p>
           </div>
           <div>
             <label className="label" htmlFor="profile-linkedin">LinkedIn</label>
