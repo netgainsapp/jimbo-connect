@@ -24,6 +24,10 @@ event_invites = db["event_invites"]
 outreach_leads = db["outreach_leads"]
 suppressed_emails = db["suppressed_emails"]
 news_article = db["news_article"]
+# Saved agendas from the Agenda Builder. Anonymous drafts are NOT stored here:
+# they live in the visitor's own browser, so there is nothing to orphan. A row
+# appears only once someone signs in and claims their draft.
+agendas = db["agendas"]
 
 
 async def ensure_indexes():
@@ -38,6 +42,8 @@ async def ensure_indexes():
     await messages.create_index([("to_user_id", 1), ("read_at", 1)])
     await email_templates.create_index("template_id", unique=True)
     await blog_post.create_index("slug")
+    # Every agenda read is "mine", newest first.
+    await agendas.create_index([("user_id", 1), ("updated_at", -1)])
     await blog_post.create_index([("status", 1), ("published_at", -1)])
     await event_invites.create_index([("event_id", 1), ("email", 1)], unique=True)
     await event_invites.create_index([("joined_at", 1), ("reminder_step", 1)])

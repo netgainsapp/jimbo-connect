@@ -35,8 +35,11 @@ import { agendaApi } from "../lib/api.js";
 /** Empty date strings must become null: the API models them as Optional[date]
  *  and "" is not a date. */
 function toPayload(agenda) {
+  // `id` is ours, not the API's: it identifies a saved agenda and has no
+  // meaning to the stateless export endpoint.
+  const { id, ...rest } = agenda;
   return {
-    ...agenda,
+    ...rest,
     start_date: agenda.start_date || null,
     end_date: agenda.end_date || null,
     items: agenda.items.map((item) => ({ ...item, date: item.date || null })),

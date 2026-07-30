@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import base64
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 import branding
 import rate_limit
+from agenda import store
 from agenda.docx import build_docx
 from agenda.schema import AgendaExportRequest, slugify_filename
+from auth import get_current_user
 
 router = APIRouter()
 
@@ -72,3 +74,81 @@ def export_agenda(payload: AgendaExportRequest, request: Request):
         media_type=DOCX_MEDIA_TYPE,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Saved agendas. Signed-in only: an anonymous visitor's draft stays in their
+# own browser, so these routes never create a row nobody owns.
+# ---------------------------------------------------------------------------
+
+SAVE_LIMIT = 240
+SAVE_WINDOW_SECONDS = 3600
+
+
+def _not_found():
+    return HTTPException(status_code=404, detail="Agenda not found")
+
+
+@router.post("/api/agenda")
+async def create_agenda(
+    payload: AgendaExportRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    """Create, or claim a draft built before signing in."""
+    rate_limit.guard(
+        request, "agenda_write", limit=SAVE_LIMIT,
+        window_seconds=SAVE_WINDOW_SECONDS, identifier=user.get("email"),
+    )
+    try:
+        return await store.create(user["_id"], payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/api/agenda")
+async def list_agendas(user: dict = Depends(get_current_user)):
+    return await store.list_for_user(user["_id"])
+
+
+@router.get("/api/agenda/{agenda_id}")
+async def get_agenda(agenda_id: str, user: dict = Depends(get_current_user)):
+    try:
+        return await store.get(agenda_id, user["_id"])
+    except store.AgendaNotFound:
+        raise _not_found()
+
+
+@router.put("/api/agenda/{agenda_id}")
+async def update_agenda(
+    agenda_id: str,
+    payload: AgendaExportRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    # Autosave hits this often by design, so the budget is generous; it exists
+    # to stop a runaway client, not to police normal editing.
+    rate_limit.guard(
+        request, "agenda_write", limit=SAVE_LIMIT,
+        window_seconds=SAVE_WINDOW_SECONDS, identifier=user.get("email"),
+    )
+    try:
+        return await store.update(
+            agenda_id, user["_id"], payload,
+            # An omitted logo means "leave it alone"; an explicit null means
+            # "remove it". Both arrive as None, so ask pydantic which happened.
+            logo_provided="logo" in payload.model_fields_set,
+        )
+    except store.AgendaNotFound:
+        raise _not_found()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/api/agenda/{agenda_id}")
+async def delete_agenda(agenda_id: str, user: dict = Depends(get_current_user)):
+    try:
+        await store.delete(agenda_id, user["_id"])
+    except store.AgendaNotFound:
+        raise _not_found()
+    return {"ok": True}

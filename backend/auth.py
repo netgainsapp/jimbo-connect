@@ -81,3 +81,17 @@ async def get_current_admin(request: Request) -> dict:
     if not user.get("is_admin"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return user
+
+
+async def get_current_user_optional(request: Request):
+    """The signed-in user, or None when there is no valid session.
+
+    For endpoints that must serve a logged-out visitor and a member from the
+    same route, such as the Agenda Builder, which works before anyone has an
+    account. Returns None instead of raising; a caller that needs a user must
+    say so itself rather than assuming this gave them one.
+    """
+    try:
+        return await get_current_user(request)
+    except HTTPException:
+        return None

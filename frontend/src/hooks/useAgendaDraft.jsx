@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { byStartTime } from "../components/agenda/format.js";
+import { agendaApi } from "../lib/api.js";
+import { useAuth } from "./useAuth.jsx";
 
 // Phase 1 keeps the whole draft on the device. An anonymous visitor never
 // creates a database row, so there is nothing to orphan and nothing to clean
@@ -9,6 +11,9 @@ const STORAGE_KEY = "intro-connect:agenda-draft:v1";
 const SAVE_DEBOUNCE_MS = 400;
 
 export const EMPTY_AGENDA = {
+  // Server id once the agenda is saved to an account. Null while the draft
+  // lives only in this browser.
+  id: null,
   event_name: "",
   description: "",
   start_date: "",
@@ -93,14 +98,80 @@ export function invalidTimeIds(items) {
   );
 }
 
+/** Everything the API accepts. Empty date strings must become null, since the
+ *  server models them as optional dates and "" is not one. The logo is
+ *  deliberately excluded: autosave must not re-upload a megabyte of image on
+ *  every keystroke, and an omitted logo means "leave it alone" server side. */
+function toPayload(agenda, { includeLogo = false } = {}) {
+  const { id, logo, ...rest } = agenda;
+  const payload = {
+    ...rest,
+    start_date: agenda.start_date || null,
+    end_date: agenda.end_date || null,
+    items: agenda.items.map((i) => ({ ...i, date: i.date || null })),
+  };
+  if (includeLogo) payload.logo = logo ?? null;
+  return payload;
+}
+
 export function useAgendaDraft() {
   const [agenda, setAgenda] = useState(load);
   const [savedAt, setSavedAt] = useState(null);
   const timer = useRef(null);
+  const { user } = useAuth();
+
+  // Which logo value we last persisted, so the logo is only sent when it has
+  // actually changed rather than on every autosave.
+  const syncedLogo = useRef(agenda.logo ?? null);
+  const claiming = useRef(false);
+
+  // Claim a draft built before signing in. Runs once when a session appears
+  // and the draft has no server id yet.
+  useEffect(() => {
+    if (!user || agenda.id || claiming.current) return;
+    const hasContent = agenda.event_name || agenda.items.length > 0;
+    if (!hasContent) return;
+    claiming.current = true;
+    agendaApi
+      .create(toPayload(agenda, { includeLogo: true }))
+      .then((saved) => {
+        syncedLogo.current = agenda.logo ?? null;
+        setAgenda((prev) => ({ ...prev, id: saved.id }));
+        // Drop the local copy the moment the server owns it. Leaving it behind
+        // would hand this draft to the next person who signs in on this
+        // browser, which is a privacy bug, not just clutter.
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          /* nothing to do */
+        }
+      })
+      .catch(() => {
+        // Stay local and keep working. A failed claim must never cost the
+        // organizer their agenda.
+        claiming.current = false;
+      });
+  }, [user, agenda]);
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
+      // Signed in with a saved agenda: the server is the source of truth, and
+      // nothing is mirrored locally so a shared browser leaks nothing.
+      if (user && agenda.id) {
+        const logoChanged = (agenda.logo ?? null) !== syncedLogo.current;
+        agendaApi
+          .update(agenda.id, toPayload(agenda, { includeLogo: logoChanged }))
+          .then(() => {
+            if (logoChanged) syncedLogo.current = agenda.logo ?? null;
+            setSavedAt(new Date());
+          })
+          .catch(() => {
+            /* transient; the next edit retries */
+          });
+        return;
+      }
+      if (user) return; // claim in flight; do not write a local copy
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(agenda));
         setSavedAt(new Date());
@@ -110,7 +181,7 @@ export function useAgendaDraft() {
       }
     }, SAVE_DEBOUNCE_MS);
     return () => timer.current && clearTimeout(timer.current);
-  }, [agenda]);
+  }, [agenda, user]);
 
   const setField = useCallback((name, value) => {
     setAgenda((prev) => ({ ...prev, [name]: value }));
@@ -212,6 +283,8 @@ export function useAgendaDraft() {
 
   const reset = useCallback(() => {
     setAgenda({ ...EMPTY_AGENDA });
+    syncedLogo.current = null;
+    claiming.current = false;
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {

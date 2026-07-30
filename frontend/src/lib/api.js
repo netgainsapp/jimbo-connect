@@ -267,4 +267,11 @@ export const agendaApi = {
     const match = disposition.match(/filename="([^"]+)"/);
     return { blob: await res.blob(), filename: match ? match[1] : "agenda.docx" };
   },
+
+  // Saved agendas. Signed-in only: an anonymous draft never leaves the browser.
+  create: (agenda) => api.post("/api/agenda", agenda),
+  list: () => api.get("/api/agenda"),
+  get: (id) => api.get(`/api/agenda/${id}`),
+  update: (id, agenda) => api.put(`/api/agenda/${id}`, agenda),
+  remove: (id) => api.del(`/api/agenda/${id}`),
 };
