@@ -114,6 +114,10 @@ class EventCreateRequest(BaseModel):
     date: datetime
     location: Optional[str] = Field(default="", max_length=200)
     industry_tags: List[str] = Field(default_factory=list, max_length=50)
+    # Added for the Agenda Builder handoff. Optional, so nothing that creates
+    # an event today has to change.
+    description: Optional[str] = Field(default="", max_length=5000)
+    end_date: Optional[datetime] = None
 
 
 class EventUpdateRequest(BaseModel):
@@ -133,6 +137,9 @@ class EventPublic(BaseModel):
     created_by: str
     created_at: datetime
     attendee_count: Optional[int] = 0
+    description: Optional[str] = ""
+    end_date: Optional[datetime] = None
+    agenda_id: Optional[str] = None
 
 
 class SaveContactRequest(BaseModel):

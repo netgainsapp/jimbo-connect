@@ -152,3 +152,97 @@ async def delete_agenda(agenda_id: str, user: dict = Depends(get_current_user)):
     except store.AgendaNotFound:
         raise _not_found()
     return {"ok": True}
+
+
+@router.post("/api/agenda/{agenda_id}/convert")
+async def convert_agenda_to_event(
+    agenda_id: str, user: dict = Depends(get_current_user)
+):
+    """Create an event from a saved agenda and link the two.
+
+    Done server side in one call so join-code uniqueness and the plan limit
+    stay in a single place (routers.events.create_event_for), and so the client
+    never has to re-send data the server already holds.
+    """
+    from bson import ObjectId
+
+    from database import events as events_col
+    from models import EventCreateRequest
+    from routers.events import create_event_for
+
+    try:
+        agenda = await store.get(agenda_id, user["_id"])
+    except store.AgendaNotFound:
+        raise _not_found()
+
+    if agenda.get("event_id"):
+        raise HTTPException(
+            status_code=409, detail="This agenda already has an event."
+        )
+
+    start = _event_datetime(agenda)
+    if not start:
+        raise HTTPException(
+            status_code=400,
+            detail="Add a date to your agenda before creating an event.",
+        )
+
+    location = ", ".join(
+        p for p in (agenda.get("venue_name"), agenda.get("venue_address")) if p
+    ) or agenda.get("virtual_url", "")
+
+    # Raises 403 with the upgrade message when the host is at their plan limit.
+    event = await create_event_for(
+        user,
+        EventCreateRequest(
+            name=agenda.get("event_name") or "Untitled event",
+            date=start,
+            location=location[:200],
+            description=agenda.get("description", ""),
+            end_date=_parse_date(agenda.get("end_date")),
+        ),
+    )
+
+    await events_col.update_one(
+        {"_id": ObjectId(event["id"])},
+        {"$set": {"agenda_id": ObjectId(agenda_id)}},
+    )
+    event["agenda_id"] = agenda_id
+    await store.attach_event(agenda_id, user["_id"], ObjectId(event["id"]))
+    return event
+
+
+def _parse_date(value):
+    """Stored dates are plain "YYYY-MM-DD" strings, because an agenda is wall
+    clock local to its venue. The event model wants a datetime."""
+    from datetime import datetime
+
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return None
+
+
+def _event_datetime(agenda: dict):
+    """The event's single `date`, built from the agenda's start date and, when
+    given, its start time. Falls back to the earliest dated session so an
+    agenda that only ever set times on its rows still converts."""
+    from datetime import datetime
+
+    day = _parse_date(agenda.get("start_date"))
+    if not day:
+        dates = sorted(i["date"] for i in agenda.get("items", []) if i.get("date"))
+        day = _parse_date(dates[0]) if dates else None
+    if not day:
+        return None
+    start_time = agenda.get("start_time") or ""
+    if len(start_time) == 5:
+        try:
+            return day.replace(
+                hour=int(start_time[:2]), minute=int(start_time[3:5])
+            )
+        except ValueError:
+            return day
+    return day

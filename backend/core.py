@@ -155,6 +155,11 @@ def serialize_event(event: dict, attendee_count: int = 0, host_branding=None) ->
         "created_by": str(event["created_by"]),
         "created_at": event["created_at"],
         "attendee_count": attendee_count,
+        # Added with the Agenda Builder handoff. Read with .get so every event
+        # created before these existed still serialises.
+        "description": event.get("description", ""),
+        "end_date": event.get("end_date"),
+        "agenda_id": str(event["agenda_id"]) if event.get("agenda_id") else None,
     }
     # Host branding (Pro) rides along only where the caller resolved it, so
     # list endpoints stay cheap and existing consumers see no shape change.

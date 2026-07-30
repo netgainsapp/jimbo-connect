@@ -208,6 +208,55 @@ def test_list_omits_items_and_logo():
     assert "logo" not in rows[0]
 
 
+# ---------------------------------------------------------------------------
+# Conversion to an event
+# ---------------------------------------------------------------------------
+
+def test_attach_event_links_and_marks_converted():
+    created = _run(store.create("user-1", _payload()))
+    event_id = ObjectId()
+    out = _run(store.attach_event(created["id"], "user-1", event_id))
+    assert out["event_id"] == str(event_id)
+    assert out["status"] == "converted"
+
+
+def test_attach_event_respects_ownership():
+    created = _run(store.create("user-1", _payload()))
+    with pytest.raises(store.AgendaNotFound):
+        _run(store.attach_event(created["id"], "user-2", ObjectId()))
+
+
+def test_event_datetime_combines_start_date_and_time():
+    from routers.agenda import _event_datetime
+
+    got = _event_datetime({"start_date": "2026-08-01", "start_time": "18:30", "items": []})
+    assert (got.year, got.month, got.day, got.hour, got.minute) == (2026, 8, 1, 18, 30)
+
+
+def test_event_datetime_falls_back_to_the_earliest_session():
+    """An agenda where only the rows carry dates must still convert."""
+    from routers.agenda import _event_datetime
+
+    got = _event_datetime(
+        {"start_date": "", "start_time": "",
+         "items": [{"date": "2026-09-04"}, {"date": "2026-09-02"}]}
+    )
+    assert (got.year, got.month, got.day) == (2026, 9, 2)
+
+
+def test_event_datetime_is_none_when_nothing_is_dated():
+    from routers.agenda import _event_datetime
+
+    assert _event_datetime({"start_date": "", "start_time": "", "items": []}) is None
+
+
+def test_event_datetime_survives_a_nonsense_time():
+    from routers.agenda import _event_datetime
+
+    got = _event_datetime({"start_date": "2026-08-01", "start_time": "99:99", "items": []})
+    assert got is not None and got.hour == 0
+
+
 def test_list_only_returns_your_own():
     _run(store.create("user-1", _payload()))
     _run(store.create("user-2", _payload()))

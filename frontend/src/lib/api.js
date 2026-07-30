@@ -274,4 +274,7 @@ export const agendaApi = {
   get: (id) => api.get(`/api/agenda/${id}`),
   update: (id, agenda) => api.put(`/api/agenda/${id}`, agenda),
   remove: (id) => api.del(`/api/agenda/${id}`),
+  // Creates the event from a saved agenda and links the two. Server side in
+  // one call so the plan limit and join-code generation stay in one place.
+  convert: (id) => api.post(`/api/agenda/${id}/convert`),
 };

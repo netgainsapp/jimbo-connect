@@ -26,6 +26,7 @@ import AdminOutreach from "./pages/AdminOutreach.jsx";
 import JoinEvent from "./pages/JoinEvent.jsx";
 import AgendaLandingRedirect from "./pages/AgendaLandingRedirect.jsx";
 import AgendaBuilder from "./pages/AgendaBuilder.jsx";
+import AgendaConvert from "./pages/AgendaConvert.jsx";
 import MarketingNav from "./components/marketing/MarketingNav.jsx";
 import MarketingFooter from "./components/marketing/MarketingFooter.jsx";
 import Upgrade from "./pages/Upgrade.jsx";
@@ -81,6 +82,17 @@ export default function App() {
               outside RequireAuth, alongside /join/:code. */}
           <Route path="/agenda" element={<AgendaLandingRedirect />} />
           <Route path="/agenda/new" element={<AgendaBuilder />} />
+          {/* allowIncompleteProfile on purpose: the organizer sees their event
+              first and is prompted for a profile afterwards, so profile setup
+              must not stand between them and the thing they came for. */}
+          <Route
+            path="/agenda/convert"
+            element={
+              <RequireAuth allowIncompleteProfile>
+                <AgendaConvert />
+              </RequireAuth>
+            }
+          />
 
           <Route
             path="/profile/setup"

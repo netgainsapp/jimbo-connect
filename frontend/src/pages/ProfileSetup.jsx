@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { profileApi } from "../lib/api.js";
+import { safeNext } from "../lib/nextPath.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import Avatar from "../components/Avatar.jsx";
@@ -9,6 +10,7 @@ import BrandCard from "../components/BrandCard.jsx";
 import { Camera, Trash2 } from "lucide-react";
 
 export default function ProfileSetup({ editMode = false }) {
+  const [searchParams] = useSearchParams();
   const { user, refresh, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -63,10 +65,11 @@ export default function ProfileSetup({ editMode = false }) {
       await profileApi.update(form);
       await refresh();
       toast.show("Profile saved");
+      const dest = safeNext(searchParams.get("next"), "/events");
       if (editMode) {
-        navigate("/events");
+        navigate(dest);
       } else {
-        navigate("/events", { replace: true });
+        navigate(dest, { replace: true });
       }
     } catch (err) {
       toast.show(err.message, "error");

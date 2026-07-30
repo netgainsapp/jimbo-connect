@@ -33,10 +33,14 @@ router = APIRouter()
 
 # ---------- Events ----------
 
-@router.post("/api/events")
-async def create_event(
-    payload: EventCreateRequest, user: dict = Depends(get_current_user)
-):
+async def create_event_for(user: dict, payload: EventCreateRequest) -> dict:
+    """Create an event on behalf of `user`.
+
+    Shared by POST /api/events and the Agenda Builder handoff so that the plan
+    limit and join-code generation live in exactly one place. A second creation
+    path that forgot the limit check would be a silent way to hand out free
+    events.
+    """
     import billing
 
     limit = billing.event_limit_for(user)
@@ -63,10 +67,19 @@ async def create_event(
         "join_code": code,
         "created_by": user["_id"],
         "created_at": now,
+        "description": payload.description or "",
+        "end_date": payload.end_date,
     }
     result = await events.insert_one(doc)
     doc["_id"] = result.inserted_id
     return serialize_event(doc, 0)
+
+
+@router.post("/api/events")
+async def create_event(
+    payload: EventCreateRequest, user: dict = Depends(get_current_user)
+):
+    return await create_event_for(user, payload)
 
 
 @router.get("/api/my-hosted-events")

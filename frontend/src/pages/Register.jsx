@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
+import { safeNext } from "../lib/nextPath.js";
 import { Mark } from "../components/Logo.jsx";
 
 export default function Register() {
   const { register } = useAuth();
+  const [searchParams] = useSearchParams();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +24,13 @@ export default function Register() {
     setLoading(true);
     try {
       await register(email, password, name);
-      navigate("/profile/setup", { replace: true });
+      // ?next lets a flow send someone straight back where they came from,
+      // which is how the Agenda Builder returns you to your own event. Without
+      // it, profile setup is the only destination. safeNext refuses anything
+      // that is not a same-site path.
+      navigate(safeNext(searchParams.get("next"), "/profile/setup"), {
+        replace: true,
+      });
     } catch (err) {
       setError(err.message || "Registration failed");
     } finally {

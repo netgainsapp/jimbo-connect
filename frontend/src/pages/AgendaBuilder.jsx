@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   DndContext,
   KeyboardSensor,
@@ -14,6 +14,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import {
+  AlertTriangle,
   ArrowDownWideNarrow,
   CalendarPlus,
   Download,
@@ -30,7 +31,7 @@ import { formatAgendaDate, groupByDay } from "../components/agenda/format.js";
 import { useAgendaDraft } from "../hooks/useAgendaDraft.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { useToast } from "../hooks/useToast.jsx";
-import { agendaApi } from "../lib/api.js";
+import { agendaApi, billingApi } from "../lib/api.js";
 
 /** Empty date strings must become null: the API models them as Optional[date]
  *  and "" is not a date. */
@@ -65,9 +66,23 @@ export default function AgendaBuilder() {
   const [tab, setTab] = useState("edit");
   const [exporting, setExporting] = useState(false);
   const [exported, setExported] = useState(false);
+  const [limits, setLimits] = useState(null);
   const toast = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Only a signed-in host can be at a limit; an anonymous visitor has no
+  // account to be limited, and a brand new account starts at zero, so their
+  // first event always succeeds.
+  useEffect(() => {
+    if (!user) return setLimits(null);
+    billingApi.status().then(setLimits).catch(() => setLimits(null));
+  }, [user]);
+
+  const atLimit =
+    limits &&
+    limits.event_limit !== null &&
+    limits.events_hosted >= limits.event_limit;
 
   const groups = useMemo(() => groupByDay(agenda.items), [agenda.items]);
 
@@ -107,10 +122,11 @@ export default function AgendaBuilder() {
     }
   };
 
-  // Phase 1 sends the organizer to the existing create-event path. The draft
-  // stays in localStorage, so nothing is lost; carrying these fields into the
-  // event itself is Phase 4 (see docs/AGENDA-BUILDER-PROPOSAL.md).
-  const handleCreateEvent = () => navigate(user ? "/events?host=1" : "/register");
+  // Signed in: straight to the confirm screen. Signed out: register first and
+  // come back. The draft survives either way, because it is in localStorage on
+  // this same origin and gets claimed the moment a session appears.
+  const handleCreateEvent = () =>
+    navigate(user ? "/agenda/convert" : "/register?next=/agenda/convert");
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -130,6 +146,27 @@ export default function AgendaBuilder() {
           {savedAt ? `Saved ${savedAt.toLocaleTimeString()}` : "Saves as you type"}
         </div>
       </header>
+
+      {atLimit && (
+        // Warned up front rather than at the 403, which would land after they
+        // have already done the work. Never blocks: the Word download is the
+        // free promise of this tool and stays unconditional.
+        <div className="mb-5 flex gap-3 rounded-card border border-amber-300 bg-amber-50 p-4">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600" />
+          <p className="text-sm text-amber-800">
+            <span className="font-semibold text-amber-900">
+              Heads up, you are at your plan limit.
+            </span>{" "}
+            Your {limits.plan} plan includes {limits.event_limit} event
+            {limits.event_limit === 1 ? "" : "s"}. You can still build this
+            agenda and download it, but turning it into an event needs an
+            upgrade.{" "}
+            <Link to="/upgrade" className="font-semibold underline">
+              See plans
+            </Link>
+          </p>
+        </div>
+      )}
 
       <div className="mb-5 inline-flex rounded-card border border-border-default bg-white p-1">
         <button

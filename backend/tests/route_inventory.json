@@ -74,6 +74,7 @@
  "POST /api/admin/users/check-emails",
  "POST /api/agenda",
  "POST /api/agenda/export",
+ "POST /api/agenda/{agenda_id}/convert",
  "POST /api/auth/forgot-password",
  "POST /api/auth/login",
  "POST /api/auth/logout",

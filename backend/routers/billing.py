@@ -19,11 +19,18 @@ router = APIRouter()
 
 @router.get("/api/billing/status")
 async def billing_status(user: dict = Depends(get_current_user)):
+    from database import events
+
     limit = billing.event_limit_for(user)
     return {
         "plan": billing.plan_of(user),
         "configured": billing.is_configured(),
         "event_limit": limit,  # null = unlimited
+        # How many they already host, so a client can warn someone that they
+        # are at their limit BEFORE they invest effort, rather than letting
+        # them hit the 403 afterwards. Cheaper than fetching the whole event
+        # list just to count it.
+        "events_hosted": await events.count_documents({"created_by": user["_id"]}),
         "subscription_status": user.get("subscription_status"),
     }
 
