@@ -642,6 +642,49 @@ async def _users_connected(requester: dict, target_oid) -> bool:
 FREE_EVENT_LIMIT = 1
 
 
+async def attendee_room(event: dict):
+    """How much room is left on an event, as (limit, count).
+
+    `limit` is None when the host's plan is uncapped, when billing enforcement
+    is off, or when the host record is missing. The cap is keyed off the HOST,
+    not the person joining: it belongs to whoever is paying for the event.
+    """
+    import billing
+
+    created_by = event.get("created_by")
+    host = await users.find_one({"_id": created_by}) if created_by else None
+    if not host:
+        # An event with no resolvable host is a data problem, not the guest's.
+        # Do not turn it into a locked door.
+        return None, 0
+    limit = billing.attendee_limit_for(host)
+    if limit is None:
+        return None, 0
+    count = await event_attendees.count_documents({"event_id": event["_id"]})
+    return limit, count
+
+
+async def assert_event_has_room(event: dict, adding: int = 1, *, message: str = ""):
+    """Raise 403 when adding `adding` more attendees would pass the host's cap.
+
+    Called from every path that can add someone to an event. A cap enforced on
+    only some of those paths is not a cap.
+    """
+    from fastapi import HTTPException
+
+    limit, count = await attendee_room(event)
+    if limit is None or count + adding <= limit:
+        return
+    raise HTTPException(
+        status_code=403,
+        detail=message
+        or (
+            f"This event is at its limit of {limit} attendees. "
+            "Upgrade the plan to add more."
+        ),
+    )
+
+
 def _can_manage_event(user: dict, event: dict) -> bool:
     """An event is managed by a platform admin or by the host who created it.
     Compare as strings so an ObjectId-vs-string storage mismatch can't silently

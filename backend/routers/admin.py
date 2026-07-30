@@ -34,6 +34,7 @@ from models import (
 )
 from core import (
     APP_URL,
+    attendee_room,
     serialize_template,
     render_email_template,
     _hard_delete_user,
@@ -399,6 +400,14 @@ async def admin_bulk_import(
     accounts: list = []
     errors: list = []
 
+    # Attendee cap, read once and tracked locally rather than re-counted per
+    # row. An import that would overflow fills to the cap and reports the rest
+    # instead of failing outright: a 400 row spreadsheet against a 250 cap
+    # should still get 250 people in, not zero.
+    attendee_limit, attendee_count = (None, 0)
+    if event_oid and event_doc:
+        attendee_limit, attendee_count = await attendee_room(event_doc)
+
     for row in payload.rows:
         email = row.email.lower().strip()
         try:
@@ -478,14 +487,27 @@ async def admin_bulk_import(
                     {"event_id": event_oid, "user_id": user_id}
                 )
                 if not already:
-                    await event_attendees.insert_one(
-                        {
-                            "event_id": event_oid,
-                            "user_id": user_id,
-                            "joined_at": now,
-                        }
-                    )
-                    added_to_event += 1
+                    if attendee_limit is not None and attendee_count >= attendee_limit:
+                        # The account still exists, they are simply not on this
+                        # event. Reported per row so it is obvious who missed
+                        # out rather than the numbers quietly not adding up.
+                        errors.append({
+                            "email": email,
+                            "error": (
+                                f"Event is at its limit of {attendee_limit} "
+                                "attendees. Upgrade to add more."
+                            ),
+                        })
+                    else:
+                        await event_attendees.insert_one(
+                            {
+                                "event_id": event_oid,
+                                "user_id": user_id,
+                                "joined_at": now,
+                            }
+                        )
+                        added_to_event += 1
+                        attendee_count += 1
         except Exception as e:
             errors.append({"email": email, "error": str(e)})
 

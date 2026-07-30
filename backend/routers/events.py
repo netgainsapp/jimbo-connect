@@ -21,6 +21,7 @@ from models import (
 from core import (
     APP_URL,
     generate_join_code,
+    assert_event_has_room,
     serialize_event,
     serialize_attendee,
     FREE_EVENT_LIMIT,
@@ -216,6 +217,15 @@ async def join_event(code: str, user: dict = Depends(get_current_user)):
         {"event_id": e["_id"], "user_id": user["_id"]}
     )
     if not existing:
+        # Guest-facing wording on purpose: the person hitting this cannot
+        # upgrade anything, it is the host's plan. Telling a guest to upgrade
+        # would be confusing and slightly insulting.
+        await assert_event_has_room(
+            e,
+            message=(
+                "This event is full. Ask the host to make room for you."
+            ),
+        )
         await event_attendees.insert_one(
             {
                 "event_id": e["_id"],

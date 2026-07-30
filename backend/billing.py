@@ -23,6 +23,13 @@ FREE_EVENT_LIMIT = 1
 # customer loses anything. Doing this once real subscriptions exist would cut
 # events off people mid-plan, so it is not a change to repeat casually.
 STARTER_EVENT_LIMIT = 3
+
+# Attendees per event, matching what the pricing page advertises. Pro is a
+# high ceiling rather than unlimited, so unlike the event limit there is a
+# number for every paid plan.
+FREE_ATTENDEE_LIMIT = 50
+STARTER_ATTENDEE_LIMIT = 250
+PRO_ATTENDEE_LIMIT = 2000
 # pro / admin => unlimited (represented as None)
 
 PLANS = ("free", "starter", "pro")
@@ -55,6 +62,25 @@ def event_limit_for(user: dict):
     if plan == "starter":
         return STARTER_EVENT_LIMIT
     return FREE_EVENT_LIMIT
+
+
+def attendee_limit_for(user: dict):
+    """Max attendees on one of this host's events, or None for unlimited.
+
+    Keyed off the HOST, not the person joining: the cap belongs to whoever is
+    paying for the event. Admins are unlimited, and so is everyone when
+    BILLING_ENFORCED is off, matching event_limit_for.
+    """
+    if not _enforced():
+        return None
+    if user.get("is_admin"):
+        return None
+    plan = plan_of(user)
+    if plan == "pro":
+        return PRO_ATTENDEE_LIMIT
+    if plan == "starter":
+        return STARTER_ATTENDEE_LIMIT
+    return FREE_ATTENDEE_LIMIT
 
 
 def price_id_for(plan: str):
