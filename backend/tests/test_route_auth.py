@@ -51,6 +51,10 @@ PUBLIC = {
     # Public by design: guests and email clients load host logos anonymously.
     # Not called here (touches the DB); served only while branding is active.
     ("GET", "/api/branding/{user_id}/logo.png"),
+    # Public by design: the Agenda Builder is a free acquisition tool that has
+    # to produce a document before the visitor has an account. Stateless and
+    # rate limited per IP; see routers/agenda.py.
+    ("POST", "/api/agenda/export"),
 }
 
 # Shared-secret gated (cron ticks, webhook): callable without a session but

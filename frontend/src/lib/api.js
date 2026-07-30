@@ -234,3 +234,37 @@ export const newsApi = {
   publish: (id) => api.post(`/api/admin/news/${id}/publish`),
   unpublish: (id) => api.post(`/api/admin/news/${id}/unpublish`),
 };
+
+export const agendaApi = {
+  // Returns a .docx, so it bypasses the JSON request helper. Public: the
+  // Agenda Builder works before the visitor has an account, and the endpoint
+  // is stateless, so no session is required or sent.
+  exportDocx: async (agenda) => {
+    const res = await fetch(`${BACKEND_URL}/api/agenda/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(agenda),
+    });
+    if (!res.ok) {
+      let detail = "We could not build that document.";
+      try {
+        const data = await res.json();
+        // FastAPI validation errors arrive as a list of objects; flatten to
+        // the first readable message rather than rendering "[object Object]".
+        if (Array.isArray(data.detail)) {
+          detail = data.detail[0]?.msg || detail;
+        } else if (data.detail) {
+          detail = data.detail;
+        }
+      } catch {
+        detail = res.statusText || detail;
+      }
+      const err = new Error(detail);
+      err.status = res.status;
+      throw err;
+    }
+    const disposition = res.headers.get("content-disposition") || "";
+    const match = disposition.match(/filename="([^"]+)"/);
+    return { blob: await res.blob(), filename: match ? match[1] : "agenda.docx" };
+  },
+};

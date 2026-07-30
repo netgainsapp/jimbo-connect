@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
 import Footer from "./components/Footer.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
@@ -24,15 +24,32 @@ import AdminAnalytics from "./pages/AdminAnalytics.jsx";
 import AdminSuppressions from "./pages/AdminSuppressions.jsx";
 import AdminOutreach from "./pages/AdminOutreach.jsx";
 import JoinEvent from "./pages/JoinEvent.jsx";
+import AgendaLanding from "./pages/AgendaLanding.jsx";
+import AgendaBuilder from "./pages/AgendaBuilder.jsx";
+import MarketingNav from "./components/marketing/MarketingNav.jsx";
+import MarketingFooter from "./components/marketing/MarketingFooter.jsx";
 import Upgrade from "./pages/Upgrade.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 
 export default function App() {
   const { user, loading } = useAuth();
+  const { pathname } = useLocation();
+
+  // Public pages that belong to the marketing surface rather than the product.
+  // The Agenda Builder is a free tool linked from intro-connect.com, so it
+  // wears the marketing chrome and a visitor sees one continuous site. The
+  // app's own nav, and the Front Range Dev Co credit in its footer, stay on
+  // authenticated product surfaces.
+  const marketingSurface =
+    pathname === "/agenda" || pathname.startsWith("/agenda/");
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Nav />
-      <main className="pt-14 flex-1">
+      {marketingSurface ? <MarketingNav /> : <Nav />}
+      {/* The app nav is `fixed`, so content needs matching top padding. The
+          marketing nav is `sticky` and occupies its own space, so padding
+          there would leave a visible gap under the header. */}
+      <main className={`${marketingSurface ? "" : "pt-14"} flex-1`}>
         <Routes>
           <Route
             path="/"
@@ -58,6 +75,12 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/join/:code" element={<JoinEvent />} />
+
+          {/* Public by design: the Agenda Builder is a free acquisition tool,
+              so it must work before the visitor has an account. Deliberately
+              outside RequireAuth, alongside /join/:code. */}
+          <Route path="/agenda" element={<AgendaLanding />} />
+          <Route path="/agenda/new" element={<AgendaBuilder />} />
 
           <Route
             path="/profile/setup"
@@ -227,7 +250,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      <Footer />
+      {marketingSurface ? <MarketingFooter /> : <Footer />}
     </div>
   );
 }

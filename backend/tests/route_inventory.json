@@ -68,6 +68,7 @@
  "POST /api/admin/sales-templates/{tid}/duplicate",
  "POST /api/admin/users/bulk-import",
  "POST /api/admin/users/check-emails",
+ "POST /api/agenda/export",
  "POST /api/auth/forgot-password",
  "POST /api/auth/login",
  "POST /api/auth/logout",

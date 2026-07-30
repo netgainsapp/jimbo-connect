@@ -10,6 +10,13 @@ export default defineConfig(({ mode }) => {
       "process.env.REACT_APP_BACKEND_URL": JSON.stringify(
         env.REACT_APP_BACKEND_URL || env.VITE_BACKEND_URL || "http://localhost:8001"
       ),
+      // The marketing site lives on a different origin to this app, so public
+      // pages served here (the Agenda Builder) must link to it absolutely.
+      // Defaulted rather than required: the value is stable, so no Render env
+      // change is needed, but it stays overridable for preview environments.
+      "process.env.REACT_APP_MARKETING_URL": JSON.stringify(
+        env.REACT_APP_MARKETING_URL || "https://intro-connect.com"
+      ),
     },
   };
 });
