@@ -21,10 +21,8 @@ const REGISTER = "https://app.intro-connect.com/register";
 //   Ent       "SSO via Google or Microsoft"  not implemented
 //   Ent       "White-label"                  contradicts the branding spec
 //
-// Attendee counts are stated ceilings that no code enforces yet. They are left
-// in because they under-promise: a customer gets more than the page says, not
-// less. The same is true of Starter's event count, which reads 3 while
-// billing.STARTER_EVENT_LIMIT is 10.
+// Starter's event count now matches billing.STARTER_EVENT_LIMIT, which was
+// lowered from 10 to 3 to agree with this page.
 //
 // Worth knowing when editing this file: in the whole codebase exactly TWO
 // things are gated by plan. Event count (billing.event_limit_for) and host

@@ -18,7 +18,11 @@ import os
 import sys
 
 FREE_EVENT_LIMIT = 1
-STARTER_EVENT_LIMIT = 10
+# Lowered from 10 to 3 on 2026-07-30 to match what the pricing page has always
+# advertised, and done now because Stripe is still in test mode so no paying
+# customer loses anything. Doing this once real subscriptions exist would cut
+# events off people mid-plan, so it is not a change to repeat casually.
+STARTER_EVENT_LIMIT = 3
 # pro / admin => unlimited (represented as None)
 
 PLANS = ("free", "starter", "pro")
