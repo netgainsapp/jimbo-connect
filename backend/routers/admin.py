@@ -614,6 +614,24 @@ def _serialize_blog_post(doc: dict) -> dict:
     }
 
 
+@router.get("/api/admin/blog/posts/{post_id}")
+async def admin_blog_post_detail(post_id: str, _: dict = Depends(get_current_admin)):
+    """Full content (including sections), any status. The list endpoint omits
+    sections by design; a generated draft has to be actually readable before
+    an admin decides whether to publish it."""
+    from blog.store import get_by_id
+
+    doc = await get_by_id(post_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    out = _serialize_blog_post(doc)
+    out["sections"] = [
+        {"heading": s.get("heading", ""), "body": s.get("body", "")}
+        for s in (doc.get("sections") or [])
+    ]
+    return out
+
+
 @router.post("/api/admin/blog/run")
 async def admin_blog_run(_: dict = Depends(get_current_admin)):
     from blog.generate import run_once

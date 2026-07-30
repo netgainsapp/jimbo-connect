@@ -91,6 +91,16 @@ def _oid(post_id: str):
         return None
 
 
+async def get_by_id(post_id: str) -> dict:
+    """Any status, for the admin review view before publish/reject. Unlike
+    get_by_slug (public, published-only), an admin must be able to read a
+    draft's actual generated content to review it before it ever goes live."""
+    oid = _oid(post_id)
+    if oid is None:
+        return None
+    return await blog_post.find_one({"_id": oid})
+
+
 async def publish_post(post_id: str):
     """Publish a draft. Returns the doc, or {"error": "guardrails_failed",
     "reasons": [...]} if it has unresolved guardrail failures, or None if not

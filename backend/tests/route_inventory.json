@@ -14,6 +14,7 @@
  "GET /api/admin/analytics",
  "GET /api/admin/blog/flags",
  "GET /api/admin/blog/posts",
+ "GET /api/admin/blog/posts/{post_id}",
  "GET /api/admin/events/{event_id}/insights",
  "GET /api/admin/news",
  "GET /api/admin/outreach/leads",
