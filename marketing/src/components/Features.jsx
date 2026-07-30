@@ -28,7 +28,11 @@ const MARQUEE = [
   {
     eyebrow: "04 · Sponsors",
     title: "Drop a URL. Get a sponsor tile.",
-    body: "Paste a sponsor's website and we pull their headline, image, and description automatically. No uploading logos, no copy-writing. Click-through analytics included.",
+    // "Click-through analytics included" was removed: no click tracking exists.
+    // Sponsor tiles are plain outbound links with no redirect endpoint and no
+    // counter, so there is nothing to report to a sponsor who asks. Put the
+    // sentence back once tracking is actually built.
+    body: "Paste a sponsor's website and we pull their headline, image, and description automatically. No uploading logos, no copy-writing.",
     preview: <SponsorPreview />,
   },
 ];
