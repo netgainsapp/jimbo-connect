@@ -28,6 +28,10 @@ news_article = db["news_article"]
 # they live in the visitor's own browser, so there is nothing to orphan. A row
 # appears only once someone signs in and claims their draft.
 agendas = db["agendas"]
+# Host announcements shown on the event page, plus one read marker per user per
+# event (not per announcement: see announcements.py).
+event_announcements = db["event_announcements"]
+announcement_reads = db["announcement_reads"]
 
 
 async def ensure_indexes():
@@ -44,6 +48,10 @@ async def ensure_indexes():
     await blog_post.create_index("slug")
     # Every agenda read is "mine", newest first.
     await agendas.create_index([("user_id", 1), ("updated_at", -1)])
+    await event_announcements.create_index([("event_id", 1), ("created_at", -1)])
+    await announcement_reads.create_index(
+        [("event_id", 1), ("user_id", 1)], unique=True
+    )
     await blog_post.create_index([("status", 1), ("published_at", -1)])
     await event_invites.create_index([("event_id", 1), ("email", 1)], unique=True)
     await event_invites.create_index([("joined_at", 1), ("reminder_step", 1)])

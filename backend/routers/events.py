@@ -7,12 +7,14 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from bson import ObjectId
 
 from database import users, events, event_attendees, event_sponsors, messages
+import announcements
 import branding
 import email_send
 import invites
 import rate_limit
 from auth import get_current_user, get_current_admin
 from models import (
+    AnnouncementCreateRequest,
     EventCreateRequest,
     EventUpdateRequest,
     RequestInviteRequest,
@@ -165,6 +167,83 @@ async def update_event(
         e = await events.find_one({"_id": oid})
     count = await event_attendees.count_documents({"event_id": oid})
     return serialize_event(e, count)
+
+
+async def _require_event_view(event_id: str, user: dict):
+    """Event access for reading: the host, an admin, or someone who joined.
+
+    Extracted after the same block appeared in a third route. A view check
+    copied by hand is a view check that eventually differs by hand.
+    """
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not _can_manage_event(user, e):
+        joined = await event_attendees.find_one(
+            {"event_id": oid, "user_id": user["_id"]}
+        )
+        if not joined:
+            raise HTTPException(status_code=403, detail="Not joined to this event")
+    return oid, e
+
+
+async def _require_event_host(event_id: str, user: dict):
+    """Stricter: only the host or an admin. Posting to everyone's event page is
+    not something a fellow attendee gets to do."""
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event id")
+    e = await events.find_one({"_id": oid})
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not _can_manage_event(user, e):
+        raise HTTPException(status_code=403, detail="Not your event")
+    return oid, e
+
+
+@router.get("/api/events/{event_id}/announcements")
+async def list_announcements(event_id: str, user: dict = Depends(get_current_user)):
+    oid, _ = await _require_event_view(event_id, user)
+    return await announcements.list_for_event(oid, user["_id"])
+
+
+@router.post("/api/events/{event_id}/announcements")
+async def create_announcement(
+    event_id: str,
+    payload: AnnouncementCreateRequest,
+    user: dict = Depends(get_current_user),
+):
+    oid, _ = await _require_event_host(event_id, user)
+    try:
+        return await announcements.create(oid, user, payload.title, payload.body)
+    except announcements.AnnouncementError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/api/events/{event_id}/announcements/read")
+async def mark_announcements_read(
+    event_id: str, user: dict = Depends(get_current_user)
+):
+    """Called when the attendee has actually seen the list, so 'new' means new
+    to this reader rather than new to the world."""
+    oid, _ = await _require_event_view(event_id, user)
+    await announcements.mark_read(oid, user["_id"])
+    return {"ok": True}
+
+
+@router.delete("/api/events/{event_id}/announcements/{announcement_id}")
+async def delete_announcement(
+    event_id: str, announcement_id: str, user: dict = Depends(get_current_user)
+):
+    oid, _ = await _require_event_host(event_id, user)
+    if not await announcements.delete(oid, announcement_id):
+        raise HTTPException(status_code=404, detail="Announcement not found")
+    return {"ok": True}
 
 
 @router.get("/api/events/{event_id}/calendar.ics")

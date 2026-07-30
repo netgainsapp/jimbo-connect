@@ -196,6 +196,11 @@ class BulkImportRow(_EmailNormalized):
         return normalize_phone(v)
 
 
+class AnnouncementCreateRequest(BaseModel):
+    title: Optional[str] = Field(default="", max_length=200)
+    body: str = Field(max_length=5000)
+
+
 class BulkImportRequest(BaseModel):
     rows: List[BulkImportRow] = Field(max_length=500)
     event_id: Optional[str] = None
