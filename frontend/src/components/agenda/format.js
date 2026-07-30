@@ -39,9 +39,15 @@ export function formatAgendaTimeRange(start, end) {
   return formatAgendaTime(start) || formatAgendaTime(end);
 }
 
-/** Items grouped into [date, items] pairs, days chronological and sessions
- *  ordered by start time. Untimed sessions sort last so a placeholder never
- *  displaces a real one. Mirrors schema.group_by_day. */
+/** Items grouped into [date, items] pairs, days chronological. Undated
+ *  sessions group last so a half filled row stays visible rather than
+ *  jumping to the top.
+ *
+ *  Order WITHIN a day is the organizer's arrangement, preserved exactly.
+ *  Mirrors schema.group_by_day, which had to stop time sorting for the same
+ *  reason: a silent re-sort makes the reorder controls a no-op and lets the
+ *  exported document disagree with this preview. "Sort by time" is an
+ *  explicit action in the builder instead. */
 export function groupByDay(items) {
   const days = new Map();
   for (const item of items) {
@@ -49,17 +55,18 @@ export function groupByDay(items) {
     if (!days.has(key)) days.set(key, []);
     days.get(key).push(item);
   }
-  return [...days.entries()]
-    .sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : a < b ? -1 : 1))
-    .map(([day, list]) => [
-      day,
-      [...list].sort((x, y) => {
-        if (!x.start_time && !y.start_time) return 0;
-        if (!x.start_time) return 1;
-        if (!y.start_time) return -1;
-        return x.start_time < y.start_time ? -1 : x.start_time > y.start_time ? 1 : 0;
-      }),
-    ]);
+  return [...days.entries()].sort(([a], [b]) =>
+    a === "" ? 1 : b === "" ? -1 : a < b ? -1 : 1
+  );
+}
+
+/** Comparator for the explicit "Sort by time" action. Untimed sessions fall to
+ *  the end so an unscheduled placeholder never displaces a real session. */
+export function byStartTime(x, y) {
+  if (!x.start_time && !y.start_time) return 0;
+  if (!x.start_time) return 1;
+  if (!y.start_time) return -1;
+  return x.start_time < y.start_time ? -1 : x.start_time > y.start_time ? 1 : 0;
 }
 
 export function dateRangeLine(agenda) {

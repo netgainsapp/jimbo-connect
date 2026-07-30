@@ -205,14 +205,16 @@ def slugify_filename(name: str) -> str:
 
 
 def group_by_day(items: List[AgendaItem]) -> List[tuple]:
-    """Items grouped into (date, [items]) pairs, days in chronological order
-    and sessions ordered by start time within a day. Items without a start
-    time sort last so an unscheduled placeholder never displaces real ones."""
+    """Items grouped into (date, [items]) pairs, days in chronological order.
+
+    Order WITHIN a day is the order the organizer arranged, preserved exactly.
+    An earlier version sorted each day by start time, which silently discarded
+    manual ordering: the builder lets sessions be dragged into place, so a
+    re-sort here made the reorder controls a no-op whenever times differed and
+    made the exported document disagree with the on screen preview. Sorting by
+    time is offered in the builder as an explicit action instead.
+    """
     days: dict = {}
     for item in items:
         days.setdefault(item.date, []).append(item)
-    out = []
-    for day in sorted(days):
-        ordered = sorted(days[day], key=lambda i: (i.start_time == "", i.start_time))
-        out.append((day, ordered))
-    return out
+    return [(day, days[day]) for day in sorted(days)]

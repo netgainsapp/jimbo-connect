@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { byStartTime } from "../components/agenda/format.js";
+
 // Phase 1 keeps the whole draft on the device. An anonymous visitor never
 // creates a database row, so there is nothing to orphan and nothing to clean
 // up, and the draft survives a refresh (and later, a signup) for free.
@@ -162,6 +164,52 @@ export function useAgendaDraft() {
     });
   }, []);
 
+  /** Helper: rewrite one day's items in place, leaving every other day's
+   *  positions in the flat array untouched. Both drag reordering and the sort
+   *  action need exactly this. */
+  const rewriteDay = (items, day, transform) => {
+    const slots = items.reduce((acc, item, index) => {
+      if (item.date === day) acc.push(index);
+      return acc;
+    }, []);
+    const next = transform(slots.map((index) => items[index]));
+    slots.forEach((index, k) => {
+      items[index] = next[k];
+    });
+    return items;
+  };
+
+  /** Drop `activeId` onto `overId`'s position. Reordering is scoped to a
+   *  single day: dragging across day boundaries would silently change a
+   *  session's date, which is a bigger edit than a drag should imply. */
+  const reorderItem = useCallback((activeId, overId) => {
+    setAgenda((prev) => {
+      if (activeId === overId) return prev;
+      const active = prev.items.find((i) => i.id === activeId);
+      const over = prev.items.find((i) => i.id === overId);
+      if (!active || !over || active.date !== over.date) return prev;
+      const items = rewriteDay([...prev.items], active.date, (day) => {
+        const from = day.findIndex((i) => i.id === activeId);
+        const to = day.findIndex((i) => i.id === overId);
+        const next = [...day];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved);
+        return next;
+      });
+      return { ...prev, items };
+    });
+  }, []);
+
+  /** Explicit "Sort by time" for one day. Deliberately an action the organizer
+   *  takes rather than something that happens automatically, so a manual
+   *  arrangement is never overwritten behind their back. */
+  const sortDayByTime = useCallback((day) => {
+    setAgenda((prev) => ({
+      ...prev,
+      items: rewriteDay([...prev.items], day, (list) => [...list].sort(byStartTime)),
+    }));
+  }, []);
+
   const reset = useCallback(() => {
     setAgenda({ ...EMPTY_AGENDA });
     try {
@@ -187,6 +235,8 @@ export function useAgendaDraft() {
     removeItem,
     duplicateItem,
     moveItem,
+    reorderItem,
+    sortDayByTime,
     reset,
     savedAt,
     warnings,

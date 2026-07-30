@@ -1,6 +1,27 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarPlus, Download, Eye, Loader2, Pencil, Plus } from "lucide-react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  ArrowDownWideNarrow,
+  CalendarPlus,
+  Download,
+  Eye,
+  Loader2,
+  Pencil,
+  Plus,
+} from "lucide-react";
 
 import AgendaDetailsForm from "../components/agenda/AgendaDetailsForm.jsx";
 import AgendaItemRow from "../components/agenda/AgendaItemRow.jsx";
@@ -36,7 +57,7 @@ function firstBlockingProblem(agenda) {
 export default function AgendaBuilder() {
   const {
     agenda, setField, addItem, updateItem, removeItem,
-    duplicateItem, moveItem, savedAt, warnings,
+    duplicateItem, moveItem, reorderItem, sortDayByTime, savedAt, warnings,
   } = useAgendaDraft();
   const [tab, setTab] = useState("edit");
   const [exporting, setExporting] = useState(false);
@@ -46,6 +67,17 @@ export default function AgendaBuilder() {
   const { user } = useAuth();
 
   const groups = useMemo(() => groupByDay(agenda.items), [agenda.items]);
+
+  // A small activation distance so a click on the grip still reads as a click,
+  // and the keyboard sensor so reordering works without a pointer at all.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = ({ active, over }) => {
+    if (over && active.id !== over.id) reorderItem(active.id, over.id);
+  };
 
   const handleExport = async () => {
     const problem = firstBlockingProblem(agenda);
@@ -161,31 +193,59 @@ export default function AgendaBuilder() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-6">
-                {groups.map(([day, items]) => (
-                  <div key={day || "undated"}>
-                    <h3 className="mb-2 text-sm font-semibold text-text-secondary">
-                      {day ? formatAgendaDate(day) : "Date not set"}
-                    </h3>
-                    <ul className="space-y-3">
-                      {items.map((item, index) => (
-                        <AgendaItemRow
-                          key={item.id}
-                          item={item}
-                          index={index}
-                          count={items.length}
-                          overlapping={warnings.overlapping.has(item.id)}
-                          invalidTime={warnings.invalidTimes.has(item.id)}
-                          onChange={updateItem}
-                          onDuplicate={duplicateItem}
-                          onRemove={removeItem}
-                          onMove={moveItem}
-                        />
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="space-y-6">
+                  {groups.map(([day, items]) => (
+                    <div key={day || "undated"}>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-semibold text-text-secondary">
+                          {day ? formatAgendaDate(day) : "Date not set"}
+                        </h3>
+                        {items.length > 1 && (
+                          // Time sorting is an explicit choice, never automatic:
+                          // sorting behind the organizer's back would throw away
+                          // an order they dragged into place.
+                          <button
+                            type="button"
+                            onClick={() => sortDayByTime(day)}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-text-muted hover:text-primary"
+                          >
+                            <ArrowDownWideNarrow size={13} /> Sort by time
+                          </button>
+                        )}
+                      </div>
+                      {/* One SortableContext per day: reordering is scoped to a
+                          day, since dragging across a boundary would silently
+                          change a session's date. */}
+                      <SortableContext
+                        items={items.map((i) => i.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <ul className="space-y-3">
+                          {items.map((item, index) => (
+                            <AgendaItemRow
+                              key={item.id}
+                              item={item}
+                              index={index}
+                              count={items.length}
+                              overlapping={warnings.overlapping.has(item.id)}
+                              invalidTime={warnings.invalidTimes.has(item.id)}
+                              onChange={updateItem}
+                              onDuplicate={duplicateItem}
+                              onRemove={removeItem}
+                              onMove={moveItem}
+                            />
+                          ))}
+                        </ul>
+                      </SortableContext>
+                    </div>
+                  ))}
+                </div>
+              </DndContext>
             )}
           </section>
         </div>

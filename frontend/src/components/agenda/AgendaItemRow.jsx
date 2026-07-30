@@ -1,4 +1,13 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Copy, Trash2 } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  GripVertical,
+  Trash2,
+} from "lucide-react";
 
 const inputClass =
   "w-full rounded-card border border-border-default px-3 py-2 text-sm text-text-primary " +
@@ -21,9 +30,33 @@ export default function AgendaItemRow({
 }) {
   const set = (name) => (e) => onChange(item.id, { [name]: e.target.value });
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item.id });
+
   return (
-    <li className="rounded-card border border-border-default bg-white p-4 shadow-card">
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`rounded-card border bg-white p-4 shadow-card ${
+        isDragging
+          ? "z-10 border-primary opacity-90 shadow-lg"
+          : "border-border-default"
+      }`}
+    >
       <div className="mb-3 flex items-start justify-between gap-2">
+        {/* Drag is handle-only and never the whole card: this row is mostly
+            text inputs, and making the card draggable would break selecting
+            and editing text inside it. */}
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="mt-1.5 shrink-0 cursor-grab touch-none rounded-card p-1 text-text-muted hover:bg-bg-secondary hover:text-text-primary active:cursor-grabbing"
+          aria-label={`Reorder ${item.title || "session"}`}
+          title="Drag to reorder"
+        >
+          <GripVertical size={16} />
+        </button>
         <input
           className={`${inputClass} font-medium`}
           value={item.title}
@@ -32,8 +65,9 @@ export default function AgendaItemRow({
           maxLength={300}
         />
         <div className="flex shrink-0 items-center gap-0.5">
-          {/* Explicit reorder controls. These are the accessible, touch safe
-              path and remain the primary mechanism; drag and drop is additive. */}
+          {/* Explicit reorder controls, kept alongside drag and drop. They are
+              the accessible path and work everywhere drag is awkward: touch,
+              keyboard only, and assistive tech. */}
           <button
             type="button"
             className={iconButton}

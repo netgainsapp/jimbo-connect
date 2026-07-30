@@ -144,24 +144,48 @@ def test_rejects_more_items_than_the_cap():
 # Grouping and ordering
 # --------------------------------------------------------------------------
 
-def test_groups_days_chronologically_and_sessions_by_start_time():
+def test_groups_days_chronologically():
     items = [
-        _item(date=date(2026, 8, 2), start_time="09:00", end_time="", title="Day2 first"),
-        _item(date=date(2026, 8, 1), start_time="14:00", end_time="", title="Day1 second"),
-        _item(date=date(2026, 8, 1), start_time="08:00", end_time="", title="Day1 first"),
+        _item(date=date(2026, 8, 2), start_time="09:00", end_time="", title="Day two"),
+        _item(date=date(2026, 8, 1), start_time="14:00", end_time="", title="Day one"),
     ]
     groups = group_by_day(items)
     assert [d for d, _ in groups] == [date(2026, 8, 1), date(2026, 8, 2)]
-    assert [i.title for i in groups[0][1]] == ["Day1 first", "Day1 second"]
 
 
-def test_untimed_sessions_sort_after_timed_ones():
+def test_preserves_manual_order_within_a_day_even_when_times_disagree():
+    """Regression: an earlier version sorted each day by start time, which made
+    the builder's reorder controls a no-op and let the document disagree with
+    the preview. The organizer's arrangement wins."""
+    items = [
+        _item(date=date(2026, 8, 1), start_time="17:00", end_time="", title="Closing"),
+        _item(date=date(2026, 8, 1), start_time="09:00", end_time="", title="Opening"),
+    ]
+    _, ordered = group_by_day(items)[0]
+    assert [i.title for i in ordered] == ["Closing", "Opening"]
+
+
+def test_preserves_position_of_untimed_sessions():
     items = [
         _item(start_time="", end_time="", title="Unscheduled"),
         _item(start_time="09:00", end_time="", title="Scheduled"),
     ]
     _, ordered = group_by_day(items)[0]
-    assert [i.title for i in ordered] == ["Scheduled", "Unscheduled"]
+    assert [i.title for i in ordered] == ["Unscheduled", "Scheduled"]
+
+
+def test_exported_document_follows_manual_order():
+    """End to end guard: the docx must render the arranged order, not a
+    time sort."""
+    agenda = AgendaExportRequest(
+        event_name="Summit",
+        items=[
+            _item(date=date(2026, 8, 1), start_time="17:00", end_time="", title="Closing keynote"),
+            _item(date=date(2026, 8, 1), start_time="09:00", end_time="", title="Opening keynote"),
+        ],
+    )
+    text = _docx_text(build_docx(agenda))
+    assert text.index("Closing keynote") < text.index("Opening keynote")
 
 
 # --------------------------------------------------------------------------
