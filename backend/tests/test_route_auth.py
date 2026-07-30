@@ -40,6 +40,7 @@ PUBLIC = {
     ("POST", "/api/auth/reset-password"),
     ("GET", "/api/auth/magic/{token}"),
     ("GET", "/api/auth/verify-email"),
+    ("GET", "/agenda"),
     ("GET", "/blog"),
     ("GET", "/blog/{slug}"),
     ("GET", "/news"),

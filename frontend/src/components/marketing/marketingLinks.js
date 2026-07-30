@@ -16,6 +16,7 @@ export const NAV_LINKS = [
   { href: at("/#features"), label: "Features" },
   { href: at("/#pricing"), label: "Pricing" },
   { href: at("/#faq"), label: "FAQ" },
+  { href: at("/agenda"), label: "Agenda Builder" },
   { href: at("/blog"), label: "Blog" },
   { href: at("/news"), label: "News" },
 ];
@@ -24,6 +25,7 @@ export const FOOTER_LINKS = [
   { href: at("/#features"), label: "Features" },
   { href: at("/#pricing"), label: "Pricing" },
   { href: at("/#faq"), label: "FAQ" },
+  { href: at("/agenda"), label: "Agenda Builder" },
   { href: at("/blog"), label: "Blog" },
   { href: at("/news"), label: "News" },
   { href: at("/privacy.html"), label: "Privacy" },

@@ -165,6 +165,20 @@ def test_export_keeps_a_safe_link_in_the_document():
     assert "https://example.com/talk" in text
 
 
+def test_landing_page_is_public_and_serves_html():
+    res = client.get("/agenda")
+    assert res.status_code == 200
+    assert "text/html" in res.headers["content-type"]
+    assert "Free event agenda builder" in res.text
+
+
+def test_landing_page_is_cacheable():
+    """It is static content behind a proxy; without this every hit pays the
+    Render cold start."""
+    res = client.get("/agenda")
+    assert "s-maxage" in res.headers.get("cache-control", "")
+
+
 def test_export_is_rate_limited_per_ip():
     payload = _agenda()
     for _ in range(EXPORT_LIMIT):

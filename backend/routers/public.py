@@ -12,6 +12,7 @@ import nurture
 import rate_limit
 import seo
 import suppression
+from agenda import landing as agenda_landing_render
 from blog import render as blog_render
 from blog.store import list_published, get_by_slug
 from news import render as news_render
@@ -48,6 +49,9 @@ async def sitemap_xml():
     # Stable marketing surfaces first, then every published blog + news URL.
     entries = [
         {"path": "/", "changefreq": "weekly", "priority": "1.0"},
+        # The free Agenda Builder landing page: a linkable tool page is the
+        # strongest organic surface the site has, so it ranks just under home.
+        {"path": "/agenda", "changefreq": "monthly", "priority": "0.9"},
         {"path": "/blog", "changefreq": "weekly", "priority": "0.7"},
         {"path": "/news", "changefreq": "daily", "priority": "0.7"},
     ]
@@ -83,6 +87,20 @@ async def sitemap_xml():
 # Render on every hit (avoids cold-start latency on the public blog).
 _BLOG_INDEX_CACHE = "public, s-maxage=300, stale-while-revalidate=600"
 _BLOG_POST_CACHE = "public, s-maxage=3600, stale-while-revalidate=86400"
+
+
+@router.get("/agenda", response_class=HTMLResponse)
+async def agenda_landing():
+    """Marketing landing page for the free Agenda Builder.
+
+    Static content, so it caches hard. Served on the marketing domain through
+    the same rewrite as /blog and /news; the interactive builder lives in the
+    app at APP_URL/agenda/new.
+    """
+    return HTMLResponse(
+        agenda_landing_render.render_landing(),
+        headers={"Cache-Control": _BLOG_POST_CACHE},
+    )
 
 
 @router.get("/blog", response_class=HTMLResponse)

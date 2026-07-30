@@ -293,6 +293,61 @@ def test_empty_agenda_still_exports():
     assert "No sessions have been added yet." in text
 
 
+# --------------------------------------------------------------------------
+# Landing page (the SEO surface)
+# --------------------------------------------------------------------------
+
+def test_landing_renders_real_content_without_javascript():
+    """The whole point of server rendering this page: a crawler that runs no JS
+    must still see the copy."""
+    from agenda import landing
+
+    out = landing.render_landing()
+    assert "<h1" in out
+    assert "Free event agenda builder" in out
+    assert "How it works" in out
+    assert "Common questions" in out
+    assert len(out) > 4000
+
+
+def test_landing_points_at_the_builder():
+    from agenda import landing
+
+    out = landing.render_landing()
+    assert landing.BUILDER_URL in out
+    assert out.count(landing.BUILDER_URL) >= 2, "expected a CTA near the top and the bottom"
+
+
+def test_landing_declares_a_free_web_application():
+    from agenda import landing
+
+    out = landing.render_landing()
+    # seo.json_ld serialises compactly (separators=(",", ":")), so there is no
+    # space after the colon.
+    assert '"@type":"WebApplication"' in out
+    assert '"price":"0"' in out
+
+
+def test_landing_faq_markup_matches_the_visible_copy():
+    """Search engines only honour FAQPage markup when the same text is on the
+    page, so assert both rather than just the JSON-LD."""
+    from agenda import landing
+
+    out = landing.render_landing()
+    assert '"@type":"FAQPage"' in out
+    for question, answer in landing.FAQS:
+        assert question in out
+        assert answer[:40] in out
+
+
+def test_landing_sets_its_own_canonical():
+    from agenda import landing
+
+    out = landing.render_landing()
+    assert 'rel="canonical"' in out
+    assert "/agenda" in out
+
+
 def test_multi_day_agenda_renders_a_heading_per_day():
     agenda = AgendaExportRequest(
         event_name="Two Day Summit",

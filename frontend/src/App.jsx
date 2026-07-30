@@ -24,7 +24,7 @@ import AdminAnalytics from "./pages/AdminAnalytics.jsx";
 import AdminSuppressions from "./pages/AdminSuppressions.jsx";
 import AdminOutreach from "./pages/AdminOutreach.jsx";
 import JoinEvent from "./pages/JoinEvent.jsx";
-import AgendaLanding from "./pages/AgendaLanding.jsx";
+import AgendaLandingRedirect from "./pages/AgendaLandingRedirect.jsx";
 import AgendaBuilder from "./pages/AgendaBuilder.jsx";
 import MarketingNav from "./components/marketing/MarketingNav.jsx";
 import MarketingFooter from "./components/marketing/MarketingFooter.jsx";
@@ -79,7 +79,7 @@ export default function App() {
           {/* Public by design: the Agenda Builder is a free acquisition tool,
               so it must work before the visitor has an account. Deliberately
               outside RequireAuth, alongside /join/:code. */}
-          <Route path="/agenda" element={<AgendaLanding />} />
+          <Route path="/agenda" element={<AgendaLandingRedirect />} />
           <Route path="/agenda/new" element={<AgendaBuilder />} />
 
           <Route
