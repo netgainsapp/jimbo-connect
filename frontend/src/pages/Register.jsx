@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { safeNext } from "../lib/nextPath.js";
+
 import { Mark } from "../components/Logo.jsx";
 
 export default function Register() {
@@ -94,7 +95,18 @@ export default function Register() {
         </form>
         <div className="mt-5 text-sm text-text-secondary text-center">
           Already have an account?{" "}
-          <Link to="/login" className="text-primary font-semibold">
+          {/* Carry ?next across. This is the common path for a returning
+              organizer: they build an agenda logged out, get sent here, and
+              click through to sign in instead. Losing it here would drop them
+              on a dashboard with no idea where their agenda went. */}
+          <Link
+            to={`/login${
+              searchParams.get("next")
+                ? `?next=${encodeURIComponent(safeNext(searchParams.get("next")))}`
+                : ""
+            }`}
+            className="text-primary font-semibold"
+          >
             Log in
           </Link>
         </div>

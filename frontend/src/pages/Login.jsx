@@ -1,17 +1,22 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { eventsApi } from "../lib/api.js";
+import { safeNext } from "../lib/nextPath.js";
 import { Mark } from "../components/Logo.jsx";
 
 export default function Login() {
   const { login } = useAuth();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const nextSuffix = searchParams.get("next")
+    ? `?next=${encodeURIComponent(safeNext(searchParams.get("next")))}`
+    : "";
 
   const submit = async (e) => {
     e.preventDefault();
@@ -19,6 +24,17 @@ export default function Login() {
     setLoading(true);
     try {
       const loggedIn = await login(email, password);
+
+      // ?next wins over everything. A returning organizer who built an agenda
+      // while logged out and clicked through to sign in must land back on
+      // their agenda, not on a generic dashboard, and not on whichever event
+      // happens to be first in their list.
+      const explicit = searchParams.get("next");
+      if (explicit) {
+        navigate(safeNext(explicit), { replace: true });
+        return;
+      }
+
       let fallback = "/events";
       if (loggedIn?.is_admin) {
         fallback = "/admin";
@@ -90,7 +106,9 @@ export default function Login() {
         </div>
         <div className="mt-2 text-sm text-text-secondary text-center">
           New to Intro Connect?{" "}
-          <Link to="/register" className="text-primary font-semibold">
+          {/* Carry ?next across, or someone who bounces between these two
+              pages silently loses the destination they were headed for. */}
+          <Link to={`/register${nextSuffix}`} className="text-primary font-semibold">
             Create an account
           </Link>
         </div>
