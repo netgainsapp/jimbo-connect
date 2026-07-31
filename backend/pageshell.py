@@ -29,14 +29,24 @@ a{color:var(--primary);text-decoration:none}
 .brand{font-weight:800;letter-spacing:-0.01em;color:var(--ink)}
 .brand span{font-weight:500}
 .nav .links{display:none;align-items:center;gap:2px}
-.nav .links a{padding:7px 12px;border-radius:999px;font-size:14px;font-weight:600;color:var(--stone)}
+.nav .links a{padding:7px 12px;border-radius:999px;font-size:14px;font-weight:600;color:var(--stone);white-space:nowrap}
 .nav .links a:hover{color:var(--ink);background:var(--cream)}
 .nav .navcta{display:none;align-items:center;gap:8px}
-.btn-ghost{padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;color:var(--stone)}
+.btn-ghost{padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;color:var(--stone);white-space:nowrap}
 .btn-ghost:hover{background:var(--cream)}
-.btn-primary{background:var(--primary);color:#fff!important;padding:9px 18px;border-radius:999px;font-size:14px;font-weight:700}
+/* Nav CTA is plain blue text, matching Nav.jsx. A fixed-padding pill cannot
+   shrink, so the label wrapped inside it at in-between widths and the button
+   rendered as a tall blob. */
+.nav-cta{padding:9px 12px;font-size:14px;font-weight:700;color:var(--primary);white-space:nowrap}
+/* No !important on the colour. A class already beats the bare `a` rule above on
+   specificity, so it was never needed, and it silently defeated `.cta a` (which
+   wins the background) leaving white text on a white pill. */
+.btn-primary{background:var(--primary);color:#fff;padding:9px 18px;border-radius:999px;font-size:14px;font-weight:700}
 .btn-primary:hover{opacity:.92}
-@media(min-width:768px){.nav .links{display:flex}.nav .navcta{display:flex}}
+/* 1024, not 768: seven links plus two CTAs do not fit at 768 and the row
+   overflowed, pushing "Start for free" off the edge. Matches Nav.jsx, which
+   uses the lg breakpoint for the same reason. */
+@media(min-width:1024px){.nav .links{display:flex}.nav .navcta{display:flex}}
 .wrap{max-width:760px;margin:0 auto;padding:48px 24px 96px}
 .crumbs{font-size:13px;color:var(--stone);margin-bottom:8px}
 .crumbs a{color:var(--stone)}
@@ -57,6 +67,10 @@ p,li{font-size:17px;color:#26323f}
 .sources ul{margin:0;padding-left:18px}
 .sources li{font-size:15px;word-break:break-word}
 .cta{margin-top:44px;background:var(--ink);color:#fff;border-radius:14px;padding:28px}
+/* `p,li` sets a colour directly, and a direct rule always beats the colour a
+   parent passes down by inheritance, so `.cta`'s white never reached the body
+   text and it rendered near-black on the dark panel. Restate it for the panel. */
+.cta p,.cta li{color:#d7dee7}
 .cta a{display:inline-block;margin-top:14px;background:#fff;color:var(--ink);font-weight:700;padding:11px 20px;border-radius:999px}
 .foot{border-top:1px solid var(--line);margin-top:64px}
 .foot .in{max-width:1120px;margin:0 auto;padding:48px 24px}
@@ -135,7 +149,7 @@ def page(
         "</div>"
         '<div class="navcta">'
         f'<a class="btn-ghost" href="{seo.app_url()}">Log in</a>'
-        '<a class="btn-primary" href="/#pricing">Start for free</a>'
+        '<a class="nav-cta" href="/#pricing">Start for free</a>'
         "</div></div></nav>"
         f"{body}"
         '<footer class="foot"><div class="in"><div class="row">'
