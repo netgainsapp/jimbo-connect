@@ -113,6 +113,18 @@ export const eventsApi = {
     api.post(`/api/events/${id}/attendees/import`, { rows }),
 };
 
+export const announcementsApi = {
+  // Reading is gated on access to the EVENT rather than on authorship: the
+  // people who should see a notice are the ones who can see the event. Posting
+  // and deleting are host only, enforced server side.
+  list: (eventId) => api.get(`/api/events/${eventId}/announcements`),
+  create: (eventId, { title, body }) =>
+    api.post(`/api/events/${eventId}/announcements`, { title, body }),
+  markRead: (eventId) => api.post(`/api/events/${eventId}/announcements/read`),
+  remove: (eventId, announcementId) =>
+    api.del(`/api/events/${eventId}/announcements/${announcementId}`),
+};
+
 export const contactsApi = {
   save: (contact_id, note = "") =>
     api.post("/api/contacts/save", { contact_id, note }),
