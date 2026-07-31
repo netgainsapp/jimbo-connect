@@ -47,11 +47,11 @@ const TIERS = [
       "In-app messaging",
       "Sponsor tiles on your event page",
       "Add to calendar for every attendee",
-      // CUT 2026-07-30: "Email templates for before and after" (admin-only
-      // routes, no customer can edit them) and the "and export" half of the
-      // CSV line (no export exists anywhere in the codebase). Import is real
-      // and host-facing; export is not built.
+      // The templates line was cut 2026-07-30 (admin-only routes then) and
+      // RESTORED 2026-07-31 now that per-host overrides exist. The "and
+      // export" half of the CSV line stays cut: no export exists anywhere.
       "CSV import",
+      "Editable email templates",
       // Shipped 2026-07-31, all three ungated, so they live here and the paid
       // tiers inherit them. The survey wording is deliberate: three questions
       // answered 1 to 5, totals only. Do not widen it back toward the old

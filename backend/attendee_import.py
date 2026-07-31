@@ -27,7 +27,8 @@ from datetime import datetime, timezone
 import branding
 import email_send
 from auth import hash_password
-from core import APP_URL, attendee_room, render_email_template
+from core import APP_URL, attendee_room
+import host_templates
 from database import event_attendees, users
 
 
@@ -108,7 +109,10 @@ async def import_rows(
 
                 if email_send.is_configured():
                     actor_profile = actor.get("profile") or {}
-                    rendered = await render_email_template(
+                    # Host aware: the invitation goes out in the acting
+                    # host's name, so their override applies. Admin imports
+                    # send the admin's own wording by the same rule.
+                    rendered = await host_templates.render_for_host(
                         "invitation",
                         {
                             "attendee_name": row.name or "",
@@ -124,6 +128,7 @@ async def import_rows(
                             "host_name": actor_profile.get("name") or "Jim",
                             "site_url": APP_URL,
                         },
+                        host_id=actor["_id"],
                     )
                     if rendered:
                         await email_send.send_template_branded(

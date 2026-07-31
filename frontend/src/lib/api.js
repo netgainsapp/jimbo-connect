@@ -139,6 +139,15 @@ export const directoryApi = {
     api.put(`/api/events/${eventId}/discoverable`, { discoverable }),
 };
 
+export const hostTemplatesApi = {
+  // A host's own overrides of the emails sent in their name. The server
+  // allowlists which templates are editable; password reset never is.
+  list: () => api.get("/api/host/email-templates"),
+  update: (templateId, { subject, body }) =>
+    api.put(`/api/host/email-templates/${templateId}`, { subject, body }),
+  reset: (templateId) => api.del(`/api/host/email-templates/${templateId}`),
+};
+
 export const surveysApi = {
   // 404 is the normal answer for an event with no survey; callers treat it as
   // "none yet" rather than as a failure. `results` comes back only for a host.

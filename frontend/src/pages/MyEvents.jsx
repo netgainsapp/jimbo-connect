@@ -267,8 +267,18 @@ export default function MyEvents() {
         <>
           {hosted.length > 0 && (
             <div className="mb-8">
-              <div className="text-xs uppercase tracking-wider text-text-muted font-semibold mb-2">
-                Events you host
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-wider text-text-muted font-semibold">
+                  Events you host
+                </div>
+                {/* Host-scoped, not event-scoped, so it lives on the header
+                    for the hosted section rather than on one event card. */}
+                <Link
+                  to="/templates"
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Email templates
+                </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {hosted.map((e) => (

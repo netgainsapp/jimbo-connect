@@ -741,6 +741,14 @@ async def _hard_delete_user(user_oid):
     await messages.delete_many(
         {"$or": [{"from_user_id": user_oid}, {"to_user_id": user_oid}]}
     )
+    # Later features, added to the cascade as they shipped. Survey answers go
+    # because "delete my account" should not leave a person's opinions behind,
+    # even anonymised; read markers and template overrides are just theirs.
+    from database import announcement_reads, host_email_templates, survey_responses
+
+    await survey_responses.delete_many({"user_id": user_oid})
+    await announcement_reads.delete_many({"user_id": user_oid})
+    await host_email_templates.delete_many({"host_id": user_oid})
     await users.delete_one({"_id": user_oid})
 
 

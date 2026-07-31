@@ -12,6 +12,7 @@
  "DELETE /api/events/{event_id}/attendees/{user_id}",
  "DELETE /api/events/{event_id}/sponsors/{sponsor_id}",
  "DELETE /api/events/{event_id}/survey",
+ "DELETE /api/host/email-templates/{template_id}",
  "DELETE /api/my-events/{event_id}",
  "DELETE /api/profile",
  "GET /agenda",
@@ -52,6 +53,7 @@
  "GET /api/events/{event_id}/sponsors",
  "GET /api/events/{event_id}/survey",
  "GET /api/health",
+ "GET /api/host/email-templates",
  "GET /api/messages/threads",
  "GET /api/messages/unread-count",
  "GET /api/messages/with/{user_id}",
@@ -124,5 +126,6 @@
  "PUT /api/events/{event_id}/discoverable",
  "PUT /api/events/{event_id}/sponsors/{sponsor_id}",
  "PUT /api/events/{event_id}/survey",
+ "PUT /api/host/email-templates/{template_id}",
  "PUT /api/profile"
 ]

@@ -10,6 +10,7 @@ import ProfileSetup from "./pages/ProfileSetup.jsx";
 import MyEvents from "./pages/MyEvents.jsx";
 import EventDirectory from "./pages/EventDirectory.jsx";
 import CrossEventDirectory from "./pages/CrossEventDirectory.jsx";
+import HostTemplates from "./pages/HostTemplates.jsx";
 import SavedContacts from "./pages/SavedContacts.jsx";
 import Discover from "./pages/Discover.jsx";
 import Messages from "./pages/Messages.jsx";
@@ -135,6 +136,14 @@ export default function App() {
               // be blocked behind profile setup.
               <RequireAuth allowIncompleteProfile>
                 <Upgrade />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/templates"
+            element={
+              <RequireAuth>
+                <HostTemplates />
               </RequireAuth>
             }
           />

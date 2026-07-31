@@ -150,8 +150,10 @@ def test_credentials_are_never_returned_when_email_is_configured(monkeypatch):
     """One channel only: if the invitation email can carry the password, the
     response must not also contain it."""
     _patch(monkeypatch, email_configured=True)
+    # The invitation renders through the host-aware path now, so a host's
+    # template override applies to the emails sent in their name.
     monkeypatch.setattr(
-        attendee_import, "render_email_template", lambda *a, **k: _none()
+        attendee_import.host_templates, "render_for_host", lambda *a, **k: _none()
     )
     out = _run(
         attendee_import.import_rows(
