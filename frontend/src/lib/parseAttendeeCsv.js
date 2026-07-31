@@ -35,8 +35,6 @@ const HEADER_ALIASES = {
   linkedin: ["linkedin", "linkedin url", "linked in"],
 };
 
-const DELIMITERS = ["\t", ",", ";"];
-
 /**
  * Count delimiter candidates in the first record, ignoring anything inside
  * quotes.
