@@ -12,6 +12,7 @@ import branding
 import email_send
 import invites
 import rate_limit
+import surveys
 from auth import get_current_user, get_current_admin
 import attendee_import
 from models import (
@@ -21,6 +22,8 @@ from models import (
     EventUpdateRequest,
     RequestInviteRequest,
     InviteGuestsRequest,
+    SurveyUpsertRequest,
+    SurveyResponseRequest,
 )
 from core import (
     APP_URL,
@@ -246,6 +249,63 @@ async def delete_announcement(
     if not await announcements.delete(oid, announcement_id):
         raise HTTPException(status_code=404, detail="Announcement not found")
     return {"ok": True}
+
+
+@router.get("/api/events/{event_id}/survey")
+async def get_survey(event_id: str, user: dict = Depends(get_current_user)):
+    """The survey, this reader's own answers, and, for the host only, results.
+
+    Results are host only because the survey exists to tell the organizer how it
+    went. Only aggregates are returned; individual answers never are.
+    """
+    oid, event_doc = await _require_event_view(event_id, user)
+    survey = await surveys.get(oid)
+    if not survey:
+        raise HTTPException(status_code=404, detail="No survey for this event")
+    survey["my_answers"] = await surveys.my_answers(oid, user["_id"])
+    if _can_manage_event(user, event_doc):
+        survey["results"] = await surveys.results(oid)
+    return survey
+
+
+@router.put("/api/events/{event_id}/survey")
+async def upsert_survey(
+    event_id: str,
+    payload: SurveyUpsertRequest,
+    user: dict = Depends(get_current_user),
+):
+    oid, _ = await _require_event_host(event_id, user)
+    try:
+        return await surveys.upsert(oid, payload.questions)
+    except surveys.SurveyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/api/events/{event_id}/survey")
+async def delete_survey(event_id: str, user: dict = Depends(get_current_user)):
+    oid, _ = await _require_event_host(event_id, user)
+    if not await surveys.delete(oid):
+        raise HTTPException(status_code=404, detail="No survey for this event")
+    return {"ok": True}
+
+
+@router.post("/api/events/{event_id}/survey/responses")
+async def respond_to_survey(
+    event_id: str,
+    payload: SurveyResponseRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Anyone who can see the event can answer, including the host.
+
+    Gated on view rather than on attendance so this matches every other
+    event-scoped route: the people who can read the page are the people who can
+    answer it.
+    """
+    oid, _ = await _require_event_view(event_id, user)
+    try:
+        return await surveys.respond(oid, user["_id"], payload.answers)
+    except surveys.SurveyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/api/events/{event_id}/attendees/import")

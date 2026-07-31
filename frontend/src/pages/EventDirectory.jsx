@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, Calendar, CalendarPlus, MapPin, Search, Uploa
 import { eventsApi, contactsApi, sponsorsApi, agendaApi, downloadEventIcs } from "../lib/api.js";
 import EventAgenda from "../components/agenda/EventAgenda.jsx";
 import EventAnnouncements from "../components/EventAnnouncements.jsx";
+import EventSurvey from "../components/EventSurvey.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { formatDateTime } from "../lib/utils.js";
@@ -316,6 +317,10 @@ export default function EventDirectory() {
       {/* Above the sponsors and the attendee grid: on the day, the schedule is
           what someone opens this page to find. */}
       <EventAgenda agenda={agenda} />
+
+      {/* Below the agenda: the survey is what someone does AFTER the event,
+          so it should not sit above what they came for on the day. */}
+      <EventSurvey eventId={id} canManage={canManage} />
 
       {sponsors.length > 0 && (
         <div className="mb-6">

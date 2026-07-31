@@ -125,6 +125,17 @@ export const announcementsApi = {
     api.del(`/api/events/${eventId}/announcements/${announcementId}`),
 };
 
+export const surveysApi = {
+  // 404 is the normal answer for an event with no survey; callers treat it as
+  // "none yet" rather than as a failure. `results` comes back only for a host.
+  get: (eventId) => api.get(`/api/events/${eventId}/survey`),
+  upsert: (eventId, questions) =>
+    api.put(`/api/events/${eventId}/survey`, { questions }),
+  respond: (eventId, answers) =>
+    api.post(`/api/events/${eventId}/survey/responses`, { answers }),
+  remove: (eventId) => api.del(`/api/events/${eventId}/survey`),
+};
+
 export const contactsApi = {
   save: (contact_id, note = "") =>
     api.post("/api/contacts/save", { contact_id, note }),
