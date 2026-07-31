@@ -32,6 +32,11 @@ agendas = db["agendas"]
 # event (not per announcement: see announcements.py).
 event_announcements = db["event_announcements"]
 announcement_reads = db["announcement_reads"]
+# One survey per event, keyed by event_id rather than an id of its own: the
+# event IS the survey's identity. One response per person per event, which is
+# what makes a second submission an edit instead of a second vote.
+event_surveys = db["event_surveys"]
+survey_responses = db["survey_responses"]
 
 
 async def ensure_indexes():
@@ -50,6 +55,14 @@ async def ensure_indexes():
     await agendas.create_index([("user_id", 1), ("updated_at", -1)])
     await event_announcements.create_index([("event_id", 1), ("created_at", -1)])
     await announcement_reads.create_index(
+        [("event_id", 1), ("user_id", 1)], unique=True
+    )
+    await event_surveys.create_index("event_id", unique=True)
+    # Unique so a double submit is an edit, not a second vote. The upsert in
+    # surveys.respond relies on this pair, and without the constraint a race
+    # between two clicks writes two rows and quietly doubles that person's
+    # weight in the averages.
+    await survey_responses.create_index(
         [("event_id", 1), ("user_id", 1)], unique=True
     )
     await blog_post.create_index([("status", 1), ("published_at", -1)])

@@ -201,6 +201,34 @@ class AnnouncementCreateRequest(BaseModel):
     body: str = Field(max_length=5000)
 
 
+class SurveyUpsertRequest(BaseModel):
+    """Exactly three questions, fixed by the schema rather than by a check in
+    the handler, so the count cannot drift as the route is edited later."""
+
+    questions: List[str] = Field(min_length=3, max_length=3)
+
+
+class SurveyResponseRequest(BaseModel):
+    """Exactly three answers, each 1 to 5.
+
+    The fixed length is what keeps answers aligned with the questions they
+    belong to: answers are stored positionally, so a list of the wrong length
+    is not a smaller response, it is a misattributed one.
+    """
+
+    answers: List[int] = Field(min_length=3, max_length=3)
+
+    @field_validator("answers")
+    @classmethod
+    def _within_scale(cls, v):
+        for value in v:
+            # bool is a subclass of int in Python, so True would otherwise be
+            # accepted and scored as 1.
+            if isinstance(value, bool) or not 1 <= value <= 5:
+                raise ValueError("Answers run from 1 to 5.")
+        return v
+
+
 class BulkImportRequest(BaseModel):
     rows: List[BulkImportRow] = Field(max_length=500)
     event_id: Optional[str] = None
