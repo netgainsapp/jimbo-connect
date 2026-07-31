@@ -52,6 +52,13 @@ const TIERS = [
       // CSV line (no export exists anywhere in the codebase). Import is real
       // and host-facing; export is not built.
       "CSV import",
+      // Shipped 2026-07-31, all three ungated, so they live here and the paid
+      // tiers inherit them. The survey wording is deliberate: three questions
+      // answered 1 to 5, totals only. Do not widen it back toward the old
+      // "custom surveys" claim.
+      "Host announcements on your event page",
+      "A three question guest survey",
+      "Cross event directory for guests who opt in",
       "Free agenda builder with Word export",
     ],
   },
