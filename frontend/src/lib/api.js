@@ -125,6 +125,20 @@ export const announcementsApi = {
     api.del(`/api/events/${eventId}/announcements/${announcementId}`),
 };
 
+export const directoryApi = {
+  // Entries carry no email address: contact runs through messaging, which
+  // requires BOTH people to have opted in. See backend/directory.py.
+  browse: (q = "", industry = "") =>
+    api.get(
+      `/api/directory?q=${encodeURIComponent(q)}&industry=${encodeURIComponent(industry)}`
+    ),
+  // The opt in is per event, so both of these are scoped to one event and
+  // always act on the caller's own listing.
+  getOptIn: (eventId) => api.get(`/api/events/${eventId}/discoverable`),
+  setOptIn: (eventId, discoverable) =>
+    api.put(`/api/events/${eventId}/discoverable`, { discoverable }),
+};
+
 export const surveysApi = {
   // 404 is the normal answer for an event with no survey; callers treat it as
   // "none yet" rather than as a failure. `results` comes back only for a host.

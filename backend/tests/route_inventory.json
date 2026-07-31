@@ -38,6 +38,7 @@
  "GET /api/branding/{user_id}/logo.png",
  "GET /api/contacts",
  "GET /api/contacts/{contact_id}/is-saved",
+ "GET /api/directory",
  "GET /api/email-templates",
  "GET /api/errors/hub-test",
  "GET /api/events",
@@ -47,6 +48,7 @@
  "GET /api/events/{event_id}/announcements",
  "GET /api/events/{event_id}/attendees",
  "GET /api/events/{event_id}/calendar.ics",
+ "GET /api/events/{event_id}/discoverable",
  "GET /api/events/{event_id}/sponsors",
  "GET /api/events/{event_id}/survey",
  "GET /api/health",
@@ -119,6 +121,7 @@
  "PUT /api/contacts/{contact_id}/note",
  "PUT /api/email-templates/{template_id}",
  "PUT /api/events/{event_id}",
+ "PUT /api/events/{event_id}/discoverable",
  "PUT /api/events/{event_id}/sponsors/{sponsor_id}",
  "PUT /api/events/{event_id}/survey",
  "PUT /api/profile"

@@ -5,6 +5,7 @@ import { eventsApi, contactsApi, sponsorsApi, agendaApi, downloadEventIcs } from
 import EventAgenda from "../components/agenda/EventAgenda.jsx";
 import EventAnnouncements from "../components/EventAnnouncements.jsx";
 import EventSurvey from "../components/EventSurvey.jsx";
+import DirectoryOptIn from "../components/DirectoryOptIn.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { formatDateTime } from "../lib/utils.js";
@@ -321,6 +322,11 @@ export default function EventDirectory() {
       {/* Below the agenda: the survey is what someone does AFTER the event,
           so it should not sit above what they came for on the day. */}
       <EventSurvey eventId={id} canManage={canManage} />
+
+      {/* The directory switch is per event and belongs on the event it applies
+          to, not in a global settings screen where it would read as one
+          decision covering every event someone has ever attended. */}
+      <DirectoryOptIn eventId={id} />
 
       {sponsors.length > 0 && (
         <div className="mb-6">

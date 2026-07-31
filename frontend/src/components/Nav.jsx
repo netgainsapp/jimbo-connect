@@ -9,6 +9,7 @@ import {
   Users,
   Mail,
   MessageCircle,
+  Globe2,
   Menu,
   X,
 } from "lucide-react";
@@ -107,6 +108,12 @@ export default function Nav() {
           still exists and works, so any existing link or bookmark keeps
           resolving; it is simply not advertised. Restore this NavLink to bring
           it back. */}
+      <NavLink
+        to="/directory"
+        className={({ isActive }) => `${navItem} ${isActive ? activeNavItem : ""}`}
+      >
+        <Globe2 className="w-4 h-4" /> Directory
+      </NavLink>
       <NavLink
         to="/contacts"
         className={({ isActive }) => `${navItem} ${isActive ? activeNavItem : ""}`}

@@ -201,6 +201,13 @@ class AnnouncementCreateRequest(BaseModel):
     body: str = Field(max_length=5000)
 
 
+class DiscoverableRequest(BaseModel):
+    """Per-event opt in to the cross-event directory. No default: a request that
+    forgets the field is a 422 rather than a silent choice either way."""
+
+    discoverable: bool
+
+
 class SurveyUpsertRequest(BaseModel):
     """Exactly three questions, fixed by the schema rather than by a check in
     the handler, so the count cannot drift as the route is edited later."""

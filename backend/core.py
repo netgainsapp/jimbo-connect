@@ -630,9 +630,10 @@ async def users_share_event(user_a_id, user_b_id) -> bool:
 async def _users_connected(requester: dict, target_oid) -> bool:
     """Authorization gate for cross-user reads and messaging. Allowed when the
     requester is the target, an admin, shares an event with the target, has
-    already saved them as a contact, or has an existing message thread with
-    them. Everything else is treated as no relationship so callers can return
-    an opaque 404 (no id enumeration)."""
+    already saved them as a contact, has an existing message thread with them,
+    or when BOTH have opted into the cross-event directory. Everything else is
+    treated as no relationship so callers can return an opaque 404 (no id
+    enumeration)."""
     if requester.get("is_admin"):
         return True
     rid = requester["_id"]
@@ -643,6 +644,16 @@ async def _users_connected(requester: dict, target_oid) -> bool:
     if await saved_contacts.find_one({"owner_id": rid, "contact_id": target_oid}):
         return True
     if await messages.find_one({"thread_id": _thread_id(rid, target_oid)}):
+        return True
+    # The cross-event directory is the only path here that connects two people
+    # who were never in a room together, which is why it needs BOTH sides opted
+    # in rather than just the person being contacted. Imported inside the
+    # function because directory reads from database and core is imported by
+    # nearly everything; a module-level import would be a cycle waiting to
+    # happen the first time directory needs anything from here.
+    import directory
+
+    if await directory.both_discoverable(rid, target_oid):
         return True
     return False
 
