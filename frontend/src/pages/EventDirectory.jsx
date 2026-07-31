@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Calendar, CalendarPlus, MapPin, Search, Users, ChevronDown } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Calendar, CalendarPlus, MapPin, Search, Upload, Users, ChevronDown } from "lucide-react";
 import { eventsApi, contactsApi, sponsorsApi, agendaApi, downloadEventIcs } from "../lib/api.js";
 import EventAgenda from "../components/agenda/EventAgenda.jsx";
 import { useToast } from "../hooks/useToast.jsx";
@@ -9,6 +9,7 @@ import { formatDateTime } from "../lib/utils.js";
 import AttendeeCard from "../components/AttendeeCard.jsx";
 import AttendeeProfileModal from "../components/AttendeeProfileModal.jsx";
 import HostCta from "../components/HostCta.jsx";
+import AttendeeImportModal from "../components/AttendeeImportModal.jsx";
 import SponsorTile from "../components/SponsorTile.jsx";
 
 export default function EventDirectory() {
@@ -22,6 +23,15 @@ export default function EventDirectory() {
   const [attendees, setAttendees] = useState([]);
   const [sponsors, setSponsors] = useState([]);
   const [agenda, setAgenda] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
+
+  // Mirrors core._can_manage_event. NOT keyed off attendee_limit like the
+  // capacity line below: that field is omitted when the limit is null, which
+  // is exactly the uncapped Pro and admin hosts, so it would hide host tools
+  // from the people paying for them.
+  const canManage = Boolean(
+    user && event && (user.is_admin || String(event.created_by) === String(user.id))
+  );
 
   const addToCalendar = async () => {
     try {
@@ -235,6 +245,15 @@ export default function EventDirectory() {
               >
                 <CalendarPlus className="w-4 h-4" /> Add to calendar
               </button>
+              {canManage && (
+                <button
+                  onClick={() => setImportOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 font-medium text-primary transition hover:bg-primary/10"
+                  title="Import a guest list from a spreadsheet or CSV"
+                >
+                  <Upload className="w-4 h-4" /> Import guests
+                </button>
+              )}
               <span className="inline-flex items-center gap-1.5">
                 <Users className="w-4 h-4" />
                 {/* attendee_limit is only sent to whoever manages the event, so
@@ -359,6 +378,13 @@ export default function EventDirectory() {
           });
           setNotesMap(nm);
         }}
+      />
+
+      <AttendeeImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        eventId={id}
+        onComplete={load}
       />
     </div>
   );

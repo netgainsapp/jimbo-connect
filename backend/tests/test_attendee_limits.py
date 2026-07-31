@@ -158,7 +158,14 @@ def test_every_attendee_insert_path_is_guarded():
 
     backend = Path(__file__).parent.parent
     offenders = []
-    for path in list((backend / "routers").glob("*.py")) + [backend / "core.py"]:
+    # attendee_import.py is listed explicitly: the shared import loop moved out
+    # of routers/, and without this line the walk would quietly stop covering
+    # the highest-volume add path on the platform.
+    scanned = (
+        list((backend / "routers").glob("*.py"))
+        + [backend / "core.py", backend / "attendee_import.py"]
+    )
+    for path in scanned:
         source = path.read_text(encoding="utf-8")
         for match in re.finditer(r"event_attendees\.insert_one", source):
             window = source[max(0, match.start() - 1600):match.start()]

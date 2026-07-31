@@ -106,6 +106,11 @@ export const eventsApi = {
   discover: () => api.get("/api/events/discoverable"),
   requestInvite: (id, message = "") =>
     api.post(`/api/events/${id}/request-invite`, { message }),
+  // Host guest-list import. Rows only: the event comes from the URL and no
+  // password may be supplied, so a host cannot create a login they can use for
+  // someone else's address. See backend/attendee_import.py.
+  importAttendees: (id, rows) =>
+    api.post(`/api/events/${id}/attendees/import`, { rows }),
 };
 
 export const contactsApi = {

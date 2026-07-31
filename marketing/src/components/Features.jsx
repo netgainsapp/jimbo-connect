@@ -50,7 +50,11 @@ const MARQUEE = [
 const ALSO = [
   ["Save anyone, anytime", "One tap and they're saved to your contacts."],
   ["Private notes on contacts", "Why you met and what to follow up on. Only you see them."],
-  ["Editable email templates", "Save the date, day-of, post-event. Edit any of them."],
+  // CUT 2026-07-30: "Editable email templates — Save the date, day-of,
+  // post-event. Edit any of them." The templates are real but the routes are
+  // admin only (GET/PUT /api/email-templates, get_current_admin), so no
+  // customer can edit any of them. Restore this line when hosts can: that
+  // needs per-host template rows, which is its own build.
   ["Sponsor tiles from a URL", "Paste a link and we pull the headline, image, and description."],
   ["Add to calendar", "One tap on the event page saves it to any calendar app."],
   ["CSV import from anywhere", "Eventbrite, Meetup, your spreadsheet."],

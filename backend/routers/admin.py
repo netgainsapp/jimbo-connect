@@ -16,6 +16,7 @@ from database import (
     email_templates,
     outreach_leads,
 )
+import attendee_import
 import branding
 import email_send
 import outreach
@@ -393,131 +394,17 @@ async def admin_bulk_import(
         if not event_doc:
             raise HTTPException(status_code=404, detail="Event not found")
 
-    now = datetime.now(timezone.utc)
-    created = 0
-    skipped = 0
-    added_to_event = 0
-    accounts: list = []
-    errors: list = []
+    # Shared with the host-facing import so there is exactly one code path that
+    # creates accounts and seats them. Admin keeps the two extra powers.
+    return await attendee_import.import_rows(
+        actor=admin,
+        rows=payload.rows,
+        event_doc=event_doc,
+        event_oid=event_oid,
+        default_password=payload.default_password,
+        disclose_credentials=True,
+    )
 
-    # Attendee cap, read once and tracked locally rather than re-counted per
-    # row. An import that would overflow fills to the cap and reports the rest
-    # instead of failing outright: a 400 row spreadsheet against a 250 cap
-    # should still get 250 people in, not zero.
-    attendee_limit, attendee_count = (None, 0)
-    if event_oid and event_doc:
-        attendee_limit, attendee_count = await attendee_room(event_doc)
-
-    for row in payload.rows:
-        email = row.email.lower().strip()
-        try:
-            existing = await users.find_one({"email": email})
-            if existing:
-                skipped += 1
-                user_id = existing["_id"]
-            else:
-                temp_password = (
-                    payload.default_password
-                    or "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
-                )
-                profile = {
-                    "name": row.name or "",
-                    "role": row.role or "",
-                    "company": row.company or "",
-                    "industry": row.industry or "",
-                    "bio": row.bio or "",
-                    "looking_for": row.looking_for or "",
-                    "phone": row.phone or "",
-                    "linkedin": row.linkedin or "",
-                    "photo_url": "",
-                }
-                doc = {
-                    "email": email,
-                    # Off the event loop: 500 rows of bcrypt would otherwise
-                    # freeze the API for the whole import.
-                    "password_hash": await asyncio.to_thread(
-                        hash_password, temp_password
-                    ),
-                    "is_admin": False,
-                    "created_at": now,
-                    "profile": profile,
-                    "email_verified": False,
-                }
-                result = await users.insert_one(doc)
-                user_id = result.inserted_id
-                created += 1
-                # Plaintext credentials go to ONE channel: the invitation email
-                # when Resend is configured, or the API response as an explicit
-                # fallback so the admin can distribute them by hand. Never both.
-                if not email_send.is_configured():
-                    accounts.append({"email": email, "password": temp_password})
-
-                # Send invitation email if Resend is configured (send_email
-                # itself skips hard-bounced addresses).
-                if email_send.is_configured():
-                    admin_profile = admin.get("profile") or {}
-                    rendered = await render_email_template(
-                        "invitation",
-                        {
-                            "attendee_name": row.name or "",
-                            "attendee_email": email,
-                            "temp_password": temp_password,
-                            "event_name": event_doc["name"] if event_doc else "",
-                            "event_date": event_doc["date"].strftime("%B %d, %Y")
-                            if event_doc
-                            else "",
-                            "event_location": event_doc.get("location", "")
-                            if event_doc
-                            else "",
-                            "host_name": admin_profile.get("name") or "Jim",
-                            "site_url": APP_URL,
-                        },
-                    )
-                    if rendered:
-                        await email_send.send_template_branded(
-                            to=email,
-                            rendered=rendered,
-                            button_label="Open your directory",
-                            button_url=APP_URL,
-                            brand=branding.email_brand(admin),
-                        )
-
-            if event_oid:
-                already = await event_attendees.find_one(
-                    {"event_id": event_oid, "user_id": user_id}
-                )
-                if not already:
-                    if attendee_limit is not None and attendee_count >= attendee_limit:
-                        # The account still exists, they are simply not on this
-                        # event. Reported per row so it is obvious who missed
-                        # out rather than the numbers quietly not adding up.
-                        errors.append({
-                            "email": email,
-                            "error": (
-                                f"Event is at its limit of {attendee_limit} "
-                                "attendees. Upgrade to add more."
-                            ),
-                        })
-                    else:
-                        await event_attendees.insert_one(
-                            {
-                                "event_id": event_oid,
-                                "user_id": user_id,
-                                "joined_at": now,
-                            }
-                        )
-                        added_to_event += 1
-                        attendee_count += 1
-        except Exception as e:
-            errors.append({"email": email, "error": str(e)})
-
-    return {
-        "created": created,
-        "skipped": skipped,
-        "added_to_event": added_to_event,
-        "errors": errors,
-        "accounts": accounts,
-    }
 
 
 # ---------- Outreach cockpit (stages host-acquisition leads, hands off to
