@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, Response, Request
 from bson import ObjectId
 
 from database import users, saved_contacts, messages
+import directory
 import rate_limit
 from auth import get_current_user, COOKIE_NAME
 from models import (
@@ -27,6 +28,42 @@ from core import (
 )
 
 router = APIRouter()
+
+
+# ---------- Cross-event directory ----------
+
+@router.get("/api/directory")
+async def browse_directory(
+    request: Request,
+    q: str = "",
+    industry: str = "",
+    user: dict = Depends(get_current_user),
+):
+    """People who opted into the cross-event directory.
+
+    Browsing requires having attended something. The directory is a benefit of
+    having turned up, not a people search any fresh signup can open, and that
+    check is what stops a throwaway account being a scraping tool.
+
+    Entries carry no email address. Contact runs through messaging, which needs
+    BOTH sides opted in; see directory.both_discoverable.
+    """
+    if not await directory.has_any_attendance(user["_id"]):
+        raise HTTPException(
+            status_code=403,
+            detail="Join an event first. The directory is for people who have attended one.",
+        )
+    rate_limit.guard(
+        request, "directory", limit=60, window_seconds=60,
+        identifier=str(user["_id"]),
+    )
+    people = await directory.list_people(user["_id"], query=q, industry=industry)
+    return {
+        "people": people,
+        # So the UI can tell someone why they are not in their own results, and
+        # why messaging may refuse, without a second round trip.
+        "i_am_listed": await directory.is_discoverable(user["_id"]),
+    }
 
 
 # ---------- Profile ----------

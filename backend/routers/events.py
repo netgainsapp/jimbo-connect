@@ -8,6 +8,7 @@ from bson import ObjectId
 
 from database import users, events, event_attendees, event_sponsors, messages
 import announcements
+import directory
 import branding
 import email_send
 import invites
@@ -17,6 +18,7 @@ from auth import get_current_user, get_current_admin
 import attendee_import
 from models import (
     AnnouncementCreateRequest,
+    DiscoverableRequest,
     EventAttendeeImportRequest,
     EventCreateRequest,
     EventUpdateRequest,
@@ -118,6 +120,57 @@ async def list_events(_: dict = Depends(get_current_admin)):
         out.append(serialize_event(e, count))
     return out
 
+
+# Registered BEFORE /api/events/{event_id} on purpose. Starlette takes the
+# first route that matches, so with the parameterised route first this one
+# is unreachable: the request lands in get_event with event_id set to the
+# literal string "discoverable" and dies on ObjectId(). Fixed paths must be
+# declared above variable ones. Same rule for any future /api/events/<word>.
+@router.get("/api/events/discoverable")
+async def discoverable_events(user: dict = Depends(get_current_user)):
+    """Upcoming events the user hasn't joined yet."""
+    now = datetime.now(timezone.utc)
+    joined_ids = set()
+    async for link in event_attendees.find({"user_id": user["_id"]}):
+        joined_ids.add(link["event_id"])
+    candidates = [
+        e
+        for e in await events.find({"date": {"$gte": now}}).sort("date", 1).to_list(None)
+        if e["_id"] not in joined_ids
+    ]
+    event_ids = [e["_id"] for e in candidates]
+    counts: dict = {}
+    if event_ids:
+        async for row in event_attendees.aggregate(
+            [
+                {"$match": {"event_id": {"$in": event_ids}}},
+                {"$group": {"_id": "$event_id", "n": {"$sum": 1}}},
+            ]
+        ):
+            counts[row["_id"]] = row["n"]
+    host_ids = list({e.get("created_by") for e in candidates if e.get("created_by")})
+    hosts: dict = {}
+    if host_ids:
+        for h in await users.find({"_id": {"$in": host_ids}}).to_list(None):
+            hosts[h["_id"]] = h
+    out = []
+    for e in candidates:
+        host = hosts.get(e.get("created_by"))
+        host_profile = (host or {}).get("profile") or {}
+        out.append(
+            {
+                "id": str(e["_id"]),
+                "name": e["name"],
+                "date": e["date"],
+                "location": e.get("location", ""),
+                "industry_tags": e.get("industry_tags", []),
+                "attendee_count": counts.get(e["_id"], 0),
+                "host_name": host_profile.get("name")
+                or (host or {}).get("email", "")
+                or "",
+            }
+        )
+    return out
 
 @router.get("/api/events/{event_id}")
 async def get_event(event_id: str, user: dict = Depends(get_current_user)):
@@ -249,6 +302,35 @@ async def delete_announcement(
     if not await announcements.delete(oid, announcement_id):
         raise HTTPException(status_code=404, detail="Announcement not found")
     return {"ok": True}
+
+
+@router.get("/api/events/{event_id}/discoverable")
+async def get_event_discoverable(
+    event_id: str, user: dict = Depends(get_current_user)
+):
+    """This caller's own directory opt in for this event, and nobody else's."""
+    oid, _ = await _require_event_view(event_id, user)
+    return {"discoverable": await directory.get_discoverable(oid, user["_id"])}
+
+
+@router.put("/api/events/{event_id}/discoverable")
+async def set_event_discoverable(
+    event_id: str,
+    payload: DiscoverableRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Opt in or out of the cross-event directory through THIS event.
+
+    Always acts on the caller's own row. A host cannot list an attendee who did
+    not choose it, which is the entire point of an opt in.
+    """
+    oid, _ = await _require_event_view(event_id, user)
+    if not await directory.set_discoverable(oid, user["_id"], payload.discoverable):
+        raise HTTPException(
+            status_code=400,
+            detail="You are not on this event's guest list, so there is nothing to list.",
+        )
+    return {"discoverable": payload.discoverable}
 
 
 @router.get("/api/events/{event_id}/survey")
@@ -543,53 +625,6 @@ async def get_event_attendees(event_id: str, user: dict = Depends(get_current_us
             attendee = by_id.get(link["user_id"])
             if attendee and not attendee.get("is_admin"):
                 out.append(serialize_attendee(attendee))
-    return out
-
-
-@router.get("/api/events/discoverable")
-async def discoverable_events(user: dict = Depends(get_current_user)):
-    """Upcoming events the user hasn't joined yet."""
-    now = datetime.now(timezone.utc)
-    joined_ids = set()
-    async for link in event_attendees.find({"user_id": user["_id"]}):
-        joined_ids.add(link["event_id"])
-    candidates = [
-        e
-        for e in await events.find({"date": {"$gte": now}}).sort("date", 1).to_list(None)
-        if e["_id"] not in joined_ids
-    ]
-    event_ids = [e["_id"] for e in candidates]
-    counts: dict = {}
-    if event_ids:
-        async for row in event_attendees.aggregate(
-            [
-                {"$match": {"event_id": {"$in": event_ids}}},
-                {"$group": {"_id": "$event_id", "n": {"$sum": 1}}},
-            ]
-        ):
-            counts[row["_id"]] = row["n"]
-    host_ids = list({e.get("created_by") for e in candidates if e.get("created_by")})
-    hosts: dict = {}
-    if host_ids:
-        for h in await users.find({"_id": {"$in": host_ids}}).to_list(None):
-            hosts[h["_id"]] = h
-    out = []
-    for e in candidates:
-        host = hosts.get(e.get("created_by"))
-        host_profile = (host or {}).get("profile") or {}
-        out.append(
-            {
-                "id": str(e["_id"]),
-                "name": e["name"],
-                "date": e["date"],
-                "location": e.get("location", ""),
-                "industry_tags": e.get("industry_tags", []),
-                "attendee_count": counts.get(e["_id"], 0),
-                "host_name": host_profile.get("name")
-                or (host or {}).get("email", "")
-                or "",
-            }
-        )
     return out
 
 

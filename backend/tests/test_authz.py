@@ -16,6 +16,7 @@ os.environ.setdefault("DB_NAME", "t")
 os.environ.setdefault("JWT_SECRET", "x")
 
 import core
+import directory
 import server
 
 
@@ -68,13 +69,19 @@ class _FakeFindOne:
         return self.result
 
 
-def _wire(monkeypatch, *, links=None, events=None, saved=None, thread=None):
+def _wire(monkeypatch, *, links=None, events=None, saved=None, thread=None,
+          discoverable=None):
     # Patch the owning module (core) post-M13 split: users_share_event /
     # _users_connected resolve their collection globals in core's namespace.
     monkeypatch.setattr(core, "event_attendees", _FakeAttendees(links or []))
     monkeypatch.setattr(core, "events", _FakeEvents(events or {}))
     monkeypatch.setattr(core, "saved_contacts", _FakeFindOne(saved))
     monkeypatch.setattr(core, "messages", _FakeFindOne(thread))
+    # _users_connected also consults the cross-event directory now, and that
+    # lookup lives in directory's namespace rather than core's. Without this
+    # the stranger cases fall through to a real Mongo connection and the suite
+    # pays a connect timeout per test instead of failing fast.
+    monkeypatch.setattr(directory, "event_attendees", _FakeFindOne(discoverable))
 
 
 def test_share_event_true_when_both_attend_same_event(monkeypatch):
