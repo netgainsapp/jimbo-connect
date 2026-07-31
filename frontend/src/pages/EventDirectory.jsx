@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, Calendar, CalendarPlus, MapPin, Search, Upload, Users, ChevronDown } from "lucide-react";
 import { eventsApi, contactsApi, sponsorsApi, agendaApi, downloadEventIcs } from "../lib/api.js";
 import EventAgenda from "../components/agenda/EventAgenda.jsx";
+import EventAnnouncements from "../components/EventAnnouncements.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { formatDateTime } from "../lib/utils.js";
@@ -299,6 +300,18 @@ export default function EventDirectory() {
             </p>
           </div>
         )}
+
+      {/* Above even the agenda: an announcement exists because something
+          changed, so it has to be read before the schedule it contradicts. */}
+      <EventAnnouncements
+        eventId={id}
+        eventName={event?.name || ""}
+        canManage={canManage}
+        // Host only, and only for the BCC list on "also send by email". These
+        // addresses are already in `attendees` for anyone who can see the
+        // event; passing them here adds no exposure.
+        attendeeEmails={canManage ? attendees.map((a) => a.email) : []}
+      />
 
       {/* Above the sponsors and the attendee grid: on the day, the schedule is
           what someone opens this page to find. */}
