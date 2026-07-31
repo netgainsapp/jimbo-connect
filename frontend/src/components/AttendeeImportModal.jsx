@@ -49,7 +49,7 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
       setResult(res);
       onComplete?.();
     } catch (err) {
-      toast.error(err?.message || "Import failed");
+      toast.show(err?.message || "Import failed", "error");
     } finally {
       setSubmitting(false);
     }
