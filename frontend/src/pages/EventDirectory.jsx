@@ -273,8 +273,11 @@ export default function EventDirectory() {
 
       {/* Warn the host as the cap approaches rather than when a guest is
           turned away at the door. Ten percent of headroom, or three seats,
-          whichever is larger, so it is useful on a 50 cap and on a 2000 one. */}
-      {event.attendee_limit &&
+          whichever is larger, so it is useful on a 50 cap and on a 2000 one.
+          event MUST be optional-chained here: this component has no loading
+          early-return, so the first render happens with event still null, and
+          a bare read here took the whole event page down as a white screen. */}
+      {event?.attendee_limit &&
         event.attendee_count >=
           event.attendee_limit - Math.max(3, Math.round(event.attendee_limit * 0.1)) && (
           <div className="mb-6 flex gap-3 rounded-card border border-amber-300 bg-amber-50 p-4">
