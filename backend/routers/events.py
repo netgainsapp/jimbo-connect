@@ -613,6 +613,12 @@ async def get_event_attendees(event_id: str, user: dict = Depends(get_current_us
         )
         if not joined:
             raise HTTPException(status_code=403, detail="Not joined to this event")
+    # Addresses go to whoever runs the event and to nobody else. A host already
+    # holds the guest list and needs it for the announcement BCC and the admin
+    # tools; a fellow attendee does not, and used to receive every address on
+    # the event just by opening the page, which is not what "message the people
+    # you shared a room with" is supposed to mean.
+    include_email = _can_manage_event(user, e)
     out = []
     links = await event_attendees.find({"event_id": oid}).to_list(None)
     user_ids = [link["user_id"] for link in links]
@@ -624,7 +630,7 @@ async def get_event_attendees(event_id: str, user: dict = Depends(get_current_us
         for link in links:
             attendee = by_id.get(link["user_id"])
             if attendee and not attendee.get("is_admin"):
-                out.append(serialize_attendee(attendee))
+                out.append(serialize_attendee(attendee, include_email=include_email))
     return out
 
 

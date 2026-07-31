@@ -110,7 +110,7 @@ export default function AttendeeProfileModal({ attendee, open, onClose, onSavedC
           <Avatar name={p.name} photoUrl={p.photo_url} size={80} />
           <div className="flex-1 min-w-0">
             <div className="text-xl font-bold text-text-primary truncate">
-              {p.name || attendee.email}
+              {p.name || attendee.email || "Guest"}
             </div>
             <div className="text-sm text-text-secondary mt-0.5">
               {p.role}
@@ -194,14 +194,20 @@ export default function AttendeeProfileModal({ attendee, open, onClose, onSavedC
           )}
         </div>
 
+        {/* Fellow attendees no longer receive each other's addresses, so this
+            block can now be entirely empty. Heading and all, it goes away
+            rather than sitting there as a "Contact" label over nothing. */}
+        {(attendee.email || p.phone || p.linkedin) && (
         <div className="mb-5">
           <div className="label">Contact</div>
           <div className="flex flex-col gap-2">
-            <ContactRow
-              icon={<Mail className="w-4 h-4" />}
-              label={attendee.email}
-              onCopy={() => copy(attendee.email, "Email")}
-            />
+            {attendee.email && (
+              <ContactRow
+                icon={<Mail className="w-4 h-4" />}
+                label={attendee.email}
+                onCopy={() => copy(attendee.email, "Email")}
+              />
+            )}
             {p.phone && (
               <ContactRow
                 icon={<Phone className="w-4 h-4" />}
@@ -218,6 +224,7 @@ export default function AttendeeProfileModal({ attendee, open, onClose, onSavedC
             )}
           </div>
         </div>
+        )}
 
         <div>
           <div className="flex items-center justify-between mb-2">

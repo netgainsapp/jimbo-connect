@@ -16,7 +16,7 @@ export default function AttendeeCard({
     <div
       role="button"
       tabIndex={0}
-      aria-label={`View ${p.name || attendee.email}'s profile`}
+      aria-label={`View ${p.name || attendee.email || "this guest"}'s profile`}
       className="card p-4 flex flex-col gap-2 hover:border-primary/50 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
       onClick={() => onOpen?.(attendee)}
       onKeyDown={(e) => {
@@ -31,7 +31,7 @@ export default function AttendeeCard({
           <Avatar name={p.name} photoUrl={p.photo_url} size={40} />
           <div className="min-w-0">
             <div className="font-bold text-text-primary truncate leading-tight">
-              {p.name || attendee.email}
+              {p.name || attendee.email || "Guest"}
             </div>
             <div className="text-xs text-text-secondary truncate">
               {p.role}

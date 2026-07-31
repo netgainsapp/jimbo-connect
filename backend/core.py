@@ -135,13 +135,28 @@ def serialize_user(user: dict) -> dict:
     }
 
 
-def serialize_attendee(user: dict) -> dict:
+def serialize_attendee(user: dict, *, include_email: bool = False) -> dict:
+    """A person as seen by someone else.
+
+    The email address is opt IN rather than opt out. It used to be included
+    unconditionally, which meant every attendee could read every other
+    attendee's address just by opening an event page, while the product routes
+    contact through messaging precisely so addresses do not have to be handed
+    around. Defaulting to False means a new call site leaks nothing until
+    somebody deliberately asks for the address.
+
+    Pass include_email=True only where the viewer already owns that data: a host
+    or admin looking at their own event's guest list, which is what the
+    announcement BCC and the admin tools are built on.
+    """
     profile = user.get("profile") or {}
-    return {
+    out = {
         "id": str(user["_id"]),
-        "email": user["email"],
         "profile": Profile(**profile).model_dump(),
     }
+    if include_email:
+        out["email"] = user["email"]
+    return out
 
 
 def serialize_event(
