@@ -13,8 +13,10 @@ import email_send
 import invites
 import rate_limit
 from auth import get_current_user, get_current_admin
+import attendee_import
 from models import (
     AnnouncementCreateRequest,
+    EventAttendeeImportRequest,
     EventCreateRequest,
     EventUpdateRequest,
     RequestInviteRequest,
@@ -244,6 +246,36 @@ async def delete_announcement(
     if not await announcements.delete(oid, announcement_id):
         raise HTTPException(status_code=404, detail="Announcement not found")
     return {"ok": True}
+
+
+@router.post("/api/events/{event_id}/attendees/import")
+async def import_event_attendees(
+    event_id: str,
+    payload: EventAttendeeImportRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    """Import a guest list onto an event the caller hosts.
+
+    The host equivalent of the admin bulk import, and narrower on purpose: the
+    event is taken from the URL and host-gated, no password may be supplied,
+    and no plaintext credential is ever returned. See attendee_import for why
+    those two restrictions matter.
+
+    Rate limited because this is the one authenticated route that can create
+    hundreds of accounts in a single call.
+    """
+    oid, event_doc = await _require_event_host(event_id, user)
+    rate_limit.guard(
+        request, "attendee-import", limit=5, window_seconds=60,
+        identifier=str(user["_id"]),
+    )
+    return await attendee_import.import_rows(
+        actor=user,
+        rows=payload.rows,
+        event_doc=event_doc,
+        event_oid=oid,
+    )
 
 
 @router.get("/api/events/{event_id}/calendar.ics")

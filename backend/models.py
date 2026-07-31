@@ -207,6 +207,16 @@ class BulkImportRequest(BaseModel):
     default_password: Optional[str] = Field(default=None, max_length=200)
 
 
+class EventAttendeeImportRequest(BaseModel):
+    """Host-facing import. Deliberately NOT BulkImportRequest: there is no
+    `default_password` field, so a host cannot set a known password on an
+    account created for an email address they do not control (that would be a
+    login for someone else's account). The event comes from the URL, so a host
+    also cannot aim the import at an event they do not manage."""
+
+    rows: List[BulkImportRow] = Field(max_length=500)
+
+
 class SponsorCreateRequest(BaseModel):
     url: str = Field(max_length=2048)
     title: Optional[str] = Field(default=None, max_length=200)

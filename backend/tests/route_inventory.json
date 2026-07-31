@@ -95,6 +95,7 @@
  "POST /api/events/join/{code}",
  "POST /api/events/{event_id}/announcements",
  "POST /api/events/{event_id}/announcements/read",
+ "POST /api/events/{event_id}/attendees/import",
  "POST /api/events/{event_id}/invite",
  "POST /api/events/{event_id}/request-invite",
  "POST /api/events/{event_id}/sponsors",

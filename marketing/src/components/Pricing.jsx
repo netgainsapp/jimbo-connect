@@ -27,7 +27,7 @@ const REGISTER = "https://app.intro-connect.com/register";
 // Worth knowing when editing this file: in the whole codebase exactly TWO
 // things are gated by plan. Event count (billing.event_limit_for) and host
 // branding (branding.plan_allows, Pro only). Everything else, including
-// sponsors, messaging, the directory, saved contacts, CSV and email templates,
+// sponsors, messaging, the directory, saved contacts and CSV import,
 // works on Free. So features are listed under Free where they actually live,
 // and the paid tiers inherit rather than repeating them as if they were
 // unlocks. Do not move a line up a tier without adding a real gate for it.
@@ -47,8 +47,11 @@ const TIERS = [
       "In-app messaging",
       "Sponsor tiles on your event page",
       "Add to calendar for every attendee",
-      "Email templates for before and after",
-      "CSV import and export",
+      // CUT 2026-07-30: "Email templates for before and after" (admin-only
+      // routes, no customer can edit them) and the "and export" half of the
+      // CSV line (no export exists anywhere in the codebase). Import is real
+      // and host-facing; export is not built.
+      "CSV import",
       "Free agenda builder with Word export",
     ],
   },
