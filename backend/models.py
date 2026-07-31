@@ -304,6 +304,15 @@ class TemplateUpdateRequest(BaseModel):
     body: Optional[str] = Field(default=None, max_length=20000)
 
 
+class HostTemplateUpdateRequest(BaseModel):
+    """Unlike the admin request above, both fields are required: a host
+    override is all-or-nothing per template, so a partial update cannot leave
+    a customized subject over a default body without anyone choosing that."""
+
+    subject: str = Field(min_length=1, max_length=300)
+    body: str = Field(min_length=1, max_length=20000)
+
+
 class InviteGuestsRequest(BaseModel):
     emails: List[EmailStr] = Field(default_factory=list, max_length=200)
 

@@ -7,6 +7,7 @@ from bson import ObjectId
 
 from database import users, saved_contacts, messages
 import directory
+import host_templates
 import rate_limit
 from auth import get_current_user, COOKIE_NAME
 from models import (
@@ -16,6 +17,7 @@ from models import (
     SaveContactRequest,
     NoteUpdateRequest,
     SendMessageRequest,
+    HostTemplateUpdateRequest,
 )
 from core import (
     serialize_user,
@@ -28,6 +30,45 @@ from core import (
 )
 
 router = APIRouter()
+
+
+# ---------- Host email templates ----------
+
+@router.get("/api/host/email-templates")
+async def list_host_templates(user: dict = Depends(get_current_user)):
+    """The templates this host may customize, resolved for them.
+
+    Plain get_current_user rather than a host check: overrides only ever apply
+    to emails sent on the caller's own behalf, so there is nothing here to
+    protect from a non-host beyond their own settings.
+    """
+    return {"templates": await host_templates.list_for(user["_id"])}
+
+
+@router.put("/api/host/email-templates/{template_id}")
+async def update_host_template(
+    template_id: str,
+    payload: HostTemplateUpdateRequest,
+    user: dict = Depends(get_current_user),
+):
+    try:
+        return await host_templates.upsert(
+            user["_id"], template_id, payload.subject, payload.body
+        )
+    except host_templates.TemplateError as e:
+        # 404, not 400: "not editable" and "does not exist" answer the same,
+        # so this route cannot be used to probe which system templates exist.
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.delete("/api/host/email-templates/{template_id}")
+async def reset_host_template(
+    template_id: str, user: dict = Depends(get_current_user)
+):
+    try:
+        return await host_templates.reset(user["_id"], template_id)
+    except host_templates.TemplateError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 # ---------- Cross-event directory ----------

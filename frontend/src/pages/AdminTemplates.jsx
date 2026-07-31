@@ -15,13 +15,7 @@ import { useAuth } from "../hooks/useAuth.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { copyToClipboard, formatDate } from "../lib/utils.js";
-
-function mergeVars(text, ctx) {
-  if (!text) return "";
-  return text.replace(/\{(\w+)\}/g, (m, key) =>
-    ctx[key] !== undefined && ctx[key] !== null ? String(ctx[key]) : m
-  );
-}
+import { mergeVars } from "../lib/mergeVars.js";
 
 export default function AdminTemplates() {
   const { user } = useAuth();

@@ -37,6 +37,9 @@ announcement_reads = db["announcement_reads"]
 # what makes a second submission an edit instead of a second vote.
 event_surveys = db["event_surveys"]
 survey_responses = db["survey_responses"]
+# A host's rewrites of the emails sent in their name. One row per (host,
+# template); absence means the default applies, so reset is a delete.
+host_email_templates = db["host_email_templates"]
 
 
 async def ensure_indexes():
@@ -64,6 +67,9 @@ async def ensure_indexes():
     # weight in the averages.
     await survey_responses.create_index(
         [("event_id", 1), ("user_id", 1)], unique=True
+    )
+    await host_email_templates.create_index(
+        [("host_id", 1), ("template_id", 1)], unique=True
     )
     await blog_post.create_index([("status", 1), ("published_at", -1)])
     await event_invites.create_index([("event_id", 1), ("email", 1)], unique=True)
