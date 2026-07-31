@@ -40,8 +40,11 @@ const MARQUEE = [
 // Removed 2026-07-30, none of these existed in the product. Restore each line
 // as it ships, not before:
 //   "Custom personal tags"      saved contacts carry a private note, no tags
-//   "Custom post-event surveys" no survey feature at all
 //   "Clone any event"           no event duplication
+// "Custom post-event surveys" was on that list and a survey has since been
+// BUILT, so it is back below, worded for what actually shipped: exactly three
+// questions answered 1 to 5, totals only. It is deliberately not the "six
+// question types plus charts" the old copy promised; do not widen the claim.
 // ".ics calendar invites" was on that list and has since been BUILT, so it is
 // back below. Note the wording: the old copy promised it in "every invitation
 // email", which is still not true. It is a download on the event page.
@@ -58,6 +61,9 @@ const ALSO = [
   ["Sponsor tiles from a URL", "Paste a link and we pull the headline, image, and description."],
   ["Add to calendar", "One tap on the event page saves it to any calendar app."],
   ["CSV import from anywhere", "Eventbrite, Meetup, your spreadsheet."],
+  ["Host announcements", "Post an update to your event page for everyone, and send it from your own email if you want inboxes too."],
+  ["A three question survey", "Guests answer 1 to 5. You see the totals, never who said what."],
+  ["Cross event directory", "Guests who opt in can be found and messaged by people from other events. Email addresses are never shown."],
   ["Your logo and your color", "On your event pages and guest emails, on Pro."],
   ["Free agenda builder", "Build a schedule and download it as a Word file. No account needed."],
 ];
