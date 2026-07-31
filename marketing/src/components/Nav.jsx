@@ -26,33 +26,41 @@ export default function Nav() {
         <a href="#" className="flex items-center">
           <Lockup size="sm" />
         </a>
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden lg:flex items-center gap-1">
           {LINKS.map((l) => (
             <a
               key={l.href}
               href={l.href}
-              className="px-3 py-1.5 rounded-pill text-sm font-semibold text-stone hover:text-ink hover:bg-cream transition"
+              className="px-3 py-1.5 rounded-pill text-sm font-semibold text-stone hover:text-ink hover:bg-cream whitespace-nowrap transition"
             >
               {l.label}
             </a>
           ))}
         </div>
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden lg:flex items-center gap-2">
           <a
             href="https://app.intro-connect.com"
-            className="btn-ghost"
+            className="btn-ghost whitespace-nowrap"
             target="_blank"
             rel="noopener"
           >
             Log in
           </a>
-          <a href="#pricing" className="btn-primary">
+          {/* Plain blue text rather than .btn-primary. A pill with fixed
+              padding cannot shrink, so at in-between widths the label wrapped
+              inside it and the button rendered as a tall blob. Text has no
+              shape to lose. The pill is still right in the hero and pricing,
+              where there is room for it. */}
+          <a
+            href="#pricing"
+            className="px-3 py-1.5 text-sm font-bold text-primary hover:text-primary-hover whitespace-nowrap transition"
+          >
             Start for free
           </a>
         </div>
         <button
           onClick={() => setOpen((v) => !v)}
-          className="md:hidden p-2 rounded-pill hover:bg-cream"
+          className="lg:hidden p-2 rounded-pill hover:bg-cream"
           aria-label={open ? "Close navigation" : "Open navigation"}
           aria-expanded={open}
           aria-controls="mobile-menu"
@@ -61,7 +69,7 @@ export default function Nav() {
         </button>
       </div>
       {open && (
-        <div id="mobile-menu" className="md:hidden border-t border-line bg-white">
+        <div id="mobile-menu" className="lg:hidden border-t border-line bg-white">
           <div className="container-prose py-3 flex flex-col gap-1">
             {LINKS.map((l) => (
               <a
@@ -81,7 +89,10 @@ export default function Nav() {
             >
               Log in
             </a>
-            <a href="#pricing" className="btn-primary mt-2">
+            <a
+              href="#pricing"
+              className="px-3 py-2 rounded-card text-sm font-bold text-primary hover:bg-cream"
+            >
               Start for free
             </a>
           </div>
