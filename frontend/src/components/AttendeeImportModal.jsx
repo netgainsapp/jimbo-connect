@@ -58,8 +58,8 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
   return (
     <Modal open={open} onClose={onClose} label="Import guest list">
       <div className="p-6">
-        <h2 className="text-xl font-bold text-ink">Import your guest list</h2>
-        <p className="mt-1 text-sm text-stone">
+        <h2 className="text-xl font-bold text-text-primary">Import your guest list</h2>
+        <p className="mt-1 text-sm text-text-muted">
           Paste from a spreadsheet or upload a CSV. Export the attendee list
           from Eventbrite, Meetup, or wherever your guests came from. A header
           row is optional.
@@ -71,7 +71,7 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="inline-flex items-center gap-2 rounded-card border border-line px-3 py-2 text-sm font-semibold text-ink hover:bg-cream"
+                className="inline-flex items-center gap-2 rounded-card border border-border-default px-3 py-2 text-sm font-semibold text-text-primary hover:bg-bg-secondary"
               >
                 <Upload className="h-4 w-4" />
                 Upload CSV
@@ -83,7 +83,7 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
                 onChange={onFile}
                 className="hidden"
               />
-              <span className="text-xs text-stone">or paste below</span>
+              <span className="text-xs text-text-muted">or paste below</span>
             </div>
 
             <textarea
@@ -91,12 +91,12 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
               onChange={(e) => setText(e.target.value)}
               rows={8}
               placeholder={"email,name,company\nava@acme.co,Ava Reynolds,Acme"}
-              className="mt-3 w-full rounded-card border border-line p-3 font-mono text-sm"
+              className="mt-3 w-full rounded-card border border-border-default p-3 font-mono text-sm"
             />
 
             {text.trim() !== "" && (
               <div className="mt-3 space-y-2 text-sm">
-                <p className="flex items-center gap-2 font-semibold text-ink">
+                <p className="flex items-center gap-2 font-semibold text-text-primary">
                   <Users className="h-4 w-4" />
                   {parsed.rows.length} guest
                   {parsed.rows.length === 1 ? "" : "s"} ready to import
@@ -124,7 +124,7 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-card px-4 py-2 text-sm font-semibold text-stone hover:bg-cream"
+                className="rounded-card px-4 py-2 text-sm font-semibold text-text-muted hover:bg-bg-secondary"
               >
                 Cancel
               </button>
@@ -144,11 +144,11 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
 
         {result && (
           <div className="mt-4 space-y-3 text-sm">
-            <p className="flex items-center gap-2 font-semibold text-ink">
+            <p className="flex items-center gap-2 font-semibold text-text-primary">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               {result.added_to_event} added to this event
             </p>
-            <p className="text-stone">
+            <p className="text-text-muted">
               {result.created} new account{result.created === 1 ? "" : "s"}{" "}
               created, {result.skipped} already had one. Everyone new gets an
               invitation email with their own sign-in link.
