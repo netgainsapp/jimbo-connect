@@ -1,5 +1,12 @@
 # Intro Connect growth kit
 
+> **2026-07-31: the go to market campaign lives in `campaign/`.** Start at
+> `campaign/README.md`. It extends this kit with two segment sequences (brand
+> signed, per founder decision), a vetted target pipeline, the founding host
+> offer, social and blog calendars, and the demo script. The sequence in this
+> folder remains the generic base; `campaign/positioning.md` is now the source
+> of truth for voice and claims.
+
 Staged assets for host acquisition. Nothing here sends on its own. You review,
 then trigger sends through signal-scout (outbound) or the product (nurture).
 
