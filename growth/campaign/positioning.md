@@ -8,8 +8,13 @@ constraints from the founder: brand voice only, zero ad budget, outreach first.
 
 **Your event should outlive the night.**
 
-Longer form: Intro Connect turns any event into a private directory of everyone
-who came, so the connections made in the room survive the week after it.
+The knife, for heroes and one pagers (dark first, mechanism second):
+**The room empties. The network should not.** Intro Connect keeps everyone who
+came in one private directory, still talking long after the night.
+
+Longer form, for body copy: Intro Connect turns any event into a private
+directory of everyone who came, so the connections made in the room survive
+the week after it.
 
 ## Who we are selling to (two tracks)
 
