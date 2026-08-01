@@ -1,0 +1,325 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Intro Connect one pager</title>
+<style>
+  /* Brand tokens, verbatim from the product's Tailwind configs. */
+  :root {
+    --ink: #0D1B2A;
+    --primary: #2563EB;
+    --primary-dark: #1D4ED8;
+    --cream: #F2F4F7;
+    --stone: #6B7280;
+    --line: #E4E6EA;
+    --soft-blue: #4F8DF7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: Letter; margin: 0; }
+  html, body { width: 8.5in; }
+  body {
+    min-height: 11in;
+    font-family: Calibri, "Segoe UI", system-ui, sans-serif;
+    color: var(--ink);
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- top band ---------- */
+  .top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.36in 0.55in 0.12in;
+  }
+  .wordmark { display: flex; align-items: center; gap: 10px; }
+  .wordmark .name { font-size: 17pt; font-weight: 800; letter-spacing: -0.3px; }
+  .wordmark .name span { font-weight: 400; }
+  .tagline {
+    font-size: 6.6pt; font-weight: 700; letter-spacing: 0.22em;
+    color: var(--stone); text-transform: uppercase; text-align: right; line-height: 1.7;
+  }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 0.12in 0.55in 0.15in; }
+  .hero h1 {
+    font-size: 29pt; font-weight: 800; letter-spacing: -0.6px; line-height: 1.05;
+  }
+  .hero h1 em { font-style: normal; color: var(--primary); }
+  .hero p {
+    margin-top: 7px; font-size: 11.2pt; color: var(--stone); line-height: 1.5; max-width: 6.6in;
+  }
+
+  /* ---------- middle: two columns ---------- */
+  .middle {
+    display: flex; gap: 0.32in; padding: 0.06in 0.55in 0.14in;
+  }
+  .col-left { flex: 1.16; min-width: 0; display: flex; flex-direction: column; }
+  .col-right { flex: 0.9; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+
+  .kicker {
+    font-size: 7.8pt; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--primary); margin-bottom: 7px;
+  }
+  .problem { font-size: 10.6pt; line-height: 1.5; color: var(--ink); }
+  .problem strong { font-weight: 700; }
+
+  .steps { margin-top: 12px; }
+  .step { display: flex; gap: 10px; margin-top: 8px; align-items: flex-start; }
+  .step .n {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--primary); color: #fff; font-size: 8.6pt; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex: none; margin-top: 1px;
+  }
+  .step p { font-size: 9.9pt; line-height: 1.38; }
+  .step p strong { font-weight: 700; }
+
+  .features { margin-top: 13px; }
+  .feature-grid {
+    margin-top: 7px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px;
+  }
+  .feature { display: flex; gap: 8px; font-size: 9.2pt; line-height: 1.34; align-items: flex-start; }
+  .feature::before {
+    content: ""; width: 5px; height: 5px; background: var(--primary);
+    border-radius: 1px; flex: none; margin-top: 5px;
+  }
+
+  /* ---------- product vignette ---------- */
+  .vignette {
+    background: var(--cream); border-radius: 12px; padding: 10px;
+  }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 9px; padding: 11px;
+  }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .card-head .ev { font-size: 11.2pt; font-weight: 800; letter-spacing: -0.2px; }
+  .card-head .ct { font-size: 8.2pt; font-weight: 600; color: var(--stone); }
+  .person {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; margin-top: 6px;
+  }
+  .person .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .person img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+  .person .nm { font-size: 9.6pt; font-weight: 700; line-height: 1.2; }
+  .person .rl { font-size: 8pt; color: var(--stone); line-height: 1.2; }
+  .bookmark { width: 12px; height: 14px; flex: none; }
+
+  .note {
+    margin-top: 9px; background: #FEF3C7; border-radius: 8px; padding: 8px 11px;
+    font-family: Georgia, serif; font-style: italic; font-size: 8.8pt; line-height: 1.35;
+    color: #713F12; transform: rotate(-0.6deg);
+  }
+  .note .by { font-style: normal; font-family: Calibri, "Segoe UI", sans-serif;
+    font-size: 6.6pt; font-weight: 700; color: #A16207; letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 3px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+    font-size: 8.4pt; font-weight: 700; color: var(--ink); background: #fff;
+  }
+  .chip.blue { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  /* ---------- who it is for ---------- */
+  .whofor {
+    margin: 0 0.55in 0.12in; background: var(--cream); border-radius: 12px;
+    padding: 11px 16px 12px;
+  }
+  .whofor .row { display: flex; gap: 22px; margin-top: 6px; }
+  .whofor .aud { flex: 1; }
+  .whofor .aud .t { font-size: 9.6pt; font-weight: 800; letter-spacing: -0.1px; }
+  .whofor .aud .d { font-size: 8.4pt; color: var(--stone); line-height: 1.4; margin-top: 3px; }
+
+  /* ---------- pricing ---------- */
+  .pricing { padding: 0 0.55in 0.10in; }
+  .price-row { display: flex; gap: 10px; }
+  .plan {
+    flex: 1; border: 1px solid var(--line); border-radius: 11px; padding: 11px 14px;
+  }
+  .plan.pro { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .plan .pn { font-size: 8.6pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); }
+  .plan.pro .pn { color: var(--soft-blue); }
+  .plan .pp { font-size: 15.5pt; font-weight: 800; margin-top: 3px; letter-spacing: -0.3px; }
+  .plan .pp small { font-size: 8.8pt; font-weight: 600; color: var(--stone); letter-spacing: 0; }
+  .plan.pro .pp small { color: rgba(255,255,255,0.65); }
+  .plan .pd { font-size: 8.6pt; color: var(--stone); margin-top: 4px; line-height: 1.4; }
+  .plan.pro .pd { color: rgba(255,255,255,0.8); }
+  .never {
+    margin-top: 8px; text-align: center; font-size: 9.6pt; font-weight: 700;
+    color: var(--primary); letter-spacing: 0.02em;
+  }
+
+  /* ---------- footer band ---------- */
+  .foot {
+    margin-top: auto;
+    background: var(--ink); color: #fff;
+    padding: 0.20in 0.55in 0.22in;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .foot .cta .big { font-size: 14.5pt; font-weight: 800; letter-spacing: -0.2px; }
+  .foot .cta .sub { font-size: 9.4pt; color: rgba(255,255,255,0.72); margin-top: 2px; }
+  .foot .url { text-align: right; }
+  .foot .url .u { font-size: 17pt; font-weight: 800; color: var(--soft-blue); letter-spacing: -0.2px; }
+  .foot .url .t { font-size: 6.4pt; font-weight: 700; letter-spacing: 0.22em;
+    color: rgba(255,255,255,0.55); text-transform: uppercase; margin-top: 3px; }
+</style>
+</head>
+<body>
+
+  <div class="top">
+    <div class="wordmark">
+      <svg width="34" height="34" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g fill="#2563EB">
+          <circle cx="18" cy="14" r="7"/>
+          <path d="M8 28 a4 4 0 0 1 4 -4 h12 a4 4 0 0 1 4 4 v6 h-6 v8 h6 v6 a4 4 0 0 1 -4 4 h-12 a4 4 0 0 1 -4 -4 z"/>
+        </g>
+        <g fill="#0D1B2A">
+          <circle cx="46" cy="14" r="7"/>
+          <path d="M56 28 a4 4 0 0 0 -4 -4 h-12 a4 4 0 0 0 -4 4 v6 h6 v8 h-6 v6 a4 4 0 0 0 4 4 h12 a4 4 0 0 0 4 -4 z"/>
+        </g>
+      </svg>
+      <div class="name">Intro <span>Connect</span></div>
+    </div>
+    <div class="tagline">Host better. Connect deeper.<br>Build what matters.</div>
+  </div>
+
+  <div class="hero">
+    <h1>Your event should <em>outlive the night.</em></h1>
+    <p>Intro Connect turns any event into a private directory of everyone who came,
+       so the connections made in the room survive the week after it.</p>
+  </div>
+
+  <div class="middle">
+    <div class="col-left">
+      <div>
+        <div class="kicker">The problem</div>
+        <p class="problem">You get the right people into a room and they have real
+        conversations. Then everyone goes home, and by Monday it is business cards
+        in a drawer and first names without last names. <strong>The follow up that
+        should happen mostly does not.</strong></p>
+      </div>
+
+      <div class="steps">
+        <div class="kicker" style="margin-top:2px">How it works</div>
+        <div class="step"><div class="n">1</div><p><strong>Create the event.</strong> You get a join code and a link. About five minutes.</p></div>
+        <div class="step"><div class="n">2</div><p><strong>Guests join in the browser</strong> at the event, or arrive imported from your spreadsheet, Eventbrite, or Meetup. Nothing to install.</p></div>
+        <div class="step"><div class="n">3</div><p><strong>The directory stays live.</strong> People find each other, message directly, and the room keeps talking.</p></div>
+      </div>
+
+      <div class="features">
+        <div class="kicker">What you get</div>
+        <div class="feature-grid">
+          <div class="feature">Searchable attendee directory with photos and roles</div>
+          <div class="feature">Direct messages, scoped to people who shared a room</div>
+          <div class="feature">Saved contacts with private notes only you see</div>
+          <div class="feature">Guest list import in one paste</div>
+          <div class="feature">Invitations sent for you, editable in your words</div>
+          <div class="feature">Announcements everyone on the event sees</div>
+          <div class="feature">A three question survey, totals not names</div>
+          <div class="feature">Sponsor tiles from a pasted URL</div>
+          <div class="feature">Free agenda builder with Word export</div>
+          <div class="feature">Your logo and color on Pro</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-right">
+      <div class="vignette">
+        <div class="card">
+          <div class="card-head">
+            <div class="ev">Denver Founders Dinner</div>
+            <div class="ct">24 attendees</div>
+          </div>
+          <div class="person">
+            <div class="who"><img src="../../../marketing/public/images/avatars/avatar-4.jpg" alt="">
+              <div><div class="nm">Ava Reynolds</div><div class="rl">Founder, Trailhead Labs</div></div></div>
+            <svg class="bookmark" viewBox="0 0 12 14"><path d="M1 1h10v12l-5-3.5L1 13z" fill="#2563EB"/></svg>
+          </div>
+          <div class="person">
+            <div class="who"><img src="../../../marketing/public/images/avatars/avatar-3.jpg" alt="">
+              <div><div class="nm">Ben Carter</div><div class="rl">VP Eng, Summit Robotics</div></div></div>
+            <svg class="bookmark" viewBox="0 0 12 14"><path d="M1 1h10v12l-5-3.5L1 13z" fill="none" stroke="#6B7280"/></svg>
+          </div>
+          <div class="person">
+            <div class="who"><img src="../../../marketing/public/images/avatars/avatar-5.jpg" alt="">
+              <div><div class="nm">Cara Liu</div><div class="rl">Designer, Aspen Studio</div></div></div>
+            <svg class="bookmark" viewBox="0 0 12 14"><path d="M1 1h10v12l-5-3.5L1 13z" fill="#2563EB"/></svg>
+          </div>
+          <div class="person">
+            <div class="who"><img src="../../../marketing/public/images/avatars/avatar-1.jpg" alt="">
+              <div><div class="nm">Diego Martinez</div><div class="rl">Partner, Range Capital</div></div></div>
+            <svg class="bookmark" viewBox="0 0 12 14"><path d="M1 1h10v12l-5-3.5L1 13z" fill="none" stroke="#6B7280"/></svg>
+          </div>
+          <div class="person">
+            <div class="who"><img src="../../../marketing/public/images/avatars/avatar-6.jpg" alt="">
+              <div><div class="nm">Maya Whitfield</div><div class="rl">Owner, Flatiron Coffee Co</div></div></div>
+            <svg class="bookmark" viewBox="0 0 12 14"><path d="M1 1h10v12l-5-3.5L1 13z" fill="#2563EB"/></svg>
+          </div>
+        </div>
+
+        <div class="note">
+          <div class="by">Private note on Cara Liu</div>
+          "Designs for outdoor brands. Patagonia project ends Q3, circle back then."
+        </div>
+      </div>
+
+      <div class="chips">
+        <div class="chip blue">Guests never pay</div>
+        <div class="chip">Nothing to install</div>
+        <div class="chip">Emails never shown to other guests</div>
+        <div class="chip">Opt in cross event directory</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="whofor">
+    <div class="kicker" style="margin-bottom:0">Who it is for</div>
+    <div class="row">
+      <div class="aud">
+        <div class="t">Chambers and business groups</div>
+        <div class="d">Make membership value visible. Members can point at the people they met at every mixer, all year.</div>
+      </div>
+      <div class="aud">
+        <div class="t">Founder and CEO dinners</div>
+        <div class="d">The room you curate is the product. Stay at the center of it, and let every dinner compound the last.</div>
+      </div>
+      <div class="aud">
+        <div class="t">Communities and coworking</div>
+        <div class="d">Recurring events, one living directory. The follow up gap closes once instead of every month.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pricing">
+    <div class="price-row">
+      <div class="plan">
+        <div class="pn">Free</div>
+        <div class="pp">$0</div>
+        <div class="pd">1 active event, up to 50 attendees. Every feature included.</div>
+      </div>
+      <div class="plan">
+        <div class="pn">Starter</div>
+        <div class="pp">$39<small>/mo or $390/yr</small></div>
+        <div class="pd">3 active events, 250 attendees each.</div>
+      </div>
+      <div class="plan pro">
+        <div class="pn">Pro</div>
+        <div class="pp">$99<small>/mo or $990/yr</small></div>
+        <div class="pd">Unlimited events, 2,000 attendees each. Your logo and color.</div>
+      </div>
+    </div>
+    <div class="never">Attendees never pay. Ever. That is the deal.</div>
+  </div>
+
+  <div class="foot">
+    <div class="cta">
+      <div class="big">Try it on your next event.</div>
+      <div class="sub">The first event is free and takes five minutes to set up.</div>
+    </div>
+    <div class="url">
+      <div class="u">intro-connect.com</div>
+      <div class="t">Host better. Connect deeper. Build what matters.</div>
+    </div>
+  </div>
+
+</body>
+</html>
