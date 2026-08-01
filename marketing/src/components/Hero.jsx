@@ -30,7 +30,7 @@ export default function Hero() {
           <h1 className="mt-4 text-5xl sm:text-6xl font-extrabold text-white leading-[1.02] tracking-tight">
             The room empties.
             <br />
-            <span className="text-[#7AA7F7]">The network should not.</span>
+            <span className="text-[#7AA7F7]">The connections should not.</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-white/80 max-w-xl leading-relaxed">
             Intro Connect is an online platform that connects guests after

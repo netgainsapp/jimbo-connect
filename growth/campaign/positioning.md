@@ -18,7 +18,7 @@ that connects guests after the event ends. (When the literal mechanism is
 needed instead: a private directory of everyone who came to your event.)
 
 The knife, for heroes and one pagers (dark first, mechanism second):
-**The room empties. The network should not.** Intro Connect keeps everyone who
+**The room empties. The connections should not.** Intro Connect keeps everyone who
 came in one private directory, still talking long after the night.
 
 Longer form, for body copy (definition first, then a benefit for each side):

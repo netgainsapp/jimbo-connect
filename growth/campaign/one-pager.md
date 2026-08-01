@@ -5,7 +5,7 @@ to one page when rendered. Everything here is true in the product today.
 
 ---
 
-## The room empties. The network should not.
+## The room empties. The connections should not.
 
 **Intro Connect is an online platform that connects guests after the event
 ends.** Your guests reach the people they meant to follow up with. Free to
