@@ -8,13 +8,23 @@ constraints from the founder: brand voice only, zero ad budget, outreach first.
 
 **Your event should outlive the night.**
 
+The lockup, Scott's structure (name, category, reason), for anywhere the
+brand introduces itself cold:
+**Intro Connect. The platform that turns your guest list into a living
+network. Because your event should outlive the night.**
+
+The plain definition inside body copy: Intro Connect is the platform that
+turns your guest list into a living network. (When the literal mechanism is
+needed instead: a private directory of everyone who came to your event.)
+
 The knife, for heroes and one pagers (dark first, mechanism second):
 **The room empties. The network should not.** Intro Connect keeps everyone who
 came in one private directory, still talking long after the night.
 
-Longer form, for body copy: Intro Connect turns any event into a private
-directory of everyone who came, so the connections made in the room survive
-the week after it.
+Longer form, for body copy (definition first, then a benefit for each side):
+Intro Connect is the platform that turns your guest list into a living
+network. Your guests actually reach the people they meant to follow up with.
+You stay at the center of a network that grows with every event you host.
 
 ## Who we are selling to (two tracks)
 

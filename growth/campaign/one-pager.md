@@ -7,8 +7,9 @@ to one page when rendered. Everything here is true in the product today.
 
 ## Your event should outlive the night.
 
-**Intro Connect turns any event into a private directory of everyone who
-came**, so the connections made in the room survive the week after it.
+**The room empties. The network should not.** Intro Connect is the platform
+that turns your guest list into a living network: your guests reach the
+people they meant to follow up with, and you keep what you created.
 
 ### The problem
 
