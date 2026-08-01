@@ -171,6 +171,10 @@ async def create_checkout_session(
             client_reference_id=str(user["_id"]),
             success_url=success_url,
             cancel_url=cancel_url,
+            # Lets a customer enter a promotion code (e.g. FOUNDINGHOST) on the
+            # Stripe-hosted page. Codes only exist if created in the Stripe
+            # dashboard; with none defined the field simply does not render.
+            allow_promotion_codes=True,
             metadata={"user_id": str(user["_id"]), "plan": plan, "period": period},
         )
         return {"url": session.url}
