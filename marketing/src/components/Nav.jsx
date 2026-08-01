@@ -6,6 +6,10 @@ const LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#features", label: "Features" },
   { href: "#pricing", label: "Pricing" },
+  // Anchors to the section, deliberately NOT straight to the PDF: the form is
+  // the only place the site captures a lead, and a direct file link would
+  // hand over the one pager and skip it.
+  { href: "#one-pager", label: "One pager" },
   { href: "#faq", label: "FAQ" },
   // Free tool. A linkable tool page is the strongest organic surface the site
   // has, so it gets a nav slot rather than being buried in the footer.
