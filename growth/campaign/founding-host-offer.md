@@ -40,20 +40,21 @@ Checkout already passes `allow_promotion_codes` (shipped 2026-08-01), so the
 hosted page shows a code field the moment codes exist. Two coupons are needed,
 because a fixed amount off cannot produce two different target prices:
 
-| Plan | Normal | Founding | Coupon | Promotion code |
-| --- | --- | --- | --- | --- |
-| Starter annual | $390 | **$199** | $191 amount off | `FOUNDINGHOST` |
-| Pro annual | $990 | **$699** | $291 amount off | `FOUNDINGPRO` |
+| Plan | Normal | Founding | Coupon | Promotion code | Max redemptions |
+| --- | --- | --- | --- | --- | --- |
+| Starter annual | $390 | **$199** | $191 amount off | `FOUNDINGHOST` | **15** |
+| Pro annual | $990 | **$699** | $291 amount off | `FOUNDINGPRO` | **5** |
 
-Both: duration **once** (renewals bill at the full price), max redemptions 20.
+Both: duration **once**, so renewals bill at the full price.
+
+**The 15 / 5 split is deliberate** (Scott, 2026-08-01). Stripe counts
+redemptions per code, not per offer, so 20 and 20 would quietly allow 40
+discounted spots. Fifteen plus five keeps the promise of "exactly 20 founding
+hosts" literally true.
 
 ⚠️ **Restrict each coupon to its own product** (`applies_to` in Stripe). An
 unrestricted $291 off would let someone put the Pro code on the Starter plan
 and pay $99. This is the one setting that turns a discount into a hole.
-
-⚠️ The cap is **per code**: Stripe counts each one separately, so 20 and 20 is
-up to 40 founding hosts, not 20 total. If 20 total is the real intent, split
-the caps (e.g. 15 Starter / 5 Pro) or plan to close one code by hand.
 
 Until the codes exist, every public surface says "reply to claim" rather than
 naming a code, so nothing breaks in the meantime.
