@@ -5,11 +5,11 @@ to one page when rendered. Everything here is true in the product today.
 
 ---
 
-## Your event should outlive the night.
+## The room empties. The connections should not.
 
-**The room empties. The network should not.** Intro Connect is the platform
-that turns your guest list into a living network: your guests reach the
-people they meant to follow up with, and you keep what you created.
+**Intro Connect is an online platform that connects guests after the event
+ends.** Your guests reach the people they meant to follow up with. Free to
+run your next event. Attendees never pay.
 
 ### The problem
 
@@ -33,15 +33,13 @@ and the value you created quietly expires.
 - Invitations sent automatically, in your words if you want: the email
   templates are editable per host.
 - Announcements to the whole room, on the page and from your own email.
-- A three question survey, answered 1 to 5. You see totals, never names.
 - Sponsor tiles from a pasted URL.
-- Your logo and color on event pages and guest emails on Pro.
 - The network you built, still yours next month.
 
 ### How it works
 
 1. Create the event. You get a join code and a link. About five minutes.
-2. Guests join in the browser at the event, or arrive imported ahead of it.
+2. Quickly import your list from a spreadsheet, Eventbrite, or Meetup.
 3. After the night, the directory stays live and the room keeps talking.
 
 ### Pricing
@@ -56,8 +54,8 @@ and the value you created quietly expires.
 Every feature above is on every plan. Paid plans buy capacity, plus branding
 on Pro.
 
-### Try it on your next event
+### Try it free for your next event
 
-The first event is free and takes five minutes to set up.
+Setup takes about five minutes.
 
 **intro-connect.com**

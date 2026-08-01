@@ -28,14 +28,14 @@ export default function Hero() {
             For event hosts
           </div>
           <h1 className="mt-4 text-5xl sm:text-6xl font-extrabold text-white leading-[1.02] tracking-tight">
-            The room shouldn't disappear
+            The room empties.
             <br />
-            <span className="text-[#7AA7F7]">by Monday.</span>
+            <span className="text-[#7AA7F7]">The connections should not.</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-white/80 max-w-xl leading-relaxed">
-            Intro Connect turns every event you host into a private,
-            searchable directory of everyone who came. Real introductions.
-            Real follow-up. A network that compounds.
+            Intro Connect is an online platform that connects guests after
+            the event ends. Your guests reach the people they meant to
+            follow up with.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href="#pricing" className="btn-primary">
@@ -49,7 +49,7 @@ export default function Hero() {
             </a>
           </div>
           <p className="mt-4 text-xs text-white/70 tracking-wide">
-            Free plan · No credit card · Free for guests, forever
+            Free to run your next event · No credit card · Attendees never pay
           </p>
         </div>
 
