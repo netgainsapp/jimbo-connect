@@ -110,6 +110,7 @@
  "POST /api/invites/tick",
  "POST /api/messages",
  "POST /api/nurture/tick",
+ "POST /api/one-pager",
  "POST /api/profile/photo",
  "POST /api/unsubscribe",
  "POST /api/webhooks/resend",

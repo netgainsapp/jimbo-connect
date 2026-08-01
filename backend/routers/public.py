@@ -3,10 +3,15 @@ cron ticks, CAN-SPAM unsubscribe, and the Resend webhook. Moved verbatim from
 server.py (M13)."""
 import json
 import os
+import re
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, PlainTextResponse
+from pydantic import BaseModel
 
+import database
+import email_send
 import invites
 import nurture
 import rate_limit
@@ -17,7 +22,7 @@ from blog import render as blog_render
 from blog.store import list_published, get_by_slug
 from news import render as news_render
 from news import store as news_store
-from core import _tick_authorized
+from core import ADMIN_EMAIL, _tick_authorized
 
 router = APIRouter()
 
@@ -191,6 +196,73 @@ _UNSUB_BAD_HTML = """<!doctype html>
 <p style="color:#555">The unsubscribe link looks incomplete or altered.
 Reply to any email from us and a real person will take you off the list.</p>
 </body></html>"""
+
+
+# ---------- one pager lead capture (marketing site form) ----------
+
+_LEAD_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+ONE_PAGER_URL = "https://intro-connect.com/intro-connect-one-pager.pdf"
+
+
+class OnePagerRequest(BaseModel):
+    email: str
+    name: str = ""
+    # Honeypot. The form hides this field, so a value here means a bot filled
+    # in every input it found.
+    website: str = ""
+
+
+@router.post("/api/one-pager")
+async def request_one_pager(payload: OnePagerRequest, request: Request):
+    """Store the lead, email the one pager link with the founding host offer,
+    and copy the admin inbox. The PDF itself is public on the marketing site;
+    the form is a soft gate whose real product is the lead."""
+    email = (payload.email or "").strip().lower()
+    if not _LEAD_EMAIL_RE.match(email):
+        raise HTTPException(status_code=400, detail="Enter a valid email address.")
+    if payload.website.strip():
+        # Pretend success so the bot learns nothing.
+        return {"ok": True, "url": ONE_PAGER_URL}
+    rate_limit.guard(
+        request, "one_pager", limit=5, window_seconds=3600, identifier=email
+    )
+    now = datetime.now(timezone.utc)
+    await database.one_pager_leads.update_one(
+        {"email": email},
+        {
+            "$set": {"name": (payload.name or "").strip()[:120], "last_requested_at": now},
+            "$setOnInsert": {
+                "email": email,
+                "created_at": now,
+                "source": "marketing_one_pager",
+            },
+        },
+        upsert=True,
+    )
+    result = await email_send.send_branded(
+        email,
+        "Your Intro Connect one pager",
+        heading="Here is the one pager",
+        paragraphs=[
+            "Intro Connect is an online platform that connects guests after "
+            "the event ends. The one pager fits the whole story on a single "
+            "page: how it works, what you get, and pricing.",
+            "Founding host special: your first year of Starter for $199 "
+            "instead of $390, for the first 20 founding hosts. Reply to this "
+            "email to claim a spot.",
+        ],
+        button={"label": "Open the one pager", "url": ONE_PAGER_URL},
+        marketing=True,
+    )
+    if ADMIN_EMAIL:
+        who = email + (f" ({payload.name.strip()})" if (payload.name or "").strip() else "")
+        await email_send.send_email(
+            ADMIN_EMAIL,
+            f"One pager request: {email}",
+            f"<p>{who} requested the one pager from the marketing site.</p>",
+        )
+    return {"ok": True, "sent": bool(result.get("sent")), "url": ONE_PAGER_URL}
 
 
 @router.get("/api/unsubscribe", response_class=HTMLResponse)

@@ -22,6 +22,10 @@ blog_topic = db["blog_topic"]
 app_flags = db["app_flags"]
 event_invites = db["event_invites"]
 outreach_leads = db["outreach_leads"]
+# Inbound "send me the one pager" requests from the marketing site form.
+# Upserted by email, so a repeat request refreshes the row instead of
+# duplicating it.
+one_pager_leads = db["one_pager_leads"]
 suppressed_emails = db["suppressed_emails"]
 news_article = db["news_article"]
 # Saved agendas from the Agenda Builder. Anonymous drafts are NOT stored here:
