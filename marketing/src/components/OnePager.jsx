@@ -4,22 +4,38 @@ import { ArrowRight, CheckCircle2, FileText } from "lucide-react";
 const API_BASE =
   import.meta.env.VITE_API_URL || "https://jimbo-connect-api-rdkp.onrender.com";
 
+const PDF_URL = "/intro-connect-one-pager.pdf";
+
+// The API sleeps when the host tier is idle, so the first request after a quiet
+// spell pays a cold start. Long enough to survive that, short enough that a
+// genuinely dead request stops pretending to work.
+const TIMEOUT_MS = 30000;
+const SLOW_NOTICE_MS = 6000;
+
 export default function OnePager() {
   const [email, setEmail] = useState("");
   const [hp, setHp] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error
   const [error, setError] = useState("");
+  const [slow, setSlow] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
     if (status === "sending") return;
     setStatus("sending");
     setError("");
+    setSlow(false);
+
+    const controller = new AbortController();
+    const slowTimer = setTimeout(() => setSlow(true), SLOW_NOTICE_MS);
+    const abortTimer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
     try {
       const r = await fetch(`${API_BASE}/api/one-pager`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, website: hp }),
+        signal: controller.signal,
       });
       if (!r.ok) {
         const body = await r.json().catch(() => ({}));
@@ -30,7 +46,15 @@ export default function OnePager() {
       setStatus("sent");
     } catch (err) {
       setStatus("error");
-      setError(err.message);
+      setError(
+        err.name === "AbortError"
+          ? "That took longer than it should have."
+          : err.message
+      );
+    } finally {
+      clearTimeout(slowTimer);
+      clearTimeout(abortTimer);
+      setSlow(false);
     }
   }
 
@@ -70,7 +94,7 @@ export default function OnePager() {
                     <div className="text-sm text-white/70 mt-1">
                       The founding host special is inside.{" "}
                       <a
-                        href="/intro-connect-one-pager.pdf"
+                        href={PDF_URL}
                         target="_blank"
                         rel="noopener"
                         className="underline text-white hover:text-[#7AA7F7] transition"
@@ -121,8 +145,25 @@ export default function OnePager() {
                     </button>
                   </div>
                   <div aria-live="polite">
+                    {status === "sending" && slow && (
+                      <p className="mt-3 text-sm text-white/70">
+                        Still working. The server is waking up, which takes a
+                        few seconds the first time.
+                      </p>
+                    )}
                     {status === "error" && (
-                      <p className="mt-3 text-sm text-red-300">{error}</p>
+                      <p className="mt-3 text-sm text-red-300">
+                        {error}{" "}
+                        <a
+                          href={PDF_URL}
+                          target="_blank"
+                          rel="noopener"
+                          className="underline text-white hover:text-[#7AA7F7] transition"
+                        >
+                          Open the one pager directly
+                        </a>
+                        , or try again in a moment.
+                      </p>
                     )}
                   </div>
                   <p className="mt-3 text-xs text-white/60 tracking-wide">
@@ -135,7 +176,7 @@ export default function OnePager() {
 
             <div className="lg:col-span-5">
               <a
-                href="/intro-connect-one-pager.pdf"
+                href={PDF_URL}
                 target="_blank"
                 rel="noopener"
                 className="block max-w-[340px] mx-auto rotate-2 hover:rotate-0 transition-transform duration-300"
