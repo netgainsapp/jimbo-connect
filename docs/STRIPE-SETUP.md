@@ -20,12 +20,19 @@ All four live prices, read off the dashboard 2026-08-01:
 | Pro monthly | `STRIPE_PRICE_PRO` | `price_1Tz30uPFMQathI2d89z8wMwp` | `prod_Uz12vWJXaF3Lho` | $99 / mo |
 | Pro annual | `STRIPE_PRICE_PRO_ANNUAL` | `price_1Tz339PFMQathI2dcz0chSQy` | `prod_Uz15VBto5pji6x` | $990 / yr |
 
-✅ The two **annual** vars were confirmed matching on Render 2026-08-01.
-⚠️ The two **monthly** vars were NOT checked. `available_periods()` offers a
-period to the UI whenever its `STRIPE_PRICE_*` var is non-empty — it does not
-validate the value. So a stale test-mode monthly ID still shows the monthly
-option in the app and then fails at checkout, because Stripe rejects a test
-price under a live key. Compare both monthly vars against the table above.
+✅ **All four verified live 2026-08-01.** The annual pair was compared by eye on
+Render; then all four were proven *functionally* by creating a real checkout
+session for each plan/period against the live API. Every one returned a session
+URL, which a stale test-mode price could not do — Stripe rejects a test price
+under a live key.
+
+⭐ **Reusable check, costs nothing:** register a throwaway account, `POST
+/api/billing/checkout` for each of the four plan/period pairs, assert a `url`
+comes back, delete the account. Creating a session never charges anyone, so
+this is safe to re-run any time the price vars change. Beats reading the env
+vars, which Render masks anyway. Note `available_periods()` only tests that a
+`STRIPE_PRICE_*` var is non-empty — it never validates the value, so a bad ID
+would still show the option in the UI and only fail at checkout.
 
 ### ✅ Founding host coupons CREATED LIVE 2026-08-01
 
