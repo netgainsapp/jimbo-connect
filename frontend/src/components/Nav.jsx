@@ -12,6 +12,8 @@ import {
   Globe2,
   Menu,
   X,
+  ArrowUpCircle,
+  CreditCard,
 } from "lucide-react";
 import Avatar from "./Avatar.jsx";
 import { Mark } from "./Logo.jsx";
@@ -59,6 +61,35 @@ export default function Nav() {
   const navItem =
     "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-sm font-semibold text-text-secondary hover:bg-bg-secondary";
   const activeNavItem = "text-primary bg-primary/5";
+
+  // Until this existed, /upgrade was only reachable from inside the create
+  // event form, or by hitting a limit and being redirected. Someone who simply
+  // wanted to pay had nowhere to click. Tinted rather than plain because it is
+  // a call to action, not another destination.
+  const plan = user?.plan || "free";
+  const canUpgrade = plan !== "pro";
+  const upgradeLink = (
+    <NavLink
+      to="/upgrade"
+      className={({ isActive }) =>
+        canUpgrade
+          ? `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-sm font-bold text-primary bg-primary/10 hover:bg-primary/15 ${
+              isActive ? "bg-primary/15" : ""
+            }`
+          : `${navItem} ${isActive ? activeNavItem : ""}`
+      }
+    >
+      {canUpgrade ? (
+        <>
+          <ArrowUpCircle className="w-4 h-4" /> Upgrade
+        </>
+      ) : (
+        <>
+          <CreditCard className="w-4 h-4" /> Plan
+        </>
+      )}
+    </NavLink>
+  );
 
   const adminLinks = (
     <>
@@ -149,6 +180,7 @@ export default function Nav() {
         {user && (
           <div className="hidden md:flex items-center gap-1">
             {user.is_admin ? adminLinks : attendeeLinks}
+            {!user.is_admin && upgradeLink}
           </div>
         )}
 
@@ -232,6 +264,7 @@ export default function Nav() {
             </Link>
             <div className="border-t border-border-default my-1" />
             {user.is_admin ? adminLinks : attendeeLinks}
+            {!user.is_admin && upgradeLink}
             <div className="border-t border-border-default my-1" />
             <button
               onClick={handleLogout}
