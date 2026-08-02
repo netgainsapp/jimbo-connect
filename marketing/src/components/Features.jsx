@@ -60,7 +60,7 @@ const ALSO = [
   ["Editable email templates", "The invitation, save the date, day of, and post event emails, rewritten in your words."],
   ["Sponsor tiles from a URL", "Paste a link and we pull the headline, image, and description."],
   ["Add to calendar", "One tap on the event page saves it to any calendar app."],
-  ["CSV import from anywhere", "Eventbrite, Meetup, your spreadsheet."],
+  ["CSV import from anywhere", "An Eventbrite export, or your own spreadsheet."],
   ["Host announcements", "Post an update to your event page for everyone, and send it from your own email if you want inboxes too."],
   ["A three question survey", "Guests answer 1 to 5. You see the totals, never who said what."],
   ["Cross event directory", "Guests who opt in can be found and messaged by people from other events. Email addresses are never shown."],

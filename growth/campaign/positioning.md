@@ -67,7 +67,11 @@ copy on sight.
 - Host announcements on the event page, plus send from your own email.
 - A three question survey, answered 1 to 5. Hosts see totals, never names.
 - Cross event directory for guests who opt in. Emails are never shown.
-- Guest list import from CSV, Eventbrite, Meetup, or a pasted spreadsheet.
+- Guest list import from CSV, an Eventbrite attendee export, or a pasted
+  spreadsheet. Names split across first and last columns are joined.
+  ⚠️ NOT Meetup: verified 2026-08-02 against a real export, Meetup does not
+  include attendee email addresses, so there is nobody to invite. Do not put
+  Meetup back in any claim.
 - Editable email templates: the invitation and event emails in your words.
 - Free agenda builder that exports a real Word document. No account needed.
 - Add to calendar for every attendee.

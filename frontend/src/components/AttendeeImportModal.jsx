@@ -79,10 +79,9 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
       <div className="p-6">
         <h2 className="text-xl font-bold text-text-primary">Import your guest list</h2>
         <p className="mt-1 text-sm text-text-muted">
-          Paste from a spreadsheet or upload a CSV. Export the attendee list
-          from Eventbrite, Meetup, or wherever your guests came from. A header
-          row is optional, and a name split across first and last columns is
-          joined for you.
+          Paste from a spreadsheet or upload a CSV. An Eventbrite attendee
+          export works as is. A header row is optional, and a name split across
+          first and last columns is joined for you.
         </p>
 
         {!result && (

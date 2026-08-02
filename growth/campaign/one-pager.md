@@ -29,7 +29,7 @@ and the value you created quietly expires.
 
 ### What you get
 
-- Guest list import in one paste, from a spreadsheet, Eventbrite, or Meetup.
+- Guest list import in one paste, from a spreadsheet or an Eventbrite export.
 - Invitations sent automatically, in your words if you want: the email
   templates are editable per host.
 - Announcements to the whole room, on the page and from your own email.
@@ -39,7 +39,7 @@ and the value you created quietly expires.
 ### How it works
 
 1. Create the event. You get a join code and a link. About five minutes.
-2. Quickly import your list from a spreadsheet, Eventbrite, or Meetup.
+2. Quickly import your list from a spreadsheet or an Eventbrite export.
 3. After the night, the directory stays live and the room keeps talking.
 
 ### Pricing
