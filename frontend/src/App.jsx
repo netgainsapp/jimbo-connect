@@ -32,6 +32,7 @@ import AgendaConvert from "./pages/AgendaConvert.jsx";
 import MarketingNav from "./components/marketing/MarketingNav.jsx";
 import MarketingFooter from "./components/marketing/MarketingFooter.jsx";
 import Upgrade from "./pages/Upgrade.jsx";
+import VerifyEmailBanner from "./components/VerifyEmailBanner.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 
 export default function App() {
@@ -53,6 +54,10 @@ export default function App() {
           marketing nav is `sticky` and occupies its own space, so padding
           there would leave a visible gap under the header. */}
       <main className={`${marketingSurface ? "" : "pt-14"} flex-1`}>
+        {/* Inside <main> rather than as a sibling above it: the app nav is
+            fixed, so anything above would render underneath it. Returns null
+            for admins, verified users, and signed-out visitors. */}
+        {!marketingSurface && <VerifyEmailBanner />}
         <Routes>
           <Route
             path="/"

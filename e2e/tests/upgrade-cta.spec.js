@@ -64,3 +64,21 @@ test("a free user can reach the upgrade page from the nav", async ({ page }) => 
   await expect(page).toHaveURL(/\/upgrade/);
   await expect(page.getByRole("heading", { name: "Plans" })).toBeVisible();
 });
+
+// Companion defect, same shape: email verification was issued on signup and
+// then never surfaced. The token and resend endpoint worked; nothing in the UI
+// referenced either, so a typo'd address looked like a healthy account.
+test("an unverified user is told to confirm their email", async ({ page }) => {
+  await page.goto(`${WEB_URL}/login`);
+  await page.fill('input[type="email"]', ACCT.email);
+  await page.fill('input[type="password"]', ACCT.password);
+  await page.click('button[type="submit"]');
+  await expect(page).toHaveURL(/\/events/);
+
+  await expect(page.getByText("Confirm your email.")).toBeVisible();
+  // The address is echoed so a typo is obvious at a glance.
+  await expect(page.getByText(ACCT.email, { exact: false })).toBeVisible();
+  // Deliberately NOT clicked: resend is capped at 3/hour per IP, so exercising
+  // it here would make this suite flaky and burn a real send each run.
+  await expect(page.getByRole("button", { name: "Resend" })).toBeVisible();
+});
