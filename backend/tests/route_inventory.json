@@ -64,6 +64,7 @@
  "GET /api/profile/{user_id}",
  "GET /api/unsubscribe",
  "GET /blog",
+ "GET /blog/cover/{filename}",
  "GET /blog/{slug}",
  "GET /news",
  "GET /news/{slug}",

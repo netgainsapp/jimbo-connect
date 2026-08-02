@@ -117,6 +117,24 @@ async def blog_index():
     )
 
 
+# Two path segments, so this cannot be shadowed by /blog/{slug} above it.
+@router.get("/blog/cover/{filename}")
+async def blog_cover(filename: str):
+    """Serve a post's generated cover. Immutable: a new post is a new slug and
+    therefore a new URL, so this never needs revalidating."""
+    from blog import covers
+
+    slug = filename[:-4] if filename.endswith(".jpg") else filename
+    data = await covers.load(slug)
+    if not data:
+        raise HTTPException(status_code=404, detail="No cover")
+    return Response(
+        content=bytes(data),
+        media_type=covers.CONTENT_TYPE,
+        headers={"Cache-Control": covers.CACHE_CONTROL},
+    )
+
+
 @router.get("/blog/{slug}", response_class=HTMLResponse)
 async def blog_post(slug: str):
     doc = await get_by_slug(slug)

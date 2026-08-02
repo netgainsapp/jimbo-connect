@@ -43,6 +43,7 @@ PUBLIC = {
     ("GET", "/agenda"),
     ("GET", "/blog"),
     ("GET", "/blog/{slug}"),
+    ("GET", "/blog/cover/{filename}"),  # post artwork, served to anyone reading
     ("GET", "/news"),
     ("GET", "/news/{slug}"),
     ("GET", "/robots.txt"),

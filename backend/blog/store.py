@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from database import db
+from . import cover, covers
 from .flags import get_flag
 from .guardrails import check_guardrails
 from .schema import GeneratedPost, slugify
@@ -64,7 +65,33 @@ async def create_post(
     }
     result = await blog_post.insert_one(doc)
     doc["_id"] = result.inserted_id
+
+    # Artwork last, and never fatally. The post is already stored, so a model
+    # that is unconfigured, slow, or refuses simply leaves the post on the
+    # stock pool in blog.images rather than losing the post.
+    await attach_cover(doc)
     return doc
+
+
+async def attach_cover(doc: dict) -> bool:
+    """Generate and store a cover for a post, and point the post at it.
+
+    Returns whether a cover was actually produced. Safe to call on a post that
+    already has one: it does nothing and reports False.
+    """
+    slug = doc.get("slug")
+    if not slug or doc.get("image_url") or await covers.has(slug):
+        return False
+
+    data = await cover.generate(doc.get("title") or "")
+    if not data:
+        return False
+
+    await covers.save(slug, data)
+    path = covers.cover_path(slug)
+    await blog_post.update_one({"_id": doc["_id"]}, {"$set": {"image_url": path}})
+    doc["image_url"] = path
+    return True
 
 
 async def list_published(limit: int = 50) -> list:
