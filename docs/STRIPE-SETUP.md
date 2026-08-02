@@ -11,15 +11,21 @@ Account `acct_1TuDnLPFMQathI2d` ("Intro Connect") is **activated for live
 payments** (publishable key is `pk_live_`). These live objects exist and were
 read directly off the dashboard, so they are exact:
 
-| Live object | ID | Price |
-| --- | --- | --- |
-| Starter Annual (product) | `prod_Uz16SmXKBylFWZ` | $390.00 / year |
-| Starter Annual (price) | `price_1Tz33qPFMQathI2dbD6DkS4Q` | |
-| Pro Annual (product) | `prod_Uz15VBto5pji6x` | $990.00 / year |
-| Pro Annual (price) | `price_1Tz339PFMQathI2dcz0chSQy` | |
+All four live prices, read off the dashboard 2026-08-01:
 
-Monthly products also exist (Starter $39/mo, Pro $99/mo); their price IDs are
-not recorded here because the founding offer is annual only.
+| Plan | Env var | Live price ID | Product | Amount |
+| --- | --- | --- | --- | --- |
+| Starter monthly | `STRIPE_PRICE_STARTER` | `price_1Tz2mlPFMQathI2dmaZuXlIi` | `prod_Uz0oGr7m6tjW45` | $39 / mo |
+| Starter annual | `STRIPE_PRICE_STARTER_ANNUAL` | `price_1Tz33qPFMQathI2dbD6DkS4Q` | `prod_Uz16SmXKBylFWZ` | $390 / yr |
+| Pro monthly | `STRIPE_PRICE_PRO` | `price_1Tz30uPFMQathI2d89z8wMwp` | `prod_Uz12vWJXaF3Lho` | $99 / mo |
+| Pro annual | `STRIPE_PRICE_PRO_ANNUAL` | `price_1Tz339PFMQathI2dcz0chSQy` | `prod_Uz15VBto5pji6x` | $990 / yr |
+
+✅ The two **annual** vars were confirmed matching on Render 2026-08-01.
+⚠️ The two **monthly** vars were NOT checked. `available_periods()` offers a
+period to the UI whenever its `STRIPE_PRICE_*` var is non-empty — it does not
+validate the value. So a stale test-mode monthly ID still shows the monthly
+option in the app and then fails at checkout, because Stripe rejects a test
+price under a live key. Compare both monthly vars against the table above.
 
 ### ✅ Founding host coupons CREATED LIVE 2026-08-01
 
