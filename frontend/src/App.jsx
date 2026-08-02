@@ -33,6 +33,7 @@ import MarketingNav from "./components/marketing/MarketingNav.jsx";
 import MarketingFooter from "./components/marketing/MarketingFooter.jsx";
 import Upgrade from "./pages/Upgrade.jsx";
 import VerifyEmailBanner from "./components/VerifyEmailBanner.jsx";
+import StartFromRoster from "./pages/StartFromRoster.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 
 export default function App() {
@@ -131,6 +132,17 @@ export default function App() {
             element={
               <RequireAuth>
                 <EventDirectory />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/start"
+            element={
+              // Incomplete profiles allowed on purpose: a host arriving with a
+              // guest list should not have to fill in their own job title
+              // before the product will take the file.
+              <RequireAuth allowIncompleteProfile>
+                <StartFromRoster />
               </RequireAuth>
             }
           />

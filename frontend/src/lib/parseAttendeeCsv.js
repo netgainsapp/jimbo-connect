@@ -209,6 +209,36 @@ export function isLikelyEmail(value) {
   return /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/.test(domain);
 }
 
+const EVENT_NAME_ALIASES = ["event name", "event", "event title"];
+
+/**
+ * The event's own name, when the file carries it and every row agrees.
+ *
+ * An Eventbrite export has an Event Name column, which means a host who
+ * uploads their roster has already told us what the event is called. Asking
+ * them to retype it would be asking for something we are holding.
+ *
+ * Returns "" when the column is absent, empty, or disagrees between rows,
+ * because a wrong prefilled name is worse than an empty box.
+ */
+export function suggestEventName(text) {
+  if (String(text ?? "").trim() === "") return "";
+  const delim = detectDelimiter(text);
+  const records = splitRecords(text, delim);
+  if (records.length < 2) return "";
+  if (records[0].cells.some((c) => c.includes("@"))) return ""; // no header row
+  const idx = records[0].cells.findIndex((h) =>
+    EVENT_NAME_ALIASES.includes(h.trim().toLowerCase())
+  );
+  if (idx === -1) return "";
+  const values = records
+    .slice(1)
+    .map((r) => (r.cells[idx] || "").trim())
+    .filter(Boolean);
+  if (values.length === 0) return "";
+  return values.every((v) => v === values[0]) ? values[0] : "";
+}
+
 export function parsePaste(text) {
   if (String(text ?? "").trim() === "") return { rows: [], errors: [] };
 

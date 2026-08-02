@@ -192,7 +192,18 @@ export default function MyEvents() {
 
       {showCreate && (
         <form onSubmit={create} className="card p-4 mb-6 flex flex-col gap-3">
-          <div className="text-sm font-bold text-text-primary">Host a new event</div>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div className="text-sm font-bold text-text-primary">Host a new event</div>
+            {/* Offered here rather than buried: a host who already has the list
+                should not fill this form in by hand and then go find the
+                importer afterwards. */}
+            <Link
+              to="/start"
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              Already have a guest list? Start from that instead
+            </Link>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label" htmlFor="event-name">Event name</label>
