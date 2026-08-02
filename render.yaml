@@ -32,6 +32,17 @@ services:
         value: "https://jimbo-connect-api-rdkp.onrender.com"
       - key: ERROR_HUB_KEY
         sync: false  # Signal Scout error-hub per-project key (ssk_...); blank = reporting disabled
+      # The scheduled ticks (blog, news, nurture, invites) live in GitHub
+      # Actions and authenticate with this shared secret. It must be the SAME
+      # value as the BLOG_TICK_SECRET repo secret. Unset here means every tick
+      # gets a 401, because _tick_authorized fails closed; that is the correct
+      # behaviour and it is also completely silent, so it went unnoticed.
+      - key: BLOG_TICK_SECRET
+        sync: false  # must match the GitHub Actions repo secret exactly
+      # Blog and news generation. Absent means both ticks are harmless no-ops
+      # that report {"skipped": "no_api_key"} rather than failing.
+      - key: ANTHROPIC_API_KEY
+        sync: false  # console.anthropic.com -> API keys
 
   - type: web
     name: jimbo-connect-web
