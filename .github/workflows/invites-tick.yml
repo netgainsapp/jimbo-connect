@@ -22,6 +22,6 @@ jobs:
       - name: Send due invite reminders
         run: |
           curl -fsS -X POST \
-            https://jimbo-connect-api.onrender.com/api/invites/tick \
+            https://jimbo-connect-api-rdkp.onrender.com/api/invites/tick \
             -H "X-Tick-Secret: ${{ secrets.BLOG_TICK_SECRET }}" \
             --max-time 150 --retry 3 --retry-delay 15 --retry-all-errors

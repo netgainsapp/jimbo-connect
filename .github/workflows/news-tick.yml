@@ -28,6 +28,6 @@ jobs:
       - name: Run the news pipeline once
         run: |
           curl -fsS -X POST \
-            https://jimbo-connect-api.onrender.com/api/news/tick \
+            https://jimbo-connect-api-rdkp.onrender.com/api/news/tick \
             -H "X-Tick-Secret: ${{ secrets.BLOG_TICK_SECRET }}" \
             --max-time 240 --retry 3 --retry-delay 15 --retry-all-errors
