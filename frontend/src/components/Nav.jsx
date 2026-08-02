@@ -68,6 +68,16 @@ export default function Nav() {
   // a call to action, not another destination.
   const plan = user?.plan || "free";
   const canUpgrade = plan !== "pro";
+
+  // A paying customer had no way to see they were paying: the plan appeared
+  // nowhere except the /upgrade page, so the product they bought never
+  // acknowledged the purchase. Free users get the CTA instead of a badge.
+  const planBadge =
+    plan === "free" ? null : (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-pill bg-primary/10 text-primary text-[11px] font-extrabold uppercase tracking-wide">
+        {plan}
+      </span>
+    );
   const upgradeLink = (
     <NavLink
       to="/upgrade"
@@ -199,6 +209,7 @@ export default function Nav() {
                 <span className="text-sm font-semibold text-text-primary hidden lg:block">
                   {user.profile?.name || user.email}
                 </span>
+                {!user.is_admin && planBadge}
               </Link>
               {/* Labelled, not icon-only. A bare arrow glyph is a guess for a
                   sighted user and silent to a screen reader; "Log out" is
@@ -258,8 +269,9 @@ export default function Nav() {
                 size={32}
               />
               <div>
-                <div className="font-bold text-text-primary text-sm">
+                <div className="font-bold text-text-primary text-sm flex items-center gap-2">
                   {user.profile?.name || user.email}
+                  {!user.is_admin && planBadge}
                 </div>
                 <div className="text-xs text-text-secondary">View profile</div>
               </div>
