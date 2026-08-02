@@ -47,6 +47,23 @@ attached on each, which is what stops the Pro code being spent on the cheaper
 plan. Checkout already passes `allow_promotion_codes`, so the code field
 renders on the hosted page with no further code change.
 
+### ✅ Both codes proven on the real hosted checkout (2026-08-01)
+
+Opened live checkout (`cs_live_…`) for each annual plan and applied each code:
+
+| Plan | Subtotal | Code | Total today | Renewal shown |
+| --- | --- | --- | --- | --- |
+| Starter Annual | $390.00 | `FOUNDINGHOST` −$191.00 | **$199.00** | $390 / yr next year |
+| Pro Annual | $990.00 | `FOUNDINGPRO` −$291.00 | **$699.00** | $990 / yr next year |
+
+Confirms the discounts compute exactly, and that `duration: once` behaves —
+Stripe itself renders "then $X per year starting next year". Merchant shows as
+"Net Gains, Inc. dba Intro Connect".
+
+⚠️ Still NOT proven: a **completed** payment. Everything above stops at the
+checkout page. The webhook signing secret is only exercised once money actually
+moves, so the plan-upgrade half of the loop remains untested.
+
 ### ⏭ REMAINING BEFORE ANYONE CAN ACTUALLY PAY
 
 Creating live objects in Stripe does nothing on its own — the API has to be
