@@ -155,6 +155,117 @@ POSTS = [
             "somewhere to go back to."
         ),
     },
+    # ---------------------------------------------------------------- topic 5
+    {
+        "topic_id": 5,
+        "published_at": d(2026, 1, 27),
+        "title": "Free alternatives to expensive event apps",
+        "summary": (
+            "Event software is priced for conferences. Most hosts are running "
+            "something much smaller and paying for the wrong problem."
+        ),
+        "sections": [
+            {
+                "heading": "What the expensive tools are actually for",
+                "body": (
+                    "Ticketing, badge printing, check in hardware, session "
+                    "tracking across many rooms. Those are real problems and "
+                    "the paid tools solve them properly. If you are selling "
+                    "tickets to hundreds of people across a multi day "
+                    "programme, buy the thing built for that."
+                ),
+            },
+            {
+                "heading": "What most hosts actually need",
+                "body": (
+                    "A dinner, a mixer, a member evening. One room, one "
+                    "evening, a guest list that fits on a page. None of the "
+                    "expensive machinery applies, and paying for it means "
+                    "funding a feature set you will never open."
+                ),
+            },
+            {
+                "heading": "Be honest about the gaps",
+                "body": (
+                    "Intro Connect does not sell tickets, print badges, or run "
+                    "check in at a door. If you need any of those, we are not "
+                    "the answer and pretending otherwise would waste your time. "
+                    "Keep using a ticketing tool for the front door if you have "
+                    "one."
+                ),
+            },
+            {
+                "heading": "Where the free option is genuinely better",
+                "body": (
+                    "The part after the event, which the expensive tools treat "
+                    "as an afterthought and often switch off when the "
+                    "conference ends. Our directory stays live, guests never "
+                    "pay anything, and the free plan covers a real event rather "
+                    "than a crippled demo of one."
+                ),
+            },
+        ],
+        "cta": (
+            "Keep your ticketing tool if you need one, and run the part after "
+            "the night on the free plan."
+        ),
+    },
+    # --------------------------------------------------------------- topic 10
+    {
+        "topic_id": 10,
+        "published_at": d(2026, 4, 21),
+        "title": "How to get sponsors for a small event",
+        "summary": (
+            "Small events undersell themselves to sponsors by copying the "
+            "logo tiers of events ten times their size."
+        ),
+        "sections": [
+            {
+                "heading": "Stop selling logo placement",
+                "body": (
+                    "Gold, silver and bronze tiers are borrowed from "
+                    "conferences with thousands of attendees, where a logo is "
+                    "genuinely worth something. At a dinner for twenty, nobody "
+                    "is buying visibility. They are buying access to the "
+                    "specific people in that room."
+                ),
+            },
+            {
+                "heading": "Sell the room, honestly",
+                "body": (
+                    "Tell a prospective sponsor who actually attends: the "
+                    "roles, the kinds of companies, roughly how many. A "
+                    "sponsor who knows exactly what they are getting and says "
+                    "yes is worth more than one who agreed to a vague number "
+                    "and feels misled afterward."
+                ),
+            },
+            {
+                "heading": "Give them something a person will see",
+                "body": (
+                    "A logo on a slide that shows for a minute is not a "
+                    "deliverable. A place on the page every guest actually "
+                    "opens, before and after the event, is. Intro Connect "
+                    "builds a sponsor tile from a pasted link, so this costs "
+                    "the host no design time and gives the sponsor something "
+                    "durable."
+                ),
+            },
+            {
+                "heading": "Ask for less than you think",
+                "body": (
+                    "A first sponsorship that is easy to say yes to buys you a "
+                    "relationship and something to point at next time. Hosts "
+                    "routinely ask for a large number once, get declined, and "
+                    "conclude that sponsors are not interested."
+                ),
+            },
+        ],
+        "cta": (
+            "Add your sponsor to your next event page in about a minute by "
+            "pasting their link."
+        ),
+    },
     # ---------------------------------------------------------------- topic 9
     {
         "topic_id": 9,
