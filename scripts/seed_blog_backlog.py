@@ -14,10 +14,19 @@ Idempotent: a slug that already exists is skipped, so re running this is safe.
 Every post is checked against the real guardrails before it is written, so this
 cannot put anything in the database the engine itself would have rejected.
 
-Run it where MONGO_URL is set (Render shell, or locally with the var exported):
+Must run on the backend's own interpreter, which has pydantic and motor. The
+system python does not, and fails with ModuleNotFoundError before it reaches
+anything useful.
 
-    python scripts/seed_blog_backlog.py            # dry run, prints a plan
-    python scripts/seed_blog_backlog.py --apply    # writes
+PowerShell:
+
+    $env:MONGO_URL="<connection string>"
+    backend\.venv\Scripts\python.exe scripts\seed_blog_backlog.py           # plan
+    backend\.venv\Scripts\python.exe scripts\seed_blog_backlog.py --apply   # writes
+
+bash:
+
+    MONGO_URL='<connection string>' backend/.venv/bin/python scripts/seed_blog_backlog.py
 """
 import asyncio
 import os
@@ -26,10 +35,26 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
-from blog.guardrails import check_guardrails  # noqa: E402
-from blog.schema import GeneratedPost, slugify  # noqa: E402
-from blog.store import _existing_for_guardrails  # noqa: E402
-from database import blog_post  # noqa: E402
+try:
+    from blog.guardrails import check_guardrails  # noqa: E402
+    from blog.schema import GeneratedPost, slugify  # noqa: E402
+    from blog.store import _existing_for_guardrails  # noqa: E402
+    from database import blog_post  # noqa: E402
+except ModuleNotFoundError as exc:  # pragma: no cover
+    sys.exit(
+        f"Missing dependency: {exc.name}.\n"
+        "Run this on the backend's virtualenv, not the system python:\n"
+        "  backend\\.venv\\Scripts\\python.exe scripts\\seed_blog_backlog.py"
+    )
+
+_MONGO = os.getenv("MONGO_URL", "")
+if not _MONGO or _MONGO.startswith("<"):
+    # A literal "<paste the connection string>" is an easy copy and paste slip,
+    # and without this it surfaces much later as a confusing connection error.
+    sys.exit(
+        "MONGO_URL is not set to a real connection string.\n"
+        "PowerShell:  $env:MONGO_URL=\"mongodb+srv://...\""
+    )
 
 
 def d(y, m, day):
