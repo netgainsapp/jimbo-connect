@@ -56,11 +56,20 @@ def _require_env() -> None:
 
 async def main(apply: bool) -> int:
     # Imported after the env check: database builds its client at import time.
-    from blog import covers, store
+    from blog import covers, images, store
 
     posts = await store.list_all(limit=500)
     have = await covers.slugs_with_covers()
-    missing = [p for p in posts if p.get("slug") not in have and not p.get("image_url")]
+    # A stock path is a placeholder, not artwork, so it still counts as missing.
+    # Matching attach_cover, which replaces stock but leaves anything set by
+    # hand alone. Without this the script reported "nothing to do" for fifteen
+    # posts that had just been given stock images.
+    missing = [
+        p
+        for p in posts
+        if p.get("slug") not in have
+        and (not p.get("image_url") or images.is_stock(p.get("image_url")))
+    ]
 
     print(f"{len(posts)} posts, {len(have)} with covers, {len(missing)} missing\n")
     for p in missing:
