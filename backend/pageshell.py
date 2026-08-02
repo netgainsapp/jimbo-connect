@@ -114,6 +114,29 @@ a{color:var(--primary);text-decoration:none}
 .menu .sheet .sep{border-top:1px solid var(--line);margin:6px 0}
 .menu .sheet .go{color:var(--primary);font-weight:700}
 .wrap{max-width:760px;margin:0 auto;padding:48px 24px 96px}
+/* Listing pages need the full container: three tiles do not fit in the 760px
+   reading measure that suits an article. */
+.wrap.wide{max-width:1120px}
+/* Three to a row on a desktop, two on a tablet, one on a phone. auto-fill with
+   a minimum rather than a fixed count, so a row of two does not stretch each
+   tile across half the page. */
+.grid{display:grid;grid-template-columns:1fr;gap:26px;margin-top:34px}
+@media(min-width:680px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1000px){.grid{grid-template-columns:repeat(3,1fr)}}
+.tile{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;transition:box-shadow .18s ease,transform .18s ease}
+.tile:hover{box-shadow:0 16px 38px rgba(13,27,42,.12);transform:translateY(-2px)}
+.tile:focus-within{box-shadow:0 0 0 3px rgba(37,99,235,.35)}
+/* aspect-ratio reserves the space before the file arrives, so the text below
+   does not jump when it does. Cheaper than carrying intrinsic dimensions for
+   every photograph. */
+.tile .thumb{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:var(--cream)}
+.tile .body{padding:18px 20px 22px;display:flex;flex-direction:column;gap:7px;flex:1}
+.tile .title{font-size:18px;font-weight:700;letter-spacing:-0.01em;line-height:1.35;color:var(--ink)}
+.tile:hover .title{color:var(--primary)}
+.tile .summary{font-size:15px;margin:0;color:var(--stone)}
+.tile .meta{font-size:11px}
+/* The article's own copy of the same photograph, wider than the tile's. */
+.hero{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:16px;background:var(--cream);margin:22px 0 8px}
 .crumbs{font-size:13px;color:var(--stone);margin-bottom:8px}
 .crumbs a{color:var(--stone)}
 .eyebrow{font-size:12px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--primary)}
