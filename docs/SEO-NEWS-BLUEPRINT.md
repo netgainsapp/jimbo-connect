@@ -1,5 +1,15 @@
 # Intro Connect — Technical SEO Audit + `/news` Section Blueprint
 
+> ⛔ **SUPERSEDED IN PART, 2026-08-02: the `/news` section is retired.** Owner
+> decision. Everything in here about `/news` is historical. What actually
+> happened to it: the weekly cron is commented out, `news_autopublish` is off,
+> News is gone from the site nav and the sitemap, and all six published articles
+> were unpublished (their URLs now 404; the documents survive as drafts).
+>
+> The code was not deleted and still passes its tests, so this blueprint remains
+> the design record if the section is ever revived. The **blog** half of this
+> audit is still current and still correct.
+
 Date: 2026-07-10. Scope: marketing site (`intro-connect.com`), server-rendered
 `/blog`, and a new `/news` section. Evidence-based; all findings cite exact
 files. No traffic/ranking guarantees are made.

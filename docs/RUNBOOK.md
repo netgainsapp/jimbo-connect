@@ -7,12 +7,22 @@ How to operate, verify, and roll back the live product. Companion to
 
 | Service | What it is | Public URL | Render service |
 | --- | --- | --- | --- |
-| API | FastAPI + MongoDB backend | `https://jimbo-connect-api-rdkp.onrender.com` (also `jimbo-connect-api.onrender.com`; blog at `blog.intro-connect.com` once DNS is added) | `jimbo-connect-api` |
+| API | FastAPI + MongoDB backend | `https://jimbo-connect-api-rdkp.onrender.com` — **the `-rdkp` suffix is required** | `jimbo-connect-api` |
 | Web app | React SPA (users) | `https://app.intro-connect.com` | `jimbo-connect-web` |
 | Marketing | React static site | `https://intro-connect.com` (+ `www`) | `jimbo-connect-marketing` |
 
 Source of truth for infra: `render.yaml`. DB: MongoDB Atlas (external). Email: Resend
-(domain `intro-connect.com`, verified). Blog generation: Anthropic API.
+(domain `intro-connect.com`, verified). Blog prose: Anthropic API. Blog cover
+images: OpenAI Images API.
+
+> ⚠️ **`jimbo-connect-api.onrender.com` (no `-rdkp`) is NOT this service.** It
+> was listed here as an alias until 2026-08-02 and it is not one. Worse, it does
+> not 404: requests **hang** until the caller times out. Five of the six
+> scheduled workflows had been calling it since they were written, so the blog
+> tick, the nurture drip, invite reminders and keep-warm had never once run, and
+> the failures showed in Actions as `cancelled` (which sends no notification)
+> rather than `failed`. `backend/tests/test_cron_targets.py` now asserts every
+> workflow's host matches `API_PUBLIC_URL` in `render.yaml`.
 
 ## Inbound email (added + verified 2026-08-01)
 
@@ -57,21 +67,35 @@ which has its own MX/SPF/DKIM and is independent of the apex MX above.
 | `RESEND_API_KEY` / `RESEND_WEBHOOK_SECRET` | Render dashboard (API) | `sync: false` |
 | `API_PUBLIC_URL` | `render.yaml` | unsubscribe link base |
 | `REACT_APP_BACKEND_URL` | Render dashboard (web) | API base for the SPA build |
-| `ANTHROPIC_API_KEY` | Render dashboard (API) | blog generation |
-| `BLOG_TICK_SECRET` | GitHub repo secret **and** Render (API) | must match; gates all three tick crons (header `X-Tick-Secret`) |
+| `ANTHROPIC_API_KEY` | Render dashboard (API) | blog prose. Absent = the tick is a no-op reporting `{"skipped": "no_api_key"}` |
+| `OPENAI_API_KEY` | Render dashboard (API) | blog cover images. Absent = posts fall back to the stock pool in `blog/images.py` |
+| `BLOG_TICK_SECRET` | GitHub repo secret **and** Render (API) | must match byte for byte; gates every tick (header `X-Tick-Secret`). Unset on Render = a clean `401` on every tick, silently, because `_tick_authorized` fails closed |
+
+Local scripts read `backend/.env`, which is git-ignored. `backend/.env.example`
+lists every key. ⚠️ Scripts in `scripts/` run from the repo ROOT and load that
+path explicitly: a bare `load_dotenv()` reads the current directory and finds
+nothing, which reads as "the key is unset" when it is sitting right there.
 
 ## Scheduled jobs (GitHub Actions → `.github/workflows/`)
 
 | Workflow | Schedule (UTC) | Purpose |
 | --- | --- | --- |
-| `blog-tick` | Mon/Wed/Fri 15:00 | generate/store a blog post |
+| `blog-tick` | Mondays 15:00 | generate/store a blog post (was Mon/Wed/Fri until 2026-08-02) |
 | `nurture-tick` | daily 16:00 | advance free-signup nurture drip |
 | `invites-tick` | daily 16:30 | send guest-invite reminders |
 | `keep-warm` | every 10 min | ping `/api/health` to avoid free-tier cold starts |
+| `keepalive` | scheduled | second health ping (the only workflow that ever had the right host) |
+| `news-tick` | **PAUSED** | news section retired 2026-08-02; cron commented out, `news_autopublish` off |
 
-Troubleshoot a tick: GitHub → Actions → the workflow → Run workflow. A `401/403` means
-`BLOG_TICK_SECRET` mismatches between GitHub and Render. If schedules stopped firing,
-check Actions isn't disabled (GitHub auto-disables schedules after 60 days of no activity).
+Troubleshoot a tick: GitHub → Actions → the workflow → Run workflow, then read the
+curl output in the job log — the endpoints return JSON saying what they did.
+
+- `401` → `BLOG_TICK_SECRET` mismatch between GitHub and Render.
+- Run `cancelled` at ~5 minutes → it is calling the wrong host and hanging. See
+  the warning at the top of this file. Cancelled runs send no notification.
+- `{"skipped": "no_api_key"}` → `ANTHROPIC_API_KEY` missing on Render.
+- Schedules stopped entirely → check Actions isn't disabled (GitHub auto-disables
+  schedules after 60 days of repository inactivity).
 
 ## Health check / smoke test
 
