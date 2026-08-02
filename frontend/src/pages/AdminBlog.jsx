@@ -126,6 +126,15 @@ export default function AdminBlog() {
           onChange={(v) => toggleFlag("blog_data_posts", v)}
         />
         <div className="h-px bg-border-default my-3" />
+        {/* News is a separate weekly pipeline with its own flag. It was only
+            settable in the database until this row existed. */}
+        <ToggleRow
+          label="Auto-publish the weekly news item"
+          desc="On: the weekly write-up of a real trade-press story goes live once it passes every guardrail. Off: it waits in News as a draft."
+          value={!!flags?.news_autopublish}
+          onChange={(v) => toggleFlag("news_autopublish", v, true)}
+        />
+        <div className="h-px bg-border-default my-3" />
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div className="font-bold text-text-primary text-sm">Run now</div>
