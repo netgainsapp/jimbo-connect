@@ -78,6 +78,7 @@ export const authApi = {
   resetPassword: (token, new_password) =>
     api.post("/api/auth/reset-password", { token, new_password }),
   magicLogin: (token) => api.get(`/api/auth/magic/${token}`),
+  resendVerification: () => api.post("/api/auth/resend-verification"),
 };
 
 export const profileApi = {
