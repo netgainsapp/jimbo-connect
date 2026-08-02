@@ -23,9 +23,34 @@ export const KNOWN_FIELDS = [
   "linkedin",
 ];
 
+// Ticketing tools split the name in two. Eventbrite exports "First Name" and
+// "Last Name" as separate columns, and before these were recognised an
+// Eventbrite export imported every address with no name attached, filling the
+// directory with rows that were just email addresses. These two are joined into
+// `name` after mapping; they are never stored on their own.
+const FIRST_NAME_ALIASES = [
+  "first name",
+  "firstname",
+  "first_name",
+  "given name",
+  "givenname",
+  "first",
+];
+const LAST_NAME_ALIASES = [
+  "last name",
+  "lastname",
+  "last_name",
+  "surname",
+  "family name",
+  "familyname",
+  "last",
+];
+
 const HEADER_ALIASES = {
-  email: ["email", "e-mail", "mail", "email address"],
-  name: ["name", "full name", "fullname", "full_name"],
+  email: ["email", "e-mail", "mail", "email address", "attendee email"],
+  name: ["name", "full name", "fullname", "full_name", "attendee name"],
+  first_name: FIRST_NAME_ALIASES,
+  last_name: LAST_NAME_ALIASES,
   role: ["role", "title", "position", "job title", "jobtitle"],
   company: ["company", "organization", "org", "employer"],
   industry: ["industry", "sector"],
@@ -212,6 +237,17 @@ export function parsePaste(text) {
         const e = extractEmail(cells[0]);
         if (e) row.email = e;
       }
+      // Join a split name into the single field the product stores. A real
+      // `name` column wins if the file somehow carries both.
+      if (!row.name) {
+        const joinedName = [row.first_name, row.last_name]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+        if (joinedName) row.name = joinedName;
+      }
+      delete row.first_name;
+      delete row.last_name;
     } else {
       // No header — first column with @ is email; if "Name <email>" extract both.
       const joined = cells.join(" ");
