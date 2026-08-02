@@ -4,6 +4,13 @@
 
 html { scroll-behavior: smooth; }
 
+/* The nav is sticky and 64px tall, so an anchor landing at the very top of the
+   viewport sits UNDER it: the section heading is hidden and the visitor sees
+   the middle of the section, which reads as the link having missed. The extra
+   16px is breathing room rather than butting the heading against the bar. */
+html { scroll-padding-top: 80px; }
+:target { scroll-margin-top: 80px; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {

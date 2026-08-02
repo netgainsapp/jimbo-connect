@@ -11,8 +11,13 @@ import OnePager from "./components/OnePager.jsx";
 import FAQ from "./components/FAQ.jsx";
 import CTA from "./components/CTA.jsx";
 import Footer from "./components/Footer.jsx";
+import { useHashScroll } from "./useHashScroll.js";
 
 export default function App() {
+  // Without this, arriving at /#faq from the blog chrome lands at the top of
+  // the page: the browser looks for the anchor before React has rendered it.
+  useHashScroll();
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Nav />

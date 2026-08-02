@@ -66,6 +66,24 @@ def test_the_six_megabyte_file_is_not_in_the_pool():
     assert not any(p.endswith("/2.jpg") for p in images.POOL)
 
 
+def test_known_duplicate_files_stay_out_of_the_pool():
+    """The images folder holds the same photograph under several names, byte
+    for byte identical. Listing them all put the same picture on the page twice
+    while every check said "distinct", because the checks compared filenames."""
+    duplicates = (
+        "networking_opportunities.jpg",
+        "1_0mxqweMEM82n312AIIujng.jpg",
+        "how_to_make_the_most_of_your_next_networking_event_main_image.jpg",
+        "conference_networking.jpg",
+    )
+    for name in duplicates:
+        assert not any(p.endswith("/" + name) for p in images.POOL), name
+
+
+def test_pool_entries_are_unique():
+    assert len(set(images.POOL)) == len(images.POOL)
+
+
 def test_posts_spread_across_the_pool():
     """A hash that lands everything on one image would pass every other test."""
     chosen = {images.image_for(p) for p in _posts(30)}

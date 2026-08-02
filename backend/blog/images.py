@@ -18,19 +18,25 @@ scraped yesterday would stop matching the page today.
 """
 import hashlib
 
-#: Photographs from marketing/public/images, checked reachable on 2026-08-02.
-#: `2.jpg` lives there too and is deliberately absent: it is six megabytes,
-#: which is not a thumbnail. Anything added here should be well under 200kb.
+#: Photographs from marketing/public/images. SIX pictures, not ten files.
+#:
+#: ⚠️ That folder contains the same photograph under several names, byte for
+#: byte identical. Listing all ten produced a page where the same picture
+#: appeared twice under different filenames while every automated check
+#: reported "ten distinct images", because the check compared paths. Verified
+#: 2026-08-02 by perceptual hash; the duplicates dropped were
+#: networking_opportunities.jpg (= networking-mixer), 1_0mxqweMEM82n312AIIujng
+#: (= networking-group), how_to_make_the_most_of_your_next_networking_event
+#: (= networking-event) and conference_networking (= networking-conference).
+#:
+#: Before adding anything here, compare it by CONTENT against the rest, not by
+#: name. `2.jpg` is also in that folder and stays out: it is six megabytes.
 POOL = (
     "/images/networking-mixer.jpg",
     "/images/networking-group.jpg",
     "/images/networking-event.jpg",
     "/images/networking-conference.jpg",
-    "/images/conference_networking.jpg",
-    "/images/networking_opportunities.jpg",
-    "/images/how_to_make_the_most_of_your_next_networking_event_main_image.jpg",
     "/images/AdobeStock_118993437.jpeg",
-    "/images/1_0mxqweMEM82n312AIIujng.jpg",
     "/images/360_F_611274126_EdTzIv2Vif6YXqx9jChzDpT3Yj0BRozw.jpg",
 )
 
