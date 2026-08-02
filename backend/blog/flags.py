@@ -1,8 +1,9 @@
 """Feature flags, single source of truth. Stored as one doc in Mongo so they can
 be flipped without a deploy.
 
-Both sections autopublish as of 2026-08-02, by owner decision. The engines
-originally shipped dormant; that is no longer the default anyone wants.
+The blog autopublishes as of 2026-08-02, by owner decision. News is paused the
+same day, also by owner decision: the engine is built and tested but the section
+is not wanted for now, so its flag is off and its cron is commented out.
 
 ⚠️ A DEFAULT ONLY APPLIES WHEN THE FLAG HAS NEVER BEEN SET. `get_flags` reads
 the stored document first, so if `blog_autopublish` was ever toggled off in the
@@ -22,7 +23,9 @@ app_flags = db["app_flags"]
 DEFAULTS = {
     "blog_autopublish": True,   # owner decision 2026-08-02: publish generated posts
     "blog_data_posts": False,   # flip ON once there is enough real data to ground posts
-    "news_autopublish": True,   # weekly news item goes live on its own
+    # OFF from 2026-08-02, owner decision: the news section is paused. Belt and
+    # braces with the commented-out cron, so a manual tick cannot publish either.
+    "news_autopublish": False,
 }
 
 _FLAGS_ID = "flags"

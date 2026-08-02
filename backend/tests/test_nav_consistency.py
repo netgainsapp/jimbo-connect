@@ -89,7 +89,9 @@ def test_marketing_nav_is_the_expected_set():
         ("/#faq", "FAQ"),
         ("/agenda", "Agenda Builder"),
         ("/blog", "Blog"),
-        ("/news", "News"),
+        # News was here until 2026-08-02, when the section was retired by owner
+        # decision. Removing it from one copy and not the others is exactly the
+        # drift this file exists to catch, so it is pinned in its absence too.
     ]
 
 

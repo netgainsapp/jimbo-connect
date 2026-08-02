@@ -21,7 +21,7 @@ export const NAV_LINKS = [
   { href: at("/#faq"), label: "FAQ" },
   { href: at("/agenda"), label: "Agenda Builder" },
   { href: at("/blog"), label: "Blog" },
-  { href: at("/news"), label: "News" },
+  // News retired 2026-08-02; see marketing/Nav.jsx.
 ];
 
 export const FOOTER_LINKS = [
@@ -30,7 +30,6 @@ export const FOOTER_LINKS = [
   { href: at("/#faq"), label: "FAQ" },
   { href: at("/agenda"), label: "Agenda Builder" },
   { href: at("/blog"), label: "Blog" },
-  { href: at("/news"), label: "News" },
   { href: at("/privacy.html"), label: "Privacy" },
   { href: at("/terms.html"), label: "Terms" },
   { href: "mailto:hello@intro-connect.com", label: "Contact" },

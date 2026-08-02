@@ -35,6 +35,37 @@ POOL = (
 )
 
 
+#: A stock image assigned to a post is written to its image_url, so the tile and
+#: the article agree and nothing has to be recomputed. Generated covers live
+#: under /blog/cover/, which is how the two are told apart: a stock assignment
+#: is a placeholder to be replaced, a generated cover is finished work.
+STOCK_PREFIX = "/images/"
+
+
+def is_stock(image_url: str) -> bool:
+    return bool(image_url) and str(image_url).startswith(STOCK_PREFIX)
+
+
+def assign_round_robin(docs) -> dict:
+    """slug -> image, spread evenly instead of by hash.
+
+    Hashing the slug is uniform but not even: across fifteen posts it used seven
+    of ten images and repeated one four times. Ranking by publish date and
+    walking the pool uses all ten and repeats none more than twice.
+
+    Stable for posts that already exist, because rank counts from the OLDEST
+    post upward and a new post is always the newest, so it takes the next index
+    and disturbs nothing. Inserting a post with an older date WOULD shift the
+    posts after it; that is why the assignment is written to the document once
+    rather than recomputed on every render.
+    """
+    ordered = sorted(
+        docs,
+        key=lambda d: (d.get("published_at") is None, d.get("published_at") or 0, d.get("slug") or ""),
+    )
+    return {d.get("slug"): POOL[i % len(POOL)] for i, d in enumerate(ordered)}
+
+
 def image_for(doc: dict) -> str:
     """The image for a post. An explicit image_url on the doc always wins."""
     explicit = (doc or {}).get("image_url")

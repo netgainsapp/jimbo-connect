@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from database import db
-from . import cover, covers
+from . import cover, covers, images
 from .flags import get_flag
 from .guardrails import check_guardrails
 from .schema import GeneratedPost, slugify
@@ -80,7 +80,13 @@ async def attach_cover(doc: dict) -> bool:
     already has one: it does nothing and reports False.
     """
     slug = doc.get("slug")
-    if not slug or doc.get("image_url") or await covers.has(slug):
+    if not slug or await covers.has(slug):
+        return False
+    # A stock image is a placeholder, so it does NOT count as having artwork:
+    # generated covers must be able to replace it. Anything else set by hand is
+    # left alone.
+    existing = doc.get("image_url")
+    if existing and not images.is_stock(existing):
         return False
 
     data = await cover.generate(doc.get("title") or "")

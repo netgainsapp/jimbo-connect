@@ -36,7 +36,7 @@ _NAV_LINKS = (
     ("/#faq", "FAQ"),
     ("/agenda", "Agenda Builder"),
     ("/blog", "Blog"),
-    ("/news", "News"),
+    # News retired 2026-08-02; see marketing/src/components/Nav.jsx.
 )
 
 _FOOTER_LINKS = (
@@ -45,7 +45,6 @@ _FOOTER_LINKS = (
     ("/#faq", "FAQ"),
     ("/agenda", "Agenda Builder"),
     ("/blog", "Blog"),
-    ("/news", "News"),
     ("/privacy.html", "Privacy"),
     ("/terms.html", "Terms"),
     ("mailto:hello@intro-connect.com", "Contact"),

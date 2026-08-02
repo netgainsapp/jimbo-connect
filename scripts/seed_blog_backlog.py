@@ -33,7 +33,19 @@ import os
 import sys
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
+_BACKEND = os.path.join(os.path.dirname(__file__), "..", "backend")
+sys.path.insert(0, _BACKEND)
+
+# Explicit path. A bare load_dotenv() reads the CURRENT directory, and this
+# script is run from the repo root while the .env lives in backend/, so a
+# perfectly good connection string sitting in that file was invisible here and
+# the script reported it as unset.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(os.path.join(_BACKEND, ".env"))
+except ImportError:
+    pass
 
 # Checked BEFORE importing anything from backend/: database.py builds the Mongo
 # client at import time, so a placeholder URL explodes inside pymongo's DNS

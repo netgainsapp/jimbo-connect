@@ -58,7 +58,9 @@ async def sitemap_xml():
         # strongest organic surface the site has, so it ranks just under home.
         {"path": "/agenda", "changefreq": "monthly", "priority": "0.9"},
         {"path": "/blog", "changefreq": "weekly", "priority": "0.7"},
-        {"path": "/news", "changefreq": "daily", "priority": "0.7"},
+        # /news is deliberately absent from 2026-08-02: the section is retired,
+        # so advertising it to crawlers would be inviting them to a page with
+        # nothing on it.
     ]
     for p in await list_published(limit=1000):
         entries.append(
@@ -69,15 +71,9 @@ async def sitemap_xml():
                 "priority": "0.6",
             }
         )
-    for a in await news_store.list_published(limit=1000):
-        entries.append(
-            {
-                "path": f"/news/{a.get('slug')}",
-                "lastmod": a.get("modified_at") or a.get("published_at"),
-                "changefreq": "monthly",
-                "priority": "0.6",
-            }
-        )
+    # News articles are no longer listed. The loop is gone rather than guarded,
+    # because unpublishing empties list_published anyway and a guard would just
+    # be dead code pretending the section might return.
     return Response(
         content=seo.render_sitemap(entries),
         media_type="application/xml",

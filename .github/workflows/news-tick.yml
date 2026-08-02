@@ -11,9 +11,13 @@ name: News tick
 # ANTHROPIC_API_KEY on the backend; until it is set the tick is a harmless
 # no-op that reports {"skipped": "no_api_key"}.
 
+# PAUSED 2026-08-02, owner decision: the news section is not needed for now.
+# The schedule is commented out rather than the file deleted, so turning it back
+# on is uncommenting three lines. Everything else (feeds, guardrails, tests)
+# stays working and tested.
 on:
-  schedule:
-    - cron: "0 14 * * 2" # Tuesdays at 14:00 UTC
+  # schedule:
+  #   - cron: "0 14 * * 2" # Tuesdays at 14:00 UTC
   workflow_dispatch: {}
 
 concurrency:

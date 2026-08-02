@@ -25,7 +25,14 @@ async def _unique_slug(base: str) -> str:
     return slug
 
 
-async def create_article(item: NewsArticleInput) -> dict:
+async def create_article(item: NewsArticleInput, *, guardrail_reasons=None) -> dict:
+    """Store a news item as a draft.
+
+    guardrail_reasons is why the generated item was not fit to publish, kept on
+    the document the way the blog keeps it. Without it a held-back draft sits in
+    the admin with no explanation, and the only record of the reason is a line
+    in a cron log nobody keeps. Empty for anything an admin wrote by hand.
+    """
     now = datetime.now(timezone.utc)
     slug = await _unique_slug(article_slug(item.headline))
     doc = {
@@ -38,6 +45,7 @@ async def create_article(item: NewsArticleInput) -> dict:
         "event_date": item.event_date,
         "image_url": item.image_url,
         "status": "draft",
+        "guardrail_reasons": list(guardrail_reasons or []),
         "created_at": now,
         "published_at": None,
         "modified_at": None,

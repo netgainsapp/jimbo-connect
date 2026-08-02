@@ -15,7 +15,8 @@ const LINKS = [
   // has, so it gets a nav slot rather than being buried in the footer.
   { href: "/agenda", label: "Agenda Builder" },
   { href: "/blog", label: "Blog" },
-  { href: "/news", label: "News" },
+  // News removed 2026-08-02, owner decision: the section is retired. The route
+  // and the engine still exist; nothing on the site points at them.
 ];
 
 export default function Nav() {
