@@ -203,9 +203,12 @@ def test_urls_in_prose_are_rejected():
     assert "url_in_prose" in _check(sections=_sections(body))
 
 
-def test_ai_tells_are_rejected():
+def test_ai_tells_are_rejected_and_the_phrase_is_named():
+    """The reason has to say which phrase. The first live run came back with a
+    bare "banned_phrase" against a draft in the database, which is unreadable
+    from a cron log."""
     body = "According to the article, operators opened more locations last quarter. " * 8
-    assert "banned_phrase" in _check(sections=_sections(body))
+    assert "banned_phrase:according to the article" in _check(sections=_sections(body))
 
 
 def test_one_section_is_not_enough():

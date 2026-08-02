@@ -91,8 +91,12 @@ def check_news_guardrails(
     if _DASH_RE.search(text):
         reasons.append("contains_dash")
 
-    if any(phrase in low for phrase in BANNED_PHRASES):
-        reasons.append("banned_phrase")
+    # Name the phrase. A bare "banned_phrase" tells whoever reads the tick
+    # response that something was wrong but not what, and the item it refers to
+    # is a draft in the database that nobody can grep.
+    hit = next((phrase for phrase in BANNED_PHRASES if phrase in low), None)
+    if hit:
+        reasons.append(f"banned_phrase:{hit}")
 
     if _URL_RE.search(text):
         # Sources belong in the sources list, where they are rendered and
