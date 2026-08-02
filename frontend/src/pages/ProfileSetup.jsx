@@ -9,6 +9,7 @@ import { useConfirm } from "../hooks/useConfirm.jsx";
 import Avatar from "../components/Avatar.jsx";
 import BrandCard from "../components/BrandCard.jsx";
 import { Camera, Trash2 } from "lucide-react";
+import { MAX_SOURCE_BYTES, shrinkImageFile } from "../lib/image.js";
 
 export default function ProfileSetup({ editMode = false }) {
   const [searchParams] = useSearchParams();
@@ -41,18 +42,24 @@ export default function ProfileSetup({ editMode = false }) {
   const setField = (key) => (e) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const handlePhoto = (e) => {
+  const handlePhoto = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast.show("Image must be under 2MB", "error");
+    if (file.size > MAX_SOURCE_BYTES) {
+      toast.show("That file is enormous. Try a normal photo.", "error");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setForm((f) => ({ ...f, photo_url: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      // Resized before it ever leaves the browser, so any phone photo works and
+      // the payload stays small enough for the server to accept.
+      const photo_url = await shrinkImageFile(file);
+      setForm((f) => ({ ...f, photo_url }));
+    } catch (err) {
+      toast.show(err.message, "error");
+    } finally {
+      // Let the same file be re-picked if something went wrong.
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const submit = async (e) => {
@@ -123,7 +130,7 @@ export default function ProfileSetup({ editMode = false }) {
             </div>
             <div className="text-xs text-text-secondary mt-0.5 max-w-xs">
               The directory feels personal when people can put a face to the
-              name. PNG or JPG, up to 2MB.
+              name. JPG or PNG, straight off your phone. We resize it for you.
             </div>
           </div>
         </div>
