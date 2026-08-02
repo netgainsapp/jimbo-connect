@@ -1,4 +1,4 @@
-"""Seed the blog backlog: ten posts from growth/campaign/blog-topics.md.
+r"""Seed the blog backlog: twelve posts from growth/campaign/blog-topics.md.
 
 Written by hand rather than generated, so the house rules in that file hold by
 construction: no invented statistics, no made up customer stories, and every
@@ -35,6 +35,29 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
+# Checked BEFORE importing anything from backend/: database.py builds the Mongo
+# client at import time, so a placeholder URL explodes inside pymongo's DNS
+# resolver ("A DNS label is empty") long before any check further down could
+# run. Validate first, import second.
+_MONGO = os.getenv("MONGO_URL", "").strip()
+_PLACEHOLDER = (
+    not _MONGO
+    or _MONGO.startswith("<")
+    or "..." in _MONGO
+    or "your-" in _MONGO.lower()
+    # A scheme with nothing after it, e.g. "mongodb+srv://".
+    or _MONGO.split("://", 1)[-1].strip("/") == ""
+)
+if _PLACEHOLDER:
+    sys.exit(
+        "MONGO_URL is not a real connection string (currently: "
+        f"{_MONGO or 'unset'!r}).\n\n"
+        "Copy the real value from Render:\n"
+        "  dashboard.render.com -> jimbo-connect-api -> Environment -> MONGO_URL\n"
+        "It looks like mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/...\n\n"
+        'Then:  $env:MONGO_URL="<the value you copied>"'
+    )
+
 try:
     from blog.guardrails import check_guardrails  # noqa: E402
     from blog.schema import GeneratedPost, slugify  # noqa: E402
@@ -44,16 +67,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover
     sys.exit(
         f"Missing dependency: {exc.name}.\n"
         "Run this on the backend's virtualenv, not the system python:\n"
-        "  backend\\.venv\\Scripts\\python.exe scripts\\seed_blog_backlog.py"
-    )
-
-_MONGO = os.getenv("MONGO_URL", "")
-if not _MONGO or _MONGO.startswith("<"):
-    # A literal "<paste the connection string>" is an easy copy and paste slip,
-    # and without this it surfaces much later as a confusing connection error.
-    sys.exit(
-        "MONGO_URL is not set to a real connection string.\n"
-        "PowerShell:  $env:MONGO_URL=\"mongodb+srv://...\""
+        r"  backend\.venv\Scripts\python.exe scripts\seed_blog_backlog.py"
     )
 
 
