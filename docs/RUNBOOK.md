@@ -14,6 +14,37 @@ How to operate, verify, and roll back the live product. Companion to
 Source of truth for infra: `render.yaml`. DB: MongoDB Atlas (external). Email: Resend
 (domain `intro-connect.com`, verified). Blog generation: Anthropic API.
 
+## Inbound email (added + verified 2026-08-01)
+
+`intro-connect.com` had **no MX records at all** until 2026-08-01, so every
+reply to `hello@intro-connect.com` bounced. That silently broke the "reply to
+this email" CTA in the one pager email, the "Schedule a 15-min demo" mailto on
+the marketing site, and any guest replying to an invitation.
+
+Fixed with **ImprovMX** (free tier, no DNS migration, nothing paid):
+
+| Record | Name | Value | Priority |
+| --- | --- | --- | --- |
+| MX | `@` | `mx1.improvmx.com` | 10 |
+| MX | `@` | `mx2.improvmx.com` | 20 |
+| TXT | `@` | `v=spf1 include:spf.improvmx.com ~all` | |
+
+`hello@intro-connect.com` forwards to **introconnectme@gmail.com**. Verified
+delivering 2026-08-01. Dashboard + per message logs:
+`https://app.improvmx.com/domains/intro-connect.com/logs`.
+
+⚠️ **Do not test by mailing the alias from the destination account.** Gmail
+drops a message that returns with a Message-ID it just sent, so a self test
+looks like a total failure even when forwarding is fine. ImprovMX rewrites the
+Message-ID and re-signs with its own DKIM to force it through, which then trips
+DMARC and lands it in spam. Always test from a *different* address.
+
+⚠️ The apex TXT record also holds the **Google site verification** string for
+Search Console. Add records alongside it, never replace it.
+
+Outbound is untouched by all of this: Resend sends via the `send.` subdomain,
+which has its own MX/SPF/DKIM and is independent of the apex MX above.
+
 ## Where each secret / env var lives
 
 | Key | Where set | Notes |
