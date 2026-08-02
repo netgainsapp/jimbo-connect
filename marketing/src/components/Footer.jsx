@@ -48,7 +48,7 @@ export default function Footer() {
         </div>
         <div className="mt-8 pt-6 border-t border-line text-center">
           <div className="text-[10px] uppercase tracking-[0.22em] font-extrabold text-primary">
-            Host better. Connect deeper. Build what matters.
+            Host better. Connect deeper.
           </div>
         </div>
       </div>

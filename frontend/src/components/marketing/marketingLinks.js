@@ -35,4 +35,4 @@ export const FOOTER_LINKS = [
   { href: "mailto:hello@intro-connect.com", label: "Contact" },
 ];
 
-export const TAGLINE = "Host better. Connect deeper. Build what matters.";
+export const TAGLINE = "Host better. Connect deeper.";

@@ -247,6 +247,6 @@ def page(
         '<div class="fbrand">' + _MARK + '<div><div class="word">Intro '
         '<span>Connect</span></div><div class="copy">© 2026 Intro Connect</div></div></div>'
         f'<div class="flinks">{_FOOTER_HTML}</div></div>'
-        '<div class="tagline">Host better. Connect deeper. Build what matters.</div>'
+        '<div class="tagline">Host better. Connect deeper.</div>'
         "</div></footer></body></html>"
     )
