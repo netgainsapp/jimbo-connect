@@ -200,12 +200,14 @@ export default function Nav() {
                   {user.profile?.name || user.email}
                 </span>
               </Link>
+              {/* Labelled, not icon-only. A bare arrow glyph is a guess for a
+                  sighted user and silent to a screen reader; "Log out" is
+                  neither. */}
               <button
                 onClick={handleLogout}
-                className="btn-ghost hidden md:inline-flex"
-                title="Log out"
+                className="btn-ghost text-sm hidden md:inline-flex items-center gap-1.5 whitespace-nowrap"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4" /> Log out
               </button>
               {/* Mobile hamburger */}
               <div className="md:hidden flex items-center gap-1">
