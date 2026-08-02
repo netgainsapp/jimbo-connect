@@ -23,6 +23,16 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND))
 
+# Explicit path, because this script is run from the repo root while the .env
+# lives in backend/. A bare load_dotenv() reads the current directory and would
+# silently find nothing, leaving the run looking unconfigured.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(BACKEND / ".env")
+except ImportError:
+    pass
+
 
 def _require_env() -> None:
     mongo = os.getenv("MONGO_URL", "").strip()
@@ -79,7 +89,14 @@ async def main(apply: bool) -> int:
             made += 1
             print("done")
         else:
-            print("skipped (no image returned)")
+            from blog import cover
+
+            print(f"skipped: {cover.LAST_FAILURE or 'already had a cover'}")
+            # A billing cap or a bad key fails identically for every post, so
+            # stop rather than making the same doomed call fourteen more times.
+            if "HTTP 4" in cover.LAST_FAILURE or "not set" in cover.LAST_FAILURE:
+                print("\nThis will fail the same way for every post. Stopping.")
+                break
 
     print(f"\n{made} of {len(missing)} covers generated.")
     return 0

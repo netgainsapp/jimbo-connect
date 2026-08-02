@@ -138,6 +138,34 @@ def test_http_error_is_a_quiet_none(monkeypatch):
     assert asyncio.run(cover.generate("Anything")) is None
 
 
+def test_the_api_error_message_is_kept_for_diagnosis(monkeypatch):
+    """The first real run reported "no image returned" three times when the
+    actual answer was a billing cap. Quiet in production, legible to whoever
+    is looking."""
+    payload = {"error": {"message": "Billing hard limit has been reached."}}
+    _patch(monkeypatch, _Client(_Response(400, payload)))
+    assert asyncio.run(cover.generate("Anything")) is None
+    assert "Billing hard limit" in cover.LAST_FAILURE
+    assert "400" in cover.LAST_FAILURE
+
+
+def test_a_missing_key_says_so(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    asyncio.run(cover.generate("Anything"))
+    assert "OPENAI_API_KEY" in cover.LAST_FAILURE
+
+
+def test_failure_is_cleared_by_a_successful_run(monkeypatch):
+    """A stale reason from an earlier post would be read as this post's."""
+    import base64
+
+    cover.LAST_FAILURE = "something old"
+    payload = {"data": [{"b64_json": base64.b64encode(_png()).decode()}]}
+    _patch(monkeypatch, _Client(_Response(200, payload)))
+    assert asyncio.run(cover.generate("Anything")) is not None
+    assert cover.LAST_FAILURE == ""
+
+
 def test_refusal_with_no_image_is_a_quiet_none(monkeypatch):
     _patch(monkeypatch, _Client(_Response(200, {"data": [{}]})))
     assert asyncio.run(cover.generate("Anything")) is None

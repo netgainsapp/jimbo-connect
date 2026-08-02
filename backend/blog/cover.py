@@ -60,8 +60,21 @@ STYLE = (
 )
 
 
+#: Why the last generation failed, for whoever is looking. Swallowing every
+#: error is right for the publishing path and useless for diagnosis: the first
+#: real run reported "no image returned" three times when the actual answer was
+#: "Billing hard limit has been reached", which is a two minute fix nobody could
+#: see. Read by scripts/backfill_blog_covers.py.
+LAST_FAILURE = ""
+
+
 def is_configured() -> bool:
     return bool(os.getenv("OPENAI_API_KEY"))
+
+
+def _fail(reason: str) -> None:
+    global LAST_FAILURE
+    LAST_FAILURE = reason
 
 
 def prompt_for(title: str) -> str:
@@ -103,8 +116,10 @@ async def generate(title: str) -> bytes | None:
     Never raises. A missing picture is a cosmetic problem with a fallback; an
     exception here would take down the whole publishing run.
     """
+    _fail("")
     key = os.getenv("OPENAI_API_KEY")
     if not key:
+        _fail("OPENAI_API_KEY is not set")
         return None
 
     payload = {
@@ -122,11 +137,23 @@ async def generate(title: str) -> bytes | None:
                 json=payload,
             )
         if response.status_code != 200:
+            # The API's own words. Its errors are specific and actionable
+            # ("Billing hard limit has been reached"); paraphrasing loses that.
+            try:
+                detail = response.json().get("error", {}).get("message", "")
+            except Exception:
+                detail = response.text[:200]
+            _fail(f"HTTP {response.status_code}: {detail}")
             return None
         data = (response.json().get("data") or [{}])[0]
         encoded = data.get("b64_json")
         if not encoded:
+            _fail("the response carried no image (a refusal, usually)")
             return None
-        return _compress(base64.b64decode(encoded))
-    except Exception:
+        out = _compress(base64.b64decode(encoded))
+        if out is None:
+            _fail("the returned bytes could not be read as an image")
+        return out
+    except Exception as exc:
+        _fail(f"{type(exc).__name__}: {str(exc)[:150]}")
         return None
