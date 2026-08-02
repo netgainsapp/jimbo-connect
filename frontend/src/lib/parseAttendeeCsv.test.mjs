@@ -204,3 +204,62 @@ test("reports the true source line number when blank lines precede a bad row", (
   assert.equal(errors.length, 1);
   assert.equal(errors[0].line, 5);
 });
+
+// ---------------------------------------------------------------------------
+// Real exports. Both fixtures below are the actual header rows from Eventbrite
+// and Meetup, with invented people in them. Before these passed, an Eventbrite
+// export imported every address with no name attached.
+// ---------------------------------------------------------------------------
+
+const EVENTBRITE =
+  "Order No.,Order Date,First Name,Last Name,Email,Quantity,Ticket Type,Order Type,Total Paid,Event Name,Buyer First Name,Buyer Last Name,Buyer Email\n" +
+  "1098765432,2026-08-01 10:15:00,Alex,Rivera,arivera@example.com,1,General Admission,Free Order,0.00,Sample Tech Meetup,Alex,Rivera,arivera@example.com\n" +
+  "1098765433,2026-08-01 11:20:00,Taylor,Brooks,t.brooks@example.com,2,VIP Access,Paid Order,50.00,Sample Tech Meetup,Taylor,Brooks,t.brooks@example.com";
+
+const MEETUP =
+  "Name,User ID,Title,RSVP,Guests,RSVPed on,Event Host\n" +
+  "Jordan Lee,112233445,Member,Yes,0,2026-07-28 14:22:11,No\n" +
+  "Casey Smith,554433221,Assistant Organizer,Yes,1,2026-07-29 09:15:00,Yes";
+
+test("joins first and last name from a real Eventbrite export", () => {
+  const { rows, errors } = parsePaste(EVENTBRITE);
+  assert.deepEqual(errors, []);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].name, "Alex Rivera");
+  assert.equal(rows[0].email, "arivera@example.com");
+  assert.equal(rows[1].name, "Taylor Brooks");
+});
+
+test("does not let the Eventbrite buyer columns overwrite the attendee", () => {
+  // Buyer First Name / Buyer Email sit to the right of the attendee's own
+  // columns, so a loose alias match would silently replace the guest with
+  // whoever paid. On a multi ticket order those are different people.
+  const { rows } = parsePaste(EVENTBRITE);
+  assert.equal(rows[1].email, "t.brooks@example.com");
+  assert.ok(!("first_name" in rows[0]), "intermediate fields must not survive");
+  assert.ok(!("last_name" in rows[0]), "intermediate fields must not survive");
+});
+
+test("a real name column still wins over split columns", () => {
+  const { rows } = parsePaste(
+    "Email,Name,First Name,Last Name\nd@example.com,Diego Martinez,Diego,Martinez",
+  );
+  assert.equal(rows[0].name, "Diego Martinez");
+});
+
+test("reads Given Name and Surname as well", () => {
+  const { rows } = parsePaste(
+    "Email;Given Name;Surname\nmaya@example.com;Maya;Whitfield",
+  );
+  assert.equal(rows[0].name, "Maya Whitfield");
+});
+
+test("explains a Meetup export once instead of erroring on every line", () => {
+  // Meetup ships names and RSVP status but no addresses, so the whole file is
+  // unusable. One clear reason beats one "No email found" per guest.
+  const { rows, errors } = parsePaste(MEETUP);
+  assert.deepEqual(rows, []);
+  assert.equal(errors.length, 1);
+  assert.match(errors[0].reason, /no email column/i);
+  assert.match(errors[0].reason, /Meetup/);
+});

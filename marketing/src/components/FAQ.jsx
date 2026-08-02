@@ -15,8 +15,8 @@ const FAQS = [
     a: "Directories are scoped to single events, so only people who came to your dinner see each other. Anyone can mute or hide their profile. No mass-message tools.",
   },
   {
-    q: "Can I import my guest list from Meetup or Eventbrite?",
-    a: "CSV import works today (paste from anywhere). Native Meetup and Eventbrite integrations are on the roadmap for Q3 2026.",
+    q: "Can I import my guest list from Eventbrite?",
+    a: "Yes. An Eventbrite attendee export imports as it comes, including names split across first and last name columns, and you can paste from any spreadsheet. Meetup is the exception: its export does not include attendee email addresses, so there is nobody to invite from one.",
   },
   {
     q: "Who owns the data?",

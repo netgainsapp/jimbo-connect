@@ -6,7 +6,7 @@ const STEPS = [
     kicker: "Bring your guest list",
     title: "Paste names. Walk away.",
     body:
-      "Drop in a CSV from Eventbrite, Meetup, or the spreadsheet you've been keeping. We create accounts, send everyone their login link, and attach a calendar invite. Setup is done before your coffee is.",
+      "Drop in a CSV from Eventbrite or the spreadsheet you've been keeping. We create accounts, send everyone their login link, and attach a calendar invite. Setup is done before your coffee is.",
     visual: <PasteVisual />,
   },
   {

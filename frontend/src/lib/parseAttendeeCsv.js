@@ -224,6 +224,30 @@ export function parsePaste(text) {
     body = records.slice(1);
   }
 
+  // A file with no address anywhere cannot be imported at all, and saying that
+  // once is more use than repeating "No email found" on every line. Meetup is
+  // the case this exists for: its attendee export carries names, RSVP status
+  // and member titles, but no email addresses, so there is nobody to invite.
+  if (
+    headers &&
+    !headers.includes("email") &&
+    !body.some(({ cells }) => cells.some((c) => c.includes("@")))
+  ) {
+    return {
+      rows: [],
+      errors: [
+        {
+          line: 1,
+          reason:
+            "This file has no email column. Meetup exports do not include " +
+            "attendee email addresses, so nobody can be invited from one. " +
+            "Export from Eventbrite instead, or add an email column to your " +
+            "own spreadsheet.",
+        },
+      ],
+    };
+  }
+
   const rows = [];
   const errors = [];
 
