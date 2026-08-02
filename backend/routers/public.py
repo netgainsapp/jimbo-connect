@@ -163,6 +163,16 @@ async def blog_tick(request: Request):
     return await run_once()
 
 
+@router.post("/api/news/tick")
+async def news_tick(request: Request):
+    """Write up one real trade-press story. Secret-gated for the weekly cron."""
+    if not _tick_authorized(request.headers.get("x-tick-secret")):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    from news.generate import run_once
+
+    return await run_once()
+
+
 @router.post("/api/nurture/tick")
 async def nurture_tick(request: Request):
     """Advance the free-signup nurture drip once. Secret-gated for the cron."""

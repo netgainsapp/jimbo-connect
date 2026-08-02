@@ -65,6 +65,7 @@ PUBLIC = {
 # must 401 when the secret header is missing. These ARE called.
 SECRET_GATED = {
     ("POST", "/api/blog/tick"),
+    ("POST", "/api/news/tick"),
     ("POST", "/api/nurture/tick"),
     ("POST", "/api/invites/tick"),
     ("POST", "/api/webhooks/resend"),

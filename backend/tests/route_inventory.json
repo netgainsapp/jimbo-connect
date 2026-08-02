@@ -109,6 +109,7 @@
  "POST /api/events/{event_id}/survey/responses",
  "POST /api/invites/tick",
  "POST /api/messages",
+ "POST /api/news/tick",
  "POST /api/nurture/tick",
  "POST /api/one-pager",
  "POST /api/profile/photo",

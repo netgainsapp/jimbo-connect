@@ -1,0 +1,33 @@
+name: News tick
+
+# Writes one news item a week from the trade press. The pipeline fetches real
+# RSS feeds, fetches the chosen article, and asks the model to write from that
+# text: the source URL is an input, never something the model produced. Items
+# publish themselves once the guardrails pass (news_autopublish, on by default);
+# anything that fails them is kept as a draft for review at /admin/news.
+#
+# Secret-gated: BLOG_TICK_SECRET must be set as a repo secret here AND as the
+# same env var on the jimbo-connect-api Render service. Generation also needs
+# ANTHROPIC_API_KEY on the backend; until it is set the tick is a harmless
+# no-op that reports {"skipped": "no_api_key"}.
+
+on:
+  schedule:
+    - cron: "0 14 * * 2" # Tuesdays at 14:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: news-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run the news pipeline once
+        run: |
+          curl -fsS -X POST \
+            https://jimbo-connect-api.onrender.com/api/news/tick \
+            -H "X-Tick-Secret: ${{ secrets.BLOG_TICK_SECRET }}" \
+            --max-time 240 --retry 3 --retry-delay 15 --retry-all-errors

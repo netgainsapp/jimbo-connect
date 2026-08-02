@@ -49,5 +49,23 @@ class NewsArticleInput(BaseModel):
         return v
 
 
+class GeneratedNews(BaseModel):
+    """What the model must return when writing up a source article.
+
+    Note what is absent: there is no URL field. The model is never asked for a
+    source, because a source it produced would be a source it could invent. The
+    pipeline supplies `source_url` from the feed item it actually fetched, and
+    `news.guardrails` rejects anything whose source is not one of those.
+    """
+
+    headline: str = Field(description="Headline, 20 to 140 characters, no dashes")
+    summary: str = Field(description="One or two sentence summary, no dashes")
+    sections: List[Section] = Field(description="At least two sections")
+    event_date: Optional[str] = Field(
+        default=None,
+        description="When this happened, as a short display string, if the source says",
+    )
+
+
 def article_slug(headline: str) -> str:
     return slugify(headline)
