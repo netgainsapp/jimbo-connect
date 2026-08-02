@@ -7,7 +7,6 @@ import { PHONE_ERROR, formatPhone, isValidPhone } from "../lib/phone.js";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import Avatar from "../components/Avatar.jsx";
-import BrandCard from "../components/BrandCard.jsx";
 import { Camera, Trash2 } from "lucide-react";
 import { MAX_SOURCE_BYTES, shrinkImageFile } from "../lib/image.js";
 
@@ -243,12 +242,6 @@ export default function ProfileSetup({ editMode = false }) {
           </button>
         </div>
       </form>
-
-      {editMode && (
-        <div className="mt-8">
-          <BrandCard />
-        </div>
-      )}
 
       {editMode && !user?.is_admin && (
         <div className="mt-10 pt-6 border-t border-border-default">

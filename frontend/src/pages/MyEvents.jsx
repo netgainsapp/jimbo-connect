@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Calendar, MapPin, Plus, Users, LogOut, Copy, Trash2, Mail } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import HostCta from "../components/HostCta.jsx";
+import BrandCard from "../components/BrandCard.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { formatDateTime, copyToClipboard } from "../lib/utils.js";
@@ -358,6 +359,15 @@ export default function MyEvents() {
                     )}
                   </div>
                 ))}
+              </div>
+              {/* Branding is a hosting setting: it puts your logo on event
+                  pages and guest emails. It used to sit on the profile page,
+                  between the personal details and the delete-account button,
+                  which is neither where it applies nor a sensible neighbour.
+                  It is account level rather than per event, so it belongs
+                  under the hosted list as a whole, not on one event card. */}
+              <div className="mt-4">
+                <BrandCard />
               </div>
             </div>
           )}
