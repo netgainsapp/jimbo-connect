@@ -1,19 +1,26 @@
 """Feature flags, single source of truth. Stored as one doc in Mongo so they can
 be flipped without a deploy.
 
-The blog flags default OFF: that engine ships dormant and publishes nothing
-until an operator turns autopublish on. News is the deliberate exception, owner
-decision 2026-08-02: the weekly item publishes itself. Turning it off is a flag
-flip, not a deploy. Note that "autopublish" still means "publish once the
-guardrails pass" for both sections; an item that fails them is kept as a draft
-rather than published broken.
+Both sections autopublish as of 2026-08-02, by owner decision. The engines
+originally shipped dormant; that is no longer the default anyone wants.
+
+⚠️ A DEFAULT ONLY APPLIES WHEN THE FLAG HAS NEVER BEEN SET. `get_flags` reads
+the stored document first, so if `blog_autopublish` was ever toggled off in the
+admin, that stored False wins and changing the default here does nothing. The
+reliable way to turn one on is the toggle at /admin/blog, which writes the
+document. Check the tick's response: it reports the status the post was saved
+with, which is the only proof that the flag actually took effect.
+
+Note that "autopublish" still means "publish once the guardrails pass" for both
+sections; an item that fails them is kept as a draft rather than published
+broken.
 """
 from database import db
 
 app_flags = db["app_flags"]
 
 DEFAULTS = {
-    "blog_autopublish": False,  # flip ON to start publishing generated posts
+    "blog_autopublish": True,   # owner decision 2026-08-02: publish generated posts
     "blog_data_posts": False,   # flip ON once there is enough real data to ground posts
     "news_autopublish": True,   # weekly news item goes live on its own
 }
