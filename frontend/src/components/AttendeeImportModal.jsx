@@ -55,6 +55,25 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
     }
   };
 
+  // Only email is required. The rest are shown so a host building a list from
+  // scratch knows what the directory can carry, rather than guessing and
+  // re importing later.
+  const downloadTemplate = () => {
+    const csv = [
+      "email,name,role,company,industry,phone,linkedin",
+      "ava@example.com,Ava Reynolds,Founder,Trailhead Labs,Software,3035550101,linkedin.com/in/example",
+      "ben@example.com,Ben Carter,VP Engineering,Summit Robotics,Hardware,,",
+    ].join("\n");
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" })
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "intro-connect-guest-list-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Modal open={open} onClose={onClose} label="Import guest list">
       <div className="p-6">
@@ -62,7 +81,8 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
         <p className="mt-1 text-sm text-text-muted">
           Paste from a spreadsheet or upload a CSV. Export the attendee list
           from Eventbrite, Meetup, or wherever your guests came from. A header
-          row is optional.
+          row is optional, and a name split across first and last columns is
+          joined for you.
         </p>
 
         {!result && (
@@ -84,6 +104,13 @@ export default function AttendeeImportModal({ open, onClose, eventId, onComplete
                 className="hidden"
               />
               <span className="text-xs text-text-muted">or paste below</span>
+              <button
+                type="button"
+                onClick={downloadTemplate}
+                className="ml-auto text-xs font-semibold text-primary hover:underline"
+              >
+                Download a template
+              </button>
             </div>
 
             <textarea
