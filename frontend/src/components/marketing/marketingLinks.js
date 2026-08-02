@@ -15,6 +15,9 @@ export const NAV_LINKS = [
   { href: at("/#how"), label: "How it works" },
   { href: at("/#features"), label: "Features" },
   { href: at("/#pricing"), label: "Pricing" },
+  // Anchors to the section, deliberately NOT to the PDF: the form is the only
+  // lead capture the site has. Same reasoning as marketing/Nav.jsx.
+  { href: at("/#one-pager"), label: "One pager" },
   { href: at("/#faq"), label: "FAQ" },
   { href: at("/agenda"), label: "Agenda Builder" },
   { href: at("/blog"), label: "Blog" },

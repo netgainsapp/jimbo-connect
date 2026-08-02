@@ -18,6 +18,55 @@ _MARK = (
     "</svg>"
 )
 
+#: The marketing site's nav and footer, mirrored. These pages are served on the
+#: marketing domain, so they must carry the same chrome as the homepage — but
+#: the homepage's copy lives in a different deploy artifact (marketing/, its own
+#: Render service with its own rootDir), so it cannot be imported. It is
+#: mirrored here instead, and `tests/test_nav_consistency.py` fails when the two
+#: fall out of step. That test is the only thing keeping them honest.
+#:
+#: Anchors route through "/" because a blog or news page is not the homepage the
+#: sections live on. "/#one-pager" anchors to the section and NOT to the PDF on
+#: purpose: the form is the only lead capture the site has.
+_NAV_LINKS = (
+    ("/#how", "How it works"),
+    ("/#features", "Features"),
+    ("/#pricing", "Pricing"),
+    ("/#one-pager", "One pager"),
+    ("/#faq", "FAQ"),
+    ("/agenda", "Agenda Builder"),
+    ("/blog", "Blog"),
+    ("/news", "News"),
+)
+
+_FOOTER_LINKS = (
+    ("/#features", "Features"),
+    ("/#pricing", "Pricing"),
+    ("/#faq", "FAQ"),
+    ("/agenda", "Agenda Builder"),
+    ("/blog", "Blog"),
+    ("/news", "News"),
+    ("/privacy.html", "Privacy"),
+    ("/terms.html", "Terms"),
+    ("mailto:hello@intro-connect.com", "Contact"),
+)
+
+
+def _links_html(links) -> str:
+    return "".join(f'<a href="{href}">{label}</a>' for href, label in links)
+
+
+#: Built once. The desktop row and the mobile sheet render the SAME string, so a
+#: link can never appear in one and not the other.
+_NAV_HTML = _links_html(_NAV_LINKS)
+_FOOTER_HTML = _links_html(_FOOTER_LINKS)
+
+_BURGER = (
+    '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" '
+    'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+    'aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>'
+)
+
 _CSS = """
 :root{--ink:#0d1b2a;--stone:#51606f;--line:#e4e6ea;--primary:#2563eb;--cream:#f7f8fa}
 *{box-sizing:border-box}
@@ -43,10 +92,27 @@ a{color:var(--primary);text-decoration:none}
    wins the background) leaving white text on a white pill. */
 .btn-primary{background:var(--primary);color:#fff;padding:9px 18px;border-radius:999px;font-size:14px;font-weight:700}
 .btn-primary:hover{opacity:.92}
-/* 1024, not 768: seven links plus two CTAs do not fit at 768 and the row
-   overflowed, pushing "Start for free" off the edge. Matches Nav.jsx, which
-   uses the lg breakpoint for the same reason. */
-@media(min-width:1024px){.nav .links{display:flex}.nav .navcta{display:flex}}
+/* 1120, not 1024. Measured in a browser with the real webfont loaded: brand 144
+   + links 672 + CTAs 191 + two 16px gaps = 1039px of content, so the row needs a
+   1087px viewport once the 24px side padding is counted. At 1024 it overflowed
+   the moment "One pager" and "Agenda Builder" joined the list. 1120 clears it
+   with ~33px to spare and still keeps the full row on a 1152px laptop.
+   Re-measure if a link is added: eight is already close to the ceiling.
+   Below the breakpoint the sheet takes over — see .menu. Before that existed
+   these pages had NO navigation at all under it, just the logo, because this
+   shell never had the mobile menu Nav.jsx has. */
+@media(min-width:1120px){.nav .links{display:flex}.nav .navcta{display:flex}.menu{display:none}}
+/* CSS-only disclosure: this shell is server-rendered with no JavaScript, so the
+   mobile menu is a <details>. Same links as the desktop row, same string. */
+.menu{position:relative}
+.menu summary{list-style:none;cursor:pointer;display:flex;align-items:center;padding:8px;border-radius:10px;color:var(--stone)}
+.menu summary::-webkit-details-marker{display:none}
+.menu summary:hover{background:var(--cream);color:var(--ink)}
+.menu .sheet{display:flex;flex-direction:column;position:absolute;right:0;top:52px;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 14px 34px rgba(13,27,42,.13)}
+.menu .sheet a{padding:10px 12px;border-radius:10px;font-size:15px;font-weight:600;color:var(--stone)}
+.menu .sheet a:hover{background:var(--cream);color:var(--ink)}
+.menu .sheet .sep{border-top:1px solid var(--line);margin:6px 0}
+.menu .sheet .go{color:var(--primary);font-weight:700}
 .wrap{max-width:760px;margin:0 auto;padding:48px 24px 96px}
 .crumbs{font-size:13px;color:var(--stone);margin-bottom:8px}
 .crumbs a{color:var(--stone)}
@@ -142,25 +208,23 @@ def page(
         '<nav class="nav"><div class="in">'
         f'<a class="brandlink" href="/">{_MARK}'
         '<span class="brand">Intro <span>Connect</span></span></a>'
-        '<div class="links">'
-        '<a href="/#how">How it works</a><a href="/#features">Features</a>'
-        '<a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>'
-        '<a href="/blog">Blog</a><a href="/news">News</a>'
-        "</div>"
+        f'<div class="links">{_NAV_HTML}</div>'
         '<div class="navcta">'
         f'<a class="btn-ghost" href="{seo.app_url()}">Log in</a>'
         '<a class="nav-cta" href="/#pricing">Start for free</a>'
-        "</div></div></nav>"
+        "</div>"
+        '<details class="menu"><summary aria-label="Open navigation">'
+        f"{_BURGER}</summary><div class=\"sheet\">{_NAV_HTML}"
+        '<div class="sep"></div>'
+        f'<a class="go" href="{seo.app_url()}">Log in</a>'
+        '<a class="go" href="/#pricing">Start for free</a>'
+        "</div></details>"
+        "</div></nav>"
         f"{body}"
         '<footer class="foot"><div class="in"><div class="row">'
         '<div class="fbrand">' + _MARK + '<div><div class="word">Intro '
         '<span>Connect</span></div><div class="copy">© 2026 Intro Connect</div></div></div>'
-        '<div class="flinks">'
-        '<a href="/#features">Features</a><a href="/#pricing">Pricing</a>'
-        '<a href="/#faq">FAQ</a><a href="/blog">Blog</a><a href="/news">News</a>'
-        '<a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a>'
-        '<a href="mailto:hello@intro-connect.com">Contact</a>'
-        "</div></div>"
+        f'<div class="flinks">{_FOOTER_HTML}</div></div>'
         '<div class="tagline">Host better. Connect deeper. Build what matters.</div>'
         "</div></footer></body></html>"
     )
