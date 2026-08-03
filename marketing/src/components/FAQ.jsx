@@ -27,10 +27,6 @@ const FAQS = [
     a: "Your past events stay live for 60 days so attendees can still access them. After that, the data is exported to you as a CSV and the directories are taken offline.",
   },
   {
-    q: "Can I bring my own domain?",
-    a: "On Pro and Enterprise, yes. Use your-name.com or app.your-name.com, and we handle the SSL and DNS guidance.",
-  },
-  {
     q: "Do you have an iPhone or Android app?",
     a: "Not yet. The web app is fully mobile-optimized, so add it to your home screen and it behaves like a native app. Native apps are on the roadmap once we have 50+ paying hosts.",
   },

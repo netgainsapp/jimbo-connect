@@ -83,14 +83,16 @@ Scott
 
 Hi {host_name},
 
-Glad to see Intro Connect working for you. The free plan covers one event and a
-directory that stays live for a month. When you are ready to run more rooms,
-keep directories permanent, or connect attendees across every event you host,
-the paid plans open that up.
+Glad to see Intro Connect working for you. The free plan covers one event with
+up to 50 guests, and the parts you have been using stay free either way: the
+directory, messaging, saved contacts, sponsors and the agenda builder.
 
-- Starter, 39 dollars a month: a few events and bigger rooms.
-- Pro, 99 dollars a month: unlimited events, your whole network in one place,
-  and your own custom domain.
+Hosts move up for three reasons and that is all of them: more events, bigger
+rooms, or your own brand on the page.
+
+- Starter, 39 dollars a month: up to 3 events and 250 guests in each.
+- Pro, 99 dollars a month: unlimited events, up to 2,000 guests in each, and
+  your logo and color on your event pages and guest emails.
 
 See the plans: {site_url}/#pricing
 

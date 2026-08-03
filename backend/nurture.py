@@ -117,19 +117,30 @@ STEPS = [
         "button": {"label": "Open your event", "url": FIRST_EVENT_URL},
     },
     {
+        # Every reason to upgrade named here has to be a real plan gate, and
+        # there are exactly three: event count and attendees per event
+        # (billing.event_limit_for / attendee_limit_for) and host branding
+        # (branding.plan_allows, pro only). Everything else works on free, so
+        # it cannot be sold as an unlock. Rewritten 2026-08-02: this email had
+        # been promising a directory that expires after a month, permanent
+        # directories as a paid upgrade, and a cross event network. No expiry
+        # exists, so the first two sold a difference that is not there, and the
+        # cross event directory is a free feature.
         "after_days": 10,
         "gate": "has_event",
         "subject": "when you are ready for more rooms",
         "heading": "When you are ready for more rooms",
         "paragraphs": lambda name: [
             f"Hi {name},",
-            "Glad to see Intro Connect working for you. The free plan covers one "
-            "event and a directory that stays live for a month. When you are "
-            "ready to run more rooms, keep directories permanent, or connect "
-            "attendees across every event you host, the paid plans open that up.",
-            "Starter, 39 dollars a month: a few events and bigger rooms. "
-            "Pro, 99 dollars a month: unlimited events, your whole network in "
-            "one place, and your own custom domain.",
+            "Glad to see Intro Connect working for you. The free plan covers "
+            "one event with up to 50 guests, and the parts you have been using "
+            "stay free either way: the directory, messaging, saved contacts, "
+            "sponsors and the agenda builder.",
+            "Hosts move up for three reasons and that is all of them: more "
+            "events, bigger rooms, or your own brand on the page. Starter, 39 "
+            "dollars a month: up to 3 events and 250 guests in each. Pro, 99 "
+            "dollars a month: unlimited events, up to 2,000 guests in each, "
+            "and your logo and color on your event pages and guest emails.",
             "No rush, the free plan is yours for as long as you want it.",
             "Scott",
         ],
