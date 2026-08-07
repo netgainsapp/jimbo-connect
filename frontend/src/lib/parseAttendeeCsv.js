@@ -9,7 +9,14 @@
  * quoting, and "Name <email@host>" in a single column. Bad rows are returned as
  * errors with their line number rather than silently dropped.
  */
-import { formatPhone, isValidPhone } from "./phone.js";
+import { formatPhone, isValidPhone, normalizeImportedPhone } from "./phone.js";
+import {
+  SOURCES,
+  detectSource,
+  normalizeHeader,
+  stripCustomFieldPrefix,
+  usesInternationalPhone,
+} from "./importSource.js";
 
 export const KNOWN_FIELDS = [
   "email",
@@ -52,13 +59,49 @@ const HEADER_ALIASES = {
   first_name: FIRST_NAME_ALIASES,
   last_name: LAST_NAME_ALIASES,
   role: ["role", "title", "position", "job title", "jobtitle"],
-  company: ["company", "organization", "org", "employer"],
+  company: [
+    "company",
+    "organization",
+    "organisation",
+    "org",
+    "employer",
+    "company name",
+  ],
   industry: ["industry", "sector"],
   bio: ["bio", "about"],
   looking_for: ["looking_for", "looking for", "seeking", "needs"],
-  phone: ["phone", "phone number", "mobile", "tel"],
+  phone: ["phone", "phone number", "mobile", "mobile number", "mobile phone", "tel"],
   linkedin: ["linkedin", "linkedin url", "linked in"],
 };
+
+/**
+ * Columns that are deliberately never imported, even when a file offers them.
+ *
+ * Audience Republic exports marketing consent (Email Opt-In / SMS Opt-In)
+ * alongside date of birth and gender. Consent given to one company for one
+ * purpose is not consent given to another, and none of these three belong on
+ * an Intro Connect profile. They are recognised by name purely so the review
+ * screen can list them as deliberately ignored rather than leaving the host to
+ * wonder whether we quietly took them.
+ */
+export const IGNORED_HEADERS = [
+  "email opt in",
+  "sms opt in",
+  "opt in",
+  "date of birth",
+  "dob",
+  "gender",
+  "total campaign count",
+  "total event count",
+  "total referrals",
+  "total tickets",
+  "total points",
+  "total ticket sales",
+];
+
+export function isIgnoredHeader(header) {
+  return IGNORED_HEADERS.includes(stripCustomFieldPrefix(header));
+}
 
 /**
  * Count delimiter candidates in the first record, ignoring anything inside
@@ -166,10 +209,25 @@ function splitRecords(text, delim) {
   return records;
 }
 
+/**
+ * Header text to one of our fields, or null when we have no use for it.
+ *
+ * Normalised before matching so "Job Title", "job_title" and "job-title" are
+ * one header rather than three. A host's own column arrives from Audience
+ * Republic as "Custom Field - Company", so the prefix is removed before
+ * matching: the name the host chose is the part that carries the meaning, and
+ * company and job title only ever reach us that way.
+ *
+ * Consent, date of birth and gender are refused here rather than filtered
+ * later, so there is exactly one place that decides what may enter a row.
+ */
 function mapHeader(h) {
-  const k = h.trim().toLowerCase();
+  const raw = normalizeHeader(h);
+  if (raw === "") return null;
+  if (isIgnoredHeader(h)) return null;
+  const k = stripCustomFieldPrefix(h);
   for (const [field, aliases] of Object.entries(HEADER_ALIASES)) {
-    if (aliases.includes(k)) return field;
+    if (aliases.includes(k) || aliases.includes(raw)) return field;
   }
   return KNOWN_FIELDS.includes(k) ? k : null;
 }
@@ -239,8 +297,34 @@ export function suggestEventName(text) {
   return values.every((v) => v === values[0]) ? values[0] : "";
 }
 
-export function parsePaste(text) {
+/**
+ * A host's correction of one column, applied before our own guess.
+ *
+ * Keyed on the normalised header so the override survives the same spelling
+ * differences the matcher tolerates. An explicit null means "do not import
+ * this column", which is different from having no opinion: it has to be able
+ * to switch a mapping off, not only change it.
+ */
+function resolveHeader(header, overrides) {
+  if (overrides && Object.prototype.hasOwnProperty.call(overrides, normalizeHeader(header))) {
+    return overrides[normalizeHeader(header)] || null;
+  }
+  return mapHeader(header);
+}
+
+/**
+ * @param text  the pasted or uploaded file
+ * @param options.source  a value from SOURCES. Only changes phone handling:
+ *   a recognised CRM export carries country codes, a generic spreadsheet does
+ *   not, and the stricter rule stays the default for everything unrecognised.
+ * @param options.overrides  { normalisedHeader: field | null }, the host's
+ *   corrections from the review screen. Automatic mapping is a good guess, not
+ *   an authority, and the host is looking at the file.
+ */
+export function parsePaste(text, options = {}) {
   if (String(text ?? "").trim() === "") return { rows: [], errors: [] };
+  const internationalPhone = usesInternationalPhone(options.source);
+  const overrides = options.overrides || null;
 
   const delim = detectDelimiter(text);
   const records = splitRecords(text, delim);
@@ -250,7 +334,7 @@ export function parsePaste(text) {
   let headers = null;
   let body = records;
   if (!firstHasEmail) {
-    headers = records[0].cells.map(mapHeader);
+    headers = records[0].cells.map((h) => resolveHeader(h, overrides));
     body = records.slice(1);
   }
 
@@ -330,15 +414,89 @@ export function parsePaste(text) {
     // else drops the whole row, named, rather than importing a contact whose
     // number looks fine and does not work. The server enforces this too.
     if (row.phone && !isValidPhone(row.phone)) {
-      errors.push({
-        line,
-        reason: `Phone "${row.phone}" is not 10 digits`,
-      });
-      return;
+      if (internationalPhone) {
+        // Audience Republic puts a country code on every mobile, so an
+        // eleven digit number here is the ordinary case rather than a typo.
+        // A US number reduces to the ten digits this product stores; any
+        // other country cannot be stored, so the field goes and the attendee
+        // stays. Losing a phone number is a smaller harm than losing the
+        // person, and dropping the row is what this used to do.
+        const reduced = normalizeImportedPhone(row.phone);
+        if (reduced) row.phone = reduced;
+        else delete row.phone;
+      } else {
+        errors.push({
+          line,
+          reason: `Phone "${row.phone}" is not 10 digits`,
+        });
+        return;
+      }
     }
     if (row.phone) row.phone = formatPhone(row.phone);
     rows.push(row);
   });
 
   return { rows, errors };
+}
+
+/**
+ * Everything the review screen needs in one pass: what the file is, what we
+ * matched, what we ignored, and the rows themselves.
+ *
+ * Separate from parsePaste so the existing callers keep their simple shape.
+ * The host sees the mapping before anything is written, because an import that
+ * silently guesses wrong is only discovered once it is already in the
+ * directory.
+ */
+export function analyzePaste(text, filename = "", overrides = null) {
+  const raw = String(text ?? "");
+  const empty = {
+    source: SOURCES.UNKNOWN,
+    signals: [],
+    confidence: 0,
+    headers: [],
+    mapped: [],
+    unmapped: [],
+    ignored: [],
+    rows: [],
+    errors: [],
+  };
+  if (raw.trim() === "") return empty;
+
+  const delim = detectDelimiter(raw);
+  const records = splitRecords(raw, delim);
+  if (records.length === 0) return empty;
+
+  // A first record containing an address is data, not a header row, so there
+  // is nothing to map and nothing to detect from.
+  const firstHasEmail = records[0].cells.some((c) => c.includes("@"));
+  const headers = firstHasEmail ? [] : records[0].cells;
+
+  const detected = detectSource(headers, filename);
+  const { rows, errors } = parsePaste(raw, {
+    source: detected.source,
+    overrides,
+  });
+
+  const mapped = [];
+  const unmapped = [];
+  const ignored = [];
+  headers.forEach((h) => {
+    if (!h || h.trim() === "") return;
+    const field = resolveHeader(h, overrides);
+    if (field) {
+      mapped.push({ header: h, field });
+      return;
+    }
+    // A host who deliberately switched a column off should see it in the
+    // ordinary "not imported" list, not filed under the privacy exclusions,
+    // which are ours rather than theirs.
+    const overridden =
+      overrides &&
+      Object.prototype.hasOwnProperty.call(overrides, normalizeHeader(h));
+    if (!overridden && isIgnoredHeader(h)) ignored.push(h);
+    else unmapped.push(h);
+  });
+
+  return { ...detected, headers, mapped, unmapped, ignored, rows, errors };
 }

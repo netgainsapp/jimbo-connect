@@ -229,9 +229,15 @@ async def admin_event_insights(event_id: str, _: dict = Depends(get_current_admi
     if not await events.find_one({"_id": oid}):
         raise HTTPException(status_code=404, detail="Event not found")
 
-    attendee_ids = [
-        l["user_id"] async for l in event_attendees.find({"event_id": oid}, {"user_id": 1})
-    ]
+    attendee_ids = []
+    # Which tool each person arrived through, so the same connection and
+    # message counts below can be read per source. A membership written before
+    # attribution existed simply has no `source`, which is not "manual" — we
+    # genuinely do not know — so it is counted as unattributed.
+    source_of: dict = {}
+    async for l in event_attendees.find({"event_id": oid}, {"user_id": 1, "source": 1}):
+        attendee_ids.append(l["user_id"])
+        source_of[l["user_id"]] = l.get("source") or "unattributed"
     id_set = set(attendee_ids)
 
     invited = await event_invites.count_documents({"event_id": oid})
@@ -243,6 +249,20 @@ async def admin_event_insights(event_id: str, _: dict = Depends(get_current_admi
     # Connections + messages that stayed within this event's attendee set.
     connections = 0
     save_counts: dict = {}
+    # Per source counters, keyed the same way as source_of. Built alongside the
+    # totals rather than in a second pass so the two can never disagree.
+    by_source: dict = {}
+
+    def _bucket(uid):
+        s = source_of.get(uid, "unattributed")
+        return by_source.setdefault(
+            s,
+            {"attendees": 0, "profile_completed": 0, "connections": 0, "messages": 0},
+        )
+
+    for uid in attendee_ids:
+        _bucket(uid)["attendees"] += 1
+
     if id_set:
         async for sc in saved_contacts.find(
             {"owner_id": {"$in": attendee_ids}}, {"owner_id": 1, "contact_id": 1}
@@ -251,6 +271,7 @@ async def admin_event_insights(event_id: str, _: dict = Depends(get_current_admi
                 connections += 1
                 cid = sc["contact_id"]
                 save_counts[cid] = save_counts.get(cid, 0) + 1
+                _bucket(sc["owner_id"])["connections"] += 1
 
     messages_exchanged = 0
     if id_set:
@@ -259,6 +280,17 @@ async def admin_event_insights(event_id: str, _: dict = Depends(get_current_admi
         ):
             if m.get("to_user_id") in id_set:
                 messages_exchanged += 1
+                _bucket(m["from_user_id"])["messages"] += 1
+
+    # "Completed profile" is deliberately a low bar: a role or a company, the
+    # two fields an imported record does not arrive with. It measures whether
+    # the person came back and filled anything in, which is the thing an
+    # imported list is trying to cause.
+    if id_set:
+        async for u in users.find({"_id": {"$in": attendee_ids}}, {"profile": 1}):
+            prof = u.get("profile") or {}
+            if (prof.get("role") or "").strip() or (prof.get("company") or "").strip():
+                _bucket(u["_id"])["profile_completed"] += 1
 
     # Top saved attendees (most sought-after people in the room).
     top_ids = sorted(save_counts, key=save_counts.get, reverse=True)[:3]
@@ -279,6 +311,10 @@ async def admin_event_insights(event_id: str, _: dict = Depends(get_current_admi
         "connections": connections,
         "messages": messages_exchanged,
         "top_saved": top_saved,
+        # Same numbers, split by where the attendee came from. Answers "did
+        # that imported list actually become a network", which is the only
+        # reason attribution is stored at all.
+        "by_source": by_source,
     }
 
 

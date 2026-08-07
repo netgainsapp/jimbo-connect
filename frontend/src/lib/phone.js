@@ -42,3 +42,31 @@ export function isValidPhone(value) {
   const d = phoneDigits(value);
   return d.length === 0 || d.length === REQUIRED_DIGITS;
 }
+
+/**
+ * Reduce a number from a CRM export to the ten digits this product stores.
+ *
+ * Audience Republic requires a country code on every mobile and exports them
+ * that way, for example "+1 303-555-0101". That is eleven digits, so
+ * isValidPhone refuses it, and because the parser drops a row whose phone
+ * fails, an Audience Republic export would silently lose every attendee who
+ * had a mobile on file — the majority of a real list.
+ *
+ * A leading US/Canada country code is removed only when doing so leaves
+ * exactly ten digits. Any other country returns "": the number cannot be
+ * stored here, but the person can, so the caller keeps the row and drops only
+ * this field. Nothing is ever truncated to fit; see formatPhone for why that
+ * is the one thing worse than refusing.
+ *
+ * Deliberately NOT applied to every import. Generic spreadsheets keep the
+ * stricter rule, where an eleven digit number is likelier to be a typo than a
+ * country code.
+ */
+export function normalizeImportedPhone(value) {
+  const d = phoneDigits(value);
+  if (d.length === REQUIRED_DIGITS) return d;
+  if (d.length === REQUIRED_DIGITS + 1 && d.startsWith("1")) {
+    return d.slice(1);
+  }
+  return "";
+}

@@ -110,8 +110,10 @@ export const eventsApi = {
   // Host guest-list import. Rows only: the event comes from the URL and no
   // password may be supplied, so a host cannot create a login they can use for
   // someone else's address. See backend/attendee_import.py.
-  importAttendees: (id, rows) =>
-    api.post(`/api/events/${id}/attendees/import`, { rows }),
+  // `source` records which tool the list came out of. Optional so existing
+  // callers keep working; the server collapses anything it does not know.
+  importAttendees: (id, rows, source = "csv") =>
+    api.post(`/api/events/${id}/attendees/import`, { rows, source }),
 };
 
 export const announcementsApi = {

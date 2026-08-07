@@ -417,6 +417,7 @@ async def import_event_attendees(
         rows=payload.rows,
         event_doc=event_doc,
         event_oid=oid,
+        source=payload.source,
     )
 
 

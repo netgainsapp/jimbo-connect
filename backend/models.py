@@ -242,6 +242,13 @@ class BulkImportRequest(BaseModel):
     default_password: Optional[str] = Field(default=None, max_length=200)
 
 
+#: Where a guest list came from. Recorded per attendee so we can later ask
+#: whether an imported list actually became a network: invited, joined,
+#: connected. Anything unrecognised is stored as "other" rather than rejected,
+#: because a mislabelled import is not a reason to refuse a real guest list.
+IMPORT_SOURCES = ("manual", "csv", "audience_republic", "eventbrite", "other")
+
+
 class EventAttendeeImportRequest(BaseModel):
     """Host-facing import. Deliberately NOT BulkImportRequest: there is no
     `default_password` field, so a host cannot set a known password on an
@@ -250,6 +257,14 @@ class EventAttendeeImportRequest(BaseModel):
     also cannot aim the import at an event they do not manage."""
 
     rows: List[BulkImportRow] = Field(max_length=500)
+    source: str = Field(default="csv", max_length=40)
+
+    @field_validator("source")
+    @classmethod
+    def _known_source(cls, v):
+        # Attribution is for our own measurement, so a wrong value must never
+        # cost the host their import. Unknown labels collapse to "other".
+        return v if v in IMPORT_SOURCES else "other"
 
 
 class SponsorCreateRequest(BaseModel):

@@ -44,11 +44,18 @@ async def import_rows(
     event_oid=None,
     default_password: str | None = None,
     disclose_credentials: bool = False,
+    source: str = "manual",
 ) -> dict:
     """Import `rows`, optionally adding each person to `event_doc`.
 
     `default_password` and `disclose_credentials` are admin-only powers; the
     host path passes neither. Returns the same summary shape for both callers.
+
+    `source` records which tool the list came out of, on the event membership
+    rather than on the person: someone can arrive at one event from an
+    Audience Republic export and at the next by signing up themselves, and
+    both facts are true. Stored only on rows this import creates, so existing
+    memberships keep whatever they already said.
     """
     now = datetime.now(timezone.utc)
     created = 0
@@ -161,6 +168,8 @@ async def import_rows(
                                 "event_id": event_oid,
                                 "user_id": user_id,
                                 "joined_at": now,
+                                "source": source,
+                                "imported_at": now,
                             }
                         )
                         added_to_event += 1
