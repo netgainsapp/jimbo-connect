@@ -68,3 +68,21 @@ Rules that keep us honest:
 - A reply of any kind stops the sequence the same day.
 - do_not_contact is forever and survives list rebuilds.
 - Nothing sends to a row a human has not marked vetted.
+
+## Send log
+
+**2026-08-12 — named-organizer wave, 12 sent** (~2:17–2:46 PM, from
+introconnectme@gmail.com). Personalized Template 1 variants; copy in
+`drafts-2026-08-12.md`, targets and scores in `targets-named-organizers.csv`.
+Recipients: Denver Metro Chamber (Zarookian), Longmont Chamber (Straubel),
+Startup Grind Den+COS (Poelstra), 1MC Denver / Fort Collins / Colo Springs,
+Boulder Chamber+BYP (Cordero), Broomfield Chamber (Schierkolk), Greeley
+Chamber (Fritzler), Erie Chamber (Thompson), Lafayette Chamber (Green),
+The Studio Boulder (Tia). All rows: status → in_sequence, touch1 2026-08-12.
+- Touch 2 (day 3, in thread): 2026-08-15. Touch 3 (day 8): 2026-08-20.
+- Known defect at send time: account display name was still "rob Alexander".
+- The 138 remaining Aug 7 "Greetings" drafts are the retired unvetted batch —
+  do not send; the addresses they cover are burned for cold intro purposes.
+- Prior wave for context: ~140 unpersonalized "What I missed after hosting my
+  event" sends to the unvetted chamber scrape, Aug 7–12. Zero replies; treated
+  as list failure, not deliverability (mail-tester 10/10 on 2026-08-12).

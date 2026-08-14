@@ -7,6 +7,7 @@ import BrandCard from "../components/BrandCard.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { formatDateTime, copyToClipboard } from "../lib/utils.js";
+import { inviteOutcome } from "../lib/inviteResult.js";
 
 export default function MyEvents() {
   const [events, setEvents] = useState([]);
@@ -127,9 +128,14 @@ export default function MyEvents() {
     setInviting(true);
     try {
       const res = await eventsApi.invite(ev.id, emails);
-      toast.show(`Invited ${res.invited} guest${res.invited === 1 ? "" : "s"}`);
-      setInviteText("");
-      setInviteOpenId(null);
+      const outcome = inviteOutcome(res);
+      toast.show(outcome.message, outcome.type);
+      // A failed send is retryable and the addresses are still in the box, so
+      // only clear the form once something actually went out.
+      if (outcome.type !== "error") {
+        setInviteText("");
+        setInviteOpenId(null);
+      }
     } catch (err) {
       toast.show(
         err.status === 403 ? "Only the host can invite guests." : err.message,

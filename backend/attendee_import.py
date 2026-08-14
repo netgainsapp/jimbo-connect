@@ -30,6 +30,7 @@ from auth import hash_password
 from core import APP_URL, attendee_room
 import host_templates
 from database import event_attendees, users
+from send_report import tally_failure
 
 
 def _random_password() -> str:
@@ -61,6 +62,8 @@ async def import_rows(
     created = 0
     skipped = 0
     added_to_event = 0
+    emailed = 0
+    email_failures: dict = {}
     accounts: list = []
     errors: list = []
 
@@ -137,14 +140,26 @@ async def import_rows(
                         },
                         host_id=actor["_id"],
                     )
+                    # The account exists whether or not the invitation lands,
+                    # so the two outcomes are counted separately. Reporting
+                    # only "created" is how an import that emailed nobody read
+                    # exactly like one that worked.
                     if rendered:
-                        await email_send.send_template_branded(
+                        send_result = await email_send.send_template_branded(
                             to=email,
                             rendered=rendered,
                             button_label="Open your directory",
                             button_url=APP_URL,
                             brand=branding.email_brand(actor),
                         )
+                        if send_result.get("sent"):
+                            emailed += 1
+                        else:
+                            tally_failure(email_failures, send_result.get("reason"))
+                    else:
+                        # No template means no mail at all, which is the one
+                        # failure mode that leaves no trace anywhere else.
+                        tally_failure(email_failures, "invitation template unavailable")
 
             if event_oid is not None:
                 already = await event_attendees.find_one(
@@ -181,6 +196,9 @@ async def import_rows(
         "created": created,
         "skipped": skipped,
         "added_to_event": added_to_event,
+        # Only new accounts are emailed, so `emailed` is never the row count.
+        "emailed": emailed,
+        "email_failures": email_failures,
         "errors": errors,
         "accounts": accounts,
     }

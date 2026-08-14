@@ -4,6 +4,7 @@ import { AlertCircle, ArrowRight, Upload, Users } from "lucide-react";
 import { eventsApi } from "../lib/api.js";
 import { parsePaste, suggestEventName } from "../lib/parseAttendeeCsv.js";
 import { profileComplete } from "../lib/utils.js";
+import { importOutcome } from "../lib/importResult.js";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 
@@ -77,8 +78,9 @@ export default function StartFromRoster() {
       // The event has to exist before anyone can be attached to it, so a
       // failure here leaves a real event with no guests rather than nothing.
       // That is recoverable from the event page; the reverse would not be.
+      let imported;
       try {
-        await eventsApi.importAttendees(ev.id, parsed.rows);
+        imported = await eventsApi.importAttendees(ev.id, parsed.rows);
       } catch (importErr) {
         toast.show(
           `${ev.name} was created, but the guest list did not import: ${importErr.message}`,
@@ -88,10 +90,14 @@ export default function StartFromRoster() {
         return;
       }
       await refresh();
+      // The server's numbers, not the row count the browser uploaded: rows can
+      // be skipped, and only brand new accounts are emailed.
+      const outcome = importOutcome(imported);
       toast.show(
         profileComplete(user?.profile)
-          ? `${ev.name} is ready with ${parsed.rows.length} guests invited.`
-          : `${parsed.rows.length} guests invited. Add your own details so they know who is hosting.`
+          ? `${ev.name} is ready. ${outcome.message}`
+          : `${outcome.message} Add your own details so they know who is hosting.`,
+        outcome.type
       );
       navigate(afterImport(ev.id));
     } catch (err) {

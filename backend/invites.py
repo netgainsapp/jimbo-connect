@@ -16,6 +16,7 @@ import branding
 import email_send
 
 from app_url import APP_URL
+from send_report import tally_failure
 
 # Reminder cadence for guests who have not joined: days after the invite.
 REMINDER_DAYS = [2, 5]
@@ -81,6 +82,18 @@ def reminder_paragraphs(event_name: str, host_name: str) -> list:
     ]
 
 
+def _summary(attempted: int, sent: int, skipped_recent: int, failures: dict) -> dict:
+    """`invited` stays the attempted count it has always been. `sent` is the
+    only number that means mail actually left."""
+    return {
+        "invited": attempted,
+        "skipped_recent": skipped_recent,
+        "sent": sent,
+        "failed": attempted - sent,
+        "failures": failures,
+    }
+
+
 async def send_event_invites(
     event: dict, raw_emails, host_name: str, host_brand: dict | None = None
 ) -> dict:
@@ -89,9 +102,9 @@ async def send_event_invites(
     gets ahead of actually-sent mail."""
     emails = normalize_emails(raw_emails)
     if not emails:
-        return {"invited": 0, "sent": 0}
+        return _summary(0, 0, 0, {})
     if not email_send.is_configured():
-        return {"invited": 0, "sent": 0, "skipped": "email_not_configured"}
+        return {**_summary(0, 0, 0, {}), "skipped": "email_not_configured"}
     now = datetime.now(timezone.utc)
     # Anti-abuse: skip any address invited to ANY event in the last 24h, so the
     # same person cannot be re-blasted across events.
@@ -103,21 +116,12 @@ async def send_event_invites(
     to_send = [e for e in emails if e not in recent_set]
     join_url = _join_url(event["join_code"])
     sent = 0
+    failures: dict = {}
     for email in to_send:
-        await event_invites.update_one(
-            {"event_id": event["_id"], "email": email},
-            {
-                "$setOnInsert": {
-                    "event_id": event["_id"],
-                    "email": email,
-                    "host_name": host_name or "",
-                    "invited_at": now,
-                    "joined_at": None,
-                    "reminder_step": 0,
-                }
-            },
-            upsert=True,
-        )
+        # Send first. invited_at is what the 24h window above is keyed on, so
+        # stamping it before the send means one rejected message locks the
+        # address out of any retry for a day, and the reminder drip starts for
+        # mail that never left.
         result = await email_send.send_branded(
             to=email,
             subject=invite_subject(event["name"]),
@@ -127,13 +131,28 @@ async def send_event_invites(
             marketing=True,
             brand=host_brand,
         )
-        if result.get("sent"):
-            sent += 1
-    return {
-        "invited": len(to_send),
-        "skipped_recent": len(emails) - len(to_send),
-        "sent": sent,
-    }
+        if not result.get("sent"):
+            tally_failure(failures, result.get("reason"))
+            continue
+        sent += 1
+        await event_invites.update_one(
+            {"event_id": event["_id"], "email": email},
+            {
+                # $set, not $setOnInsert: an address invited once must still be
+                # protected the next time, and only a landed send moves the
+                # window forward.
+                "$set": {"invited_at": now},
+                "$setOnInsert": {
+                    "event_id": event["_id"],
+                    "email": email,
+                    "host_name": host_name or "",
+                    "joined_at": None,
+                    "reminder_step": 0,
+                },
+            },
+            upsert=True,
+        )
+    return _summary(len(to_send), sent, len(emails) - len(to_send), failures)
 
 
 async def mark_joined(event_id, email: str) -> None:

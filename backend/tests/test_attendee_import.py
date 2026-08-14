@@ -119,6 +119,123 @@ def test_host_created_passwords_are_random_and_not_shared(monkeypatch):
     assert inserted[0]["password_hash"] != inserted[1]["password_hash"]
 
 
+# ---------------------------------------------------------------------------
+# The invitation email: a send that does not happen has to be visible
+# ---------------------------------------------------------------------------
+#
+# Only brand new accounts are emailed here, and the result of that send used to
+# be discarded. A roster import could therefore create fifty accounts, email
+# nobody, and report exactly the same summary as one that worked.
+
+from datetime import datetime, timezone
+
+EVENT_DATED = {
+    "_id": "evt",
+    "name": "Dinner",
+    "created_by": "host-1",
+    "date": datetime(2026, 9, 1, tzinfo=timezone.utc),
+    "location": "Denver",
+}
+
+_RENDERED = {"subject": "s", "body": "b"}
+
+
+def _patch_email(monkeypatch, *, rendered=_RENDERED, result=None):
+    sent_to = []
+
+    async def _render(_name, _ctx, host_id=None):
+        return rendered
+
+    async def _send(*, to, **_kw):
+        sent_to.append(to)
+        return result if result is not None else {"sent": True, "id": "x"}
+
+    monkeypatch.setattr(attendee_import.host_templates, "render_for_host", _render)
+    monkeypatch.setattr(attendee_import.email_send, "send_template_branded", _send)
+    return sent_to
+
+
+def test_import_reports_how_many_were_actually_emailed(monkeypatch):
+    _patch(monkeypatch, email_configured=True)
+    sent_to = _patch_email(monkeypatch)
+    out = _run(
+        attendee_import.import_rows(
+            actor=ACTOR,
+            rows=[_Row("a@acme.co"), _Row("b@acme.co")],
+            event_doc=EVENT_DATED,
+            event_oid="evt",
+        )
+    )
+    assert out["created"] == 2
+    assert out["emailed"] == 2
+    assert out["email_failures"] == {}
+    assert sent_to == ["a@acme.co", "b@acme.co"]
+
+
+def test_a_rejected_invitation_is_reported_not_swallowed(monkeypatch):
+    _patch(monkeypatch, email_configured=True)
+    _patch_email(monkeypatch, result={"sent": False, "reason": "domain not verified"})
+    out = _run(
+        attendee_import.import_rows(
+            actor=ACTOR,
+            rows=[_Row("a@acme.co"), _Row("b@acme.co")],
+            event_doc=EVENT_DATED,
+            event_oid="evt",
+        )
+    )
+    assert out["created"] == 2  # the accounts are real either way
+    assert out["emailed"] == 0
+    assert out["email_failures"] == {"domain not verified": 2}
+
+
+def test_a_missing_template_is_reported_rather_than_silently_sending_nothing(monkeypatch):
+    _patch(monkeypatch, email_configured=True)
+    sent_to = _patch_email(monkeypatch, rendered=None)
+    out = _run(
+        attendee_import.import_rows(
+            actor=ACTOR,
+            rows=[_Row("a@acme.co")],
+            event_doc=EVENT_DATED,
+            event_oid="evt",
+        )
+    )
+    assert sent_to == []
+    assert out["emailed"] == 0
+    assert sum(out["email_failures"].values()) == 1
+
+
+def test_existing_accounts_are_not_counted_as_email_failures(monkeypatch):
+    """Someone who already has an account gets no invitation by design, so they
+    must not show up as a failure and scare the host."""
+    _patch(monkeypatch, existing_emails=("old@acme.co",), email_configured=True)
+    sent_to = _patch_email(monkeypatch)
+    out = _run(
+        attendee_import.import_rows(
+            actor=ACTOR,
+            rows=[_Row("old@acme.co"), _Row("new@acme.co")],
+            event_doc=EVENT_DATED,
+            event_oid="evt",
+        )
+    )
+    assert sent_to == ["new@acme.co"]
+    assert out["emailed"] == 1
+    assert out["email_failures"] == {}
+
+
+def test_email_counts_are_present_even_when_email_is_off(monkeypatch):
+    _patch(monkeypatch, email_configured=False)
+    out = _run(
+        attendee_import.import_rows(
+            actor=ACTOR,
+            rows=[_Row("a@acme.co")],
+            event_doc=EVENT_DATED,
+            event_oid="evt",
+        )
+    )
+    assert out["emailed"] == 0
+    assert out["email_failures"] == {}
+
+
 def test_the_host_request_model_has_no_password_field():
     """The restriction is structural, not a runtime check that a later edit
     could drop: the host model simply cannot carry a password."""
