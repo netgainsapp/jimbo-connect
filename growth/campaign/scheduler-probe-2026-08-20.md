@@ -6,4 +6,6 @@ PROBE 3 read-tool: PASS (first 30 lines of drafts-2026-08-20-touch1.md read)
 PROBE 4 websearch: PASS (10 results returned)
 PROBE 5 browser: PASS (drafts count 25, introconnectme@gmail.com slot /u/3; nothing opened or edited)
 PROBE 6 curl: PASS (HTTP 307, expected without secret)
-PROBE 7 git-commit: in progress
+PROBE 7 git-commit: PASS (add + commit cc8627a + push to origin/main)
+
+All 7 probes passed. No permission prompt was raised on any tool call.
