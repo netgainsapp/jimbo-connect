@@ -86,3 +86,103 @@ The Studio Boulder (Tia). All rows: status → in_sequence, touch1 2026-08-12.
 - Prior wave for context: ~140 unpersonalized "What I missed after hosting my
   event" sends to the unvetted chamber scrape, Aug 7–12. Zero replies; treated
   as list failure, not deliverability (mail-tester 10/10 on 2026-08-12).
+
+**2026-08-19, touch 2 prepared, 12 drafts, NOT YET SENT.** Copy in
+`drafts-2026-08-19-touch2.md`. Goes in-thread as a reply to each Aug 12
+message. Touch 2 was originally calendared for Aug 15 and did not go out, so
+this lands day 7 rather than day 3. Revised cadence: touch 1 Aug 12, touch 2
+Aug 19, touch 3 Tue Aug 26 (reminder scheduled).
+- Sender display name verified fixed on 2026-08-19: reads "Scott / IntroConnect".
+  The "rob Alexander" defect shipped with touch 1 only.
+- Reply count on the Aug 12 wave as of 2026-08-19: zero, confirmed by inbox
+  inspection, not inferred. At 12 sends and one touch, zero replies is the
+  most likely single outcome and is not evidence about copy, list, or product.
+
+**2026-08-19, wave 2 touch 1 prepared, 20 drafts, NOT YET SENT.** Copy in
+`drafts-2026-08-19-touch1-wave2.md`, split into Tier A (7 rows, named-organizer
+list, send ready) and Tier B (13 rows, verdict `verify`, each needs a human vet
+before sending). Only 3 of the 20 clear the "send to 7s and up" bar. Generic
+inboxes at orgs already contacted at a named person were deliberately excluded.
+
+**Known gap.** `already_contacted` is still empty on all 33 rows of
+`targets-named-organizers.csv` even though 14 of them were contacted on Aug 12.
+The CSV disagrees with this file. Fix before the next list rebuild.
+
+**2026-08-19, touch 2 loaded into Gmail as in-thread drafts.** All 12 sit in
+introconnectme@gmail.com (slot /u/3) as a reply inside each original Aug 12
+thread, created 3:55 to 4:15 PM. Drafts count went 138 to 151. Scott sends.
+Verified one by one: each draft's greeting and event match its thread.
+- One stray draft to discard: a copy of the Alexandra text landed in the
+  unrelated "test" thread to sdwbouldah55 at 3:59 PM (automation clicked a
+  stale list row). The correct Alexandra draft exists in the Startup Grind
+  thread at 4:02 PM. Discard the 3:59 PM one before sending anything.
+
+**2026-08-19, wave 2 Tier A loaded into Gmail, 7 new-thread drafts.** Westminster
+Chamber, Enterprise Coworking, CACI (Summer Asbury), Longmont EDP (Kelly Sage),
+Colorado LGBTQ Chamber, Colorado Women's Chamber (Simone Morrison), Louisville
+Chamber (Melanie Hassenfratz). Copy in `drafts-2026-08-19-touch1-wave2.md`.
+Drafts folder went 138 to 158: 12 touch 2 + 7 touch 1 + 1 stray to discard.
+
+**2026-08-19, daily cadence started.** Scheduled task `intro-connect-daily-outreach`
+runs weekdays 9:00 AM: source and vet 25 new named organizers, draft and load
+touch 1, plus touch 2 for the cohort at day 7 and touch 3 for the cohort at day
+14. Task file: C:\Users\sweis\.claude\scheduled-tasks\intro-connect-daily-outreach\SKILL.md
+- Sourcing is the bottleneck, not drafting. At the start of this cadence the
+  qualified pool was effectively exhausted: 7 Tier A rows (now all sent as
+  drafts), 29 rows marked verify, 24 marked cut. 25 a day means 125 vetted
+  named organizers a week must be found. The task is instructed to report the
+  true number found and never pad with unvetted org inboxes.
+- Scheduled tasks only fire while the desktop app is open.
+- Volume warning to revisit near 50 a day: 25 cold sends daily from one consumer
+  Gmail, rising toward 75 once all three drips overlap, risks throttling and
+  spam foldering. signal-scout is the documented home for sending at volume.
+
+**2026-08-19, SENT. 19 emails out between 4:35 and 4:37 PM.**
+- Cohort A (12 named organizers, touch 1 on Aug 12): touch 2 sent. Touch 3 due
+  Tue 2026-08-26 (day 14).
+- Cohort B (7 Tier A orgs, first contact): touch 1 sent. Touch 2 due Tue
+  2026-08-26 (day 7), touch 3 due Tue 2026-09-02 (day 14).
+- So 2026-08-26 carries BOTH cohort A touch 3 and cohort B touch 2. The daily
+  task handles both via its day-7 and day-14 rules. The separate one-off
+  touch-3 reminder task was deleted to stop it double drafting cohort A.
+- The 138 retired "Greetings" drafts were deleted by Scott the same evening.
+- Correction to the earlier note: the stray draft in the "test" thread was NOT
+  discarded, it was sent, at 4:37 PM to sdwbouldah55 (Scott's own address). No
+  external recipient saw it and no outreach thread was affected.
+
+**2026-08-19, first response: an out of office.** Auto responders are NOT
+replies and must not stop a sequence, since the recipient has not read the
+message. Log as auto_reply with the stated return date, push that thread's
+remaining touches to at least one business day after they are back, and resume
+from whichever touch was next. Hard bounces are different: mark do_not_contact.
+The daily task prompt was updated on 2026-08-19 to encode this distinction.
+An out of office is also a mild positive deliverability signal: it proves the
+message reached a live mailbox and was processed rather than silently dropped.
+
+**DATE CORRECTION, 2026-08-19.** 2026-08-19 is a WEDNESDAY. The Aug 12 handoff
+labelled 2026-08-15 as a Friday and 2026-08-20 as a Wednesday; both are wrong
+(Aug 15 was a Saturday, Aug 20 is a Thursday) and the error was repeated in
+this session before being caught. Verified weekdays:
+Aug 24 Mon, Aug 25 Tue, Aug 26 Wed, Aug 29 Sat, Sep 2 Wed.
+
+CORRECTED SCHEDULE:
+- Cohort A (12, touch 1 Aug 12, touch 2 Aug 19): **touch 3 Tue 2026-08-25**,
+  per Scott's "next Tuesday". This is day 13, not day 14, and overrides the
+  daily task default.
+- Cohort B (7, touch 1 Aug 19): touch 2 Wed 2026-08-26, touch 3 Wed 2026-09-02.
+- The two cohorts therefore fall on different days, Aug 25 and Aug 26, rather
+  than stacking 19 emails on one morning as previously recorded.
+
+**LOUISVILLE CHAMBER, auto_reply, 2026-08-19 4:34 PM.** Melanie Hassenfratz,
+Engagement Manager. Out of office, responding to email again from **Mon Aug 24**.
+Signature intelligence worth keeping:
+- **In-office hours M-Th 9:30 to 4:30.** Never land a touch on a Friday for this
+  contact. Her scheduled touch 2 on Wed Aug 26 is two days after she returns and
+  inside her working days, so no reschedule is needed.
+- **"Pints in the Park", Saturday Aug 29**, tickets on Eventbrite. A real, dated,
+  ticketed event with an actual attendee list, three days after her touch 2
+  lands. Far stronger personalization than the generic Leaders Luncheon angle.
+  Her touch 2 was rewritten to lead with it.
+- Autoresponder offers Director@louisvillechamber.com for urgent matters. Logged
+  as a known second contact. Do NOT use it for the pitch: a cold sales follow up
+  is not an urgent matter and jumping to the director would burn both contacts.
