@@ -198,3 +198,18 @@ DNS had been correct all along (MX to mx1/mx2.improvmx.com, SPF include).
   inbox, so do not assume every new message belongs to a campaign thread.
 - The From line on all app transactional mail is therefore reply-able. Nothing
   is being lost.
+
+**2026-08-20, 25 touch 1 drafts loaded into Gmail, 10:04 to 10:13 AM.** Copy and
+per-target vetting in `drafts-2026-08-20-touch1.md`. Composition: 1 verified
+named chamber contact (Karin Jimenez, Tempe, karin@tempechamber.org), 18 1MC
+chapters (weekly by program design; four multi-word-city addresses are pattern
+inferred and may bounce: desmoines, cedarrapids, iowacity, kansascity, plus
+fortworth), 6 promoted Tier B rows reusing the 2026-08-19 wave 2 copy (Boulder
+Rotary, Boulder Bar, BOLO, BARHA, BCIV, Arts Alliance). Scott sends. Any bounce
+gets marked do_not_contact same day. Cohort C touch 1 = send date; touch 2 due
+day 7, touch 3 day 14.
+
+Context: the scheduled runner failed three times (23:29, 8:28 stall, 9:03
+skipped-because-running), so this batch was built and loaded manually in the
+main session. Permission allowlist for unattended runs was added to
+~/.claude/settings.json the same morning; tomorrow's 9:04 run is the test.
