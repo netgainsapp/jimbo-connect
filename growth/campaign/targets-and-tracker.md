@@ -213,3 +213,35 @@ Context: the scheduled runner failed three times (23:29, 8:28 stall, 9:03
 skipped-because-running), so this batch was built and loaded manually in the
 main session. Permission allowlist for unattended runs was added to
 ~/.claude/settings.json the same morning; tomorrow's 9:04 run is the test.
+
+**2026-08-20, cohort C SENT, 25 emails, 10:25 to 10:26 AM. Delivery verified
+from the inbox within minutes.**
+
+Bounced, 4, all @1millioncups.com aliases that do not exist. Marked
+do_not_contact permanently:
+- cedarrapids@1millioncups.com
+- waco@1millioncups.com
+- fortworth@1millioncups.com
+- chattanooga@1millioncups.com
+
+Delivered with POSITIVE confirmation, 2:
+- lincoln@1millioncups.com: chapter auto-acknowledgement ("1MC LNK"), live
+  mailbox, offers their LinkedIn for faster response.
+- jen@barhaonline.org: out of office from Jen Crowell, Executive Director,
+  BARHA. Out Thu/Fri/Mon, back Tue 2026-08-26, so her cohort C touch 2 on Wed
+  2026-08-27 lands the day after she returns. No reschedule needed. Alternate
+  contact meghan@barhaonline.org logged, do NOT pitch it.
+
+Accepted without bounce, 19: austin, orlando, dallas, columbia, dubuque, ames,
+lima, desmoines, iowacity, kansascity, tulsa, wichita, omaha @1millioncups.com,
+plus karin@tempechamber.org, clubadmin@boulderrotary.org, bay@boulder-bar.org,
+veronica@bolorealtors.com, zuza.bohley@bciv.org, info@bouldercountyarts.org.
+
+Calibration lesson, recorded so it is not repeated: word count predicted
+nothing. "High confidence" waco bounced while pattern-inferred desmoines,
+iowacity and kansascity all delivered. The alias exists only if the chapter
+registered it. NEW RULE: no more constructed addresses; only addresses
+published somewhere, and any bounce is marked do_not_contact same day.
+
+Effective cohort C: 21 delivered of 25 sent. Bounce rate 16 percent, one-time,
+noted for sender reputation; keep future batches to published addresses.
