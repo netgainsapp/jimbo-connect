@@ -186,3 +186,15 @@ Signature intelligence worth keeping:
 - Autoresponder offers Director@louisvillechamber.com for urgent matters. Logged
   as a known second contact. Do NOT use it for the pitch: a cold sales follow up
   is not an urgent matter and jumping to the director would burn both contacts.
+
+**2026-08-19, inbound mail RESOLVED.** hello@intro-connect.com forwarding
+through ImprovMX is working. Verified end to end at 8:56 PM: a test from
+sdwbouldah55@gmail.com landed in the Primary inbox of introconnectme@gmail.com,
+over TLS, mailed-by intro-connect.com. The 2026-08-01 ImprovMX notices saying
+forwarding was not active, and that Google blocked a forwarded test, were stale.
+DNS had been correct all along (MX to mx1/mx2.improvmx.com, SPF include).
+- Consequence worth remembering: hello@ forwards into the SAME mailbox the
+  outreach is sent from. Website enquiries and cold-email replies land in one
+  inbox, so do not assume every new message belongs to a campaign thread.
+- The From line on all app transactional mail is therefore reply-able. Nothing
+  is being lost.
