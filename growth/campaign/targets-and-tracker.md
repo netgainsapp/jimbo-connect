@@ -345,6 +345,65 @@ empty in `.env.example`. Unauthenticated GET returns 307 to `/unlock`. The
 tile therefore still shows stale numbers. Fix: pull the real value from the
 Vercel project env (`vercel env pull`) into a local env file.
 
+**2026-08-21, SECOND RUN THE SAME MORNING (duplicate scheduler fire).** The
+daily task fired again at 10:38 AM, ninety seconds after the first run committed
+at 10:37:14. No drafting or sending was repeated, because doing so would have
+put second copies in front of the same nine people. The run verified state,
+sourced a fresh cohort, and stopped short of Gmail.
+
+**SCOTT SENT HIS OWN 1MC ORLANDO REPLY, 10:40 AM, measured from the Sent
+folder.** Top row of Sent reads "To: orlando, Erik" at 10:40 AM with his
+wording: "Thanks for the response. I do have next week booked, as I have
+commitments with a few other startup projects that I am working on. That said,
+I am interested in talking with you about". He declined the Aug 26 presentation
+slot and kept the conversation open, which matches the pilot direction recorded
+earlier and contradicts the automation's draft.
+
+**HAZARD, needs one click from Scott: a stale automation draft still sits in
+the Orlando thread and contradicts the message he just sent.** The draft was
+created at 10:26 AM and reads "I will go to the site and submit the application
+today so you have it in time to approve for the 26th." Sending it would accept
+the slot he has already declined. Evidence it is stale, not his: the thread's
+draft snippet showed his 10:39 AM wording, then reverted to the 10:26 AM
+automation text once his version was sent. It was left in place rather than
+deleted, because destructive edits to a thread he is actively working are his
+call. Discard it before touching that thread again.
+
+Drafts folder at end of this run: 10. Nine cohort D touch 1, unsent, all
+verified present with correct recipients and matching greetings, plus the one
+stale Orlando draft above. Sent today: 1, and it was Scott's, not the campaign's.
+Nothing unplanned or misdirected went out. No new replies, autoresponders or
+bounces since the morning run.
+
+**Cohort E sourced, 6 vetted and send ready, plus 1 to verify. NOT loaded into
+Gmail.** Copy and per-target sourcing notes in `drafts-2026-08-21-touch1-cohortE.md`.
+Held out of Gmail deliberately: nine drafts from the morning were still unsent,
+Scott was demonstrably active in that mailbox, and a duplicate run should not
+double the day's queued volume unilaterally. Load on the next run.
+1. Hayley Loftus, Chapel Hill Young Professionals, hloftus@carolinachamber.org
+2. Molly Crouser, Director of Events and Partnerships, Lancaster Chamber, mcrouser@lancasterchamber.com
+3. Laura Dryden, Events Director, Greater KC Chamber, dryden@kcchamber.com
+4. Alison, La Crosse Area Chamber YP, alison@lacrossechamber.com (score 9, best cadence)
+5. Lorance Uwinaza, YP of the Chippewa Valley, uwinaza@eauclairechamber.org
+6. Joanne Ortega, San Marcos Area Chamber YP, joanne@sanmarcostexas.com
+Verify first: Lorraine Levine, Cape Cod Chamber, lorraine@capecodchamber.org.
+All addresses extracted from page source, none constructed. qualifiedRemaining
+moves from 0 to 6.
+
+**Sourcing lesson worth keeping: young professionals pages beat chamber staff
+directories.** A YP page names a human contact far more often, because the group
+is recruiting members, and its cadence is higher (La Crosse averages 2-3+ events
+a month against a chamber's monthly). Chambers increasingly route to contact
+forms. The binding constraint is the published address, not the organisation.
+
+**Command Center push STILL BLOCKED, second confirmation.** SNAPSHOT_SECRET is
+present but empty in `.env.blob-probe`, empty in `.env.example`, and absent from
+`.env.local`. Unauthenticated GET on the endpoint returns 307 to `/unlock`, so
+read-merge-write cannot run. The fix needs a human: pull the real value from the
+Vercel project env into a local env file. The tile keeps showing stale numbers
+until then. Unattended runs cannot execute `vercel env pull` because it is not
+on the allowlist.
+
 **Schedule, weekdays verified.** Aug 24 Mon, 25 Tue, 26 Wed, 27 Thu, Sep 2 Wed,
 Sep 3 Thu.
 - Cohort A (12, touch 1 Aug 12): touch 3 Tue 2026-08-25. Unchanged.
