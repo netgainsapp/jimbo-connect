@@ -356,3 +356,19 @@ Sep 3 Thu.
 - Melanie Hassenfratz, Louisville, works M-Th; her Aug 26 touch 2 is inside
   her working days. Jen Crowell, BARHA, back Tue Aug 26; her Aug 27 touch 2
   lands the day after she returns. Neither needs rescheduling.
+
+**2026-08-21, cohort D forming: the long-running scheduled session began loading
+drafts at 10:27 AM.** Nine touch 1 drafts so far, run still active, cap 25.
+Named people and named events throughout, harvested via homepage link
+discovery, no constructed addresses. Verified recipients so far:
+jbuettgenbach@wichitachamber.org (Jessica, Wichita Regional Chamber; distinct
+org from 1MC Wichita), cljones@sarasotachamber.com (Sarasota),
+njohnson@actiongreensboro.org (synerG, Action Greensboro),
+cadams@greenvillechamber.org (GCYP, Greenville Chamber),
+bpinnix@durhamchamber.org (Durham), cboose@nashvillechamber.com (Nashville).
+Three more drafts (Sharla, Jaci YPN, Jess Business Exchange Breakfast) loaded
+but recipient not yet extracted; same sourcing method, no collision with any
+contacted org. Reconciliation verdict: clean, cleared for Scott to send.
+Stray fragment draft remains in the Erik Deckers thread; discard, do not send.
+Scott sent his reply to Erik 2026-08-21 morning; Orlando presentation slot for
+Wed Aug 26 in motion, application submission pending on Scott.
