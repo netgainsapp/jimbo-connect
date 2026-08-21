@@ -245,3 +245,24 @@ published somewhere, and any bounce is marked do_not_contact same day.
 
 Effective cohort C: 21 delivered of 25 sent. Bounce rate 16 percent, one-time,
 noted for sender reputation; keep future batches to published addresses.
+
+**2026-08-21, FIRST HUMAN REPLY. 1MC ORLANDO INVITED SCOTT TO PRESENT.**
+Erik Deckers (erik.deckers@gmail.com, 574-529-4135, problogservice.com),
+organizer of 1 Million Cups Orlando, replied 2026-08-20 1:04 PM, 2.5 hours
+after touch 1: "Would you be interested in presenting that to our group? We do
+have an opening for next week, August 26th." Application: 1millioncups.com/orlando,
+Present button; Erik approves and schedules.
+
+- orlando@1millioncups.com: status REPLIED. Sequence STOPPED per campaign rule.
+  No touch 2 or 3 to Orlando, ever, unless the relationship goes cold months out.
+- Reply draft staged in-thread 2026-08-21: accepts, asks the one open question
+  (remote presenter vs in person, Scott is in Boulder), and offers to run a
+  live Intro Connect directory during the session so the presentation is a
+  working demo. Scott reviews and sends, then submits the application form
+  himself the same day so Erik can approve in time for the 26th.
+- A partial earlier draft may exist in the same thread (list showed "Draft 3"
+  with different opening text). If two drafts appear in the thread, keep the
+  complete one, discard the fragment.
+- Note for the story this proves: the reply came from a 1MC org address wave
+  that also produced 4 bounces. Deliverability was never the problem; the
+  audience was right. One warm presentation slot from 21 delivered in 3 hours.
