@@ -266,3 +266,93 @@ Present button; Erik approves and schedules.
 - Note for the story this proves: the reply came from a 1MC org address wave
   that also produced 4 bounces. Deliverability was never the problem; the
   audience was right. One warm presentation slot from 21 delivered in 3 hours.
+
+**2026-08-21 (FRIDAY), daily run. Verification of 2026-08-20, measured from Gmail.**
+Sent: 25, between 10:24 and 10:27 AM. This corroborates the cohort C ledger
+above (which recorded 10:25 to 10:26); the wider span is the measured one.
+Still sitting in Drafts at the start of this run: ZERO. Everything prepared on
+Aug 20 was sent. Nothing unplanned and nothing misdirected went out. The four
+bounces were already logged and marked do_not_contact.
+
+**FIRST HUMAN REPLY OF THE CAMPAIGN, 2026-08-20 1:04 PM.**
+Erik Deckers, organizer, 1 Million Cups Orlando, replying from his personal
+address erik.deckers@gmail.com (the orlando@1millioncups.com alias reaches a
+real human). Thread status: `replied`. Its drip sequence is STOPPED
+permanently. Never send touch 2 or touch 3 to orlando@1millioncups.com.
+
+What he offered: a slot to PRESENT to 1MC Orlando on Wednesday 2026-08-26.
+Mechanism: Scott must apply at https://1millioncups.com/orlando via the
+"Present" link at the top of the page; Erik then approves and schedules.
+Contact intelligence logged: phone 574-529-4135, https://problogservice.com.
+
+Two things this proves. First, a chapter alias with no named person on it can
+still reach a decision maker, which is why the generic "Hi there" copy that
+went to the 1MC chapters produced a reply despite not being personalised. That
+is a result, not a vindication of the copy: 1 reply from 18 chapters.
+Second, deliverability to 1MC is fine where the alias exists.
+
+**Do not automate into this thread again.** Scott was composing his own reply
+in a second Gmail session while this run was in progress, and the automation
+wrote into the same draft, merging the two. The draft was restored to a clean
+coherent version, but his own wording was disturbed in the process and his
+live edits kept superseding it. Evidence of the concurrent session: Gmail
+showed "Open in 1 other location" and the draft snippet changed three times
+between reads, gaining text nobody in this session wrote.
+
+Substantively important, from Scott's own draft text: he has next week booked
+and appears to be declining the Aug 26 slot in favour of pitching 1MC as a
+PILOT. That contradicts the "I will submit the application today" line the
+automation had drafted. Scott owns this reply. The draft in the thread is his
+to finish and send.
+
+**Cohort D sourced 2026-08-21. Honest count: 9 vetted organisations, not 25.**
+Copy in `drafts-2026-08-21-touch1.md`. Every address is PUBLISHED on the
+organisation's own staff page. Nothing pattern inferred, per the Aug 20 rule.
+One contact per organisation; where a staff page listed several events people,
+the events owner was taken and the rest left alone. All score 8 (cadence 2,
+reachability 3, room fit 3).
+
+1. Cat Boose, Director of Events, Nashville Area Chamber, cboose@nashvillechamber.com (Regional Business After Hours)
+2. Brandon Pinnix, Director of Membership Development, Durham Chamber, bpinnix@durhamchamber.org (Business After Hours)
+3. Camille Adams, Program Coordinator, Greenville Chamber, cadams@greenvillechamber.org (GCYP Leadership Luncheon)
+4. Jess Jones, Director of Marketing and Events, Grand Rapids Chamber, jess@grandrapids.org (Business Exchange Breakfast)
+5. Nyila Johnson, synerG Young Professionals Manager, Action Greensboro, njohnson@actiongreensboro.org (synerG)
+6. Jaci Pieters, Young Professionals Network Manager, Sioux Falls Chamber, jpieters@siouxfalls.com (YPN)
+7. Celeste Lloyd-Jones, Event Manager, Greater Sarasota Chamber, cljones@sarasotachamber.com
+8. Sharla Rowe, Events Manager, Greater Madison Chamber, sharla@madisonbiz.com
+9. Jessica Buettgenbach, Events Manager, Wichita Regional Chamber, jbuettgenbach@wichitachamber.org
+
+Why 9 and not 25: most chamber sites no longer publish staff email addresses,
+routing to a contact form instead. Of roughly 100 organisations crawled, about
+a dozen published direct addresses paired with a name and a title. The Aug 7
+lesson stands, so the shortfall was reported rather than padded with org
+inboxes. Sourcing remains the binding constraint on this campaign.
+
+**Drafts waiting in Gmail at end of run: 10.** Nine cohort D touch 1 (new
+threads) plus the 1MC Orlando reply. Each of the nine was verified one by one:
+exactly one recipient, correct subject, and a greeting matching that
+recipient. Scott sends.
+
+**qualifiedRemaining is now effectively ZERO.** All nine sourced today were
+drafted today. There is no vetted, uncontacted pool left. On current form the
+campaign stalls without a sourcing method that does not depend on chambers
+publishing addresses.
+
+**Command Center push BLOCKED, not done.** The task reads SNAPSHOT_SECRET from
+`C:\Users\sweis\command-center\.env.blob-probe`, but that key is present and
+EMPTY there (`SNAPSHOT_SECRET=""`), and it is absent from `.env.local` and
+empty in `.env.example`. Unauthenticated GET returns 307 to `/unlock`. The
+tile therefore still shows stale numbers. Fix: pull the real value from the
+Vercel project env (`vercel env pull`) into a local env file.
+
+**Schedule, weekdays verified.** Aug 24 Mon, 25 Tue, 26 Wed, 27 Thu, Sep 2 Wed,
+Sep 3 Thu.
+- Cohort A (12, touch 1 Aug 12): touch 3 Tue 2026-08-25. Unchanged.
+- Cohort B (7, touch 1 Aug 19): touch 2 Wed 2026-08-26, touch 3 Wed 2026-09-02.
+- Cohort C (21 delivered, touch 1 Aug 20): touch 2 Thu 2026-08-27, touch 3
+  Thu 2026-09-03. Orlando is excluded permanently (replied).
+- Cohort D (9, touch 1 when Scott sends): touch 2 day 7, touch 3 day 14 from
+  the actual send date, not from today.
+- Melanie Hassenfratz, Louisville, works M-Th; her Aug 26 touch 2 is inside
+  her working days. Jen Crowell, BARHA, back Tue Aug 26; her Aug 27 touch 2
+  lands the day after she returns. Neither needs rescheduling.
