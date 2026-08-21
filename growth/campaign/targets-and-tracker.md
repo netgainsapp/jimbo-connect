@@ -431,3 +431,10 @@ contacted org. Reconciliation verdict: clean, cleared for Scott to send.
 Stray fragment draft remains in the Erik Deckers thread; discard, do not send.
 Scott sent his reply to Erik 2026-08-21 morning; Orlando presentation slot for
 Wed Aug 26 in motion, application submission pending on Scott.
+
+**2026-08-21, Erik / 1MC Orlando: HANDLED BY SCOTT DIRECTLY. Closed as an
+action item.** Scott has talked to Erik. Do not remind him about the reply,
+the application, or the Aug 26 slot again, in any session or any scheduled
+run. The only remaining automation duty for Orlando: the sequence stays
+STOPPED (replied thread), and if anything about the presentation changes,
+Scott will say so himself.
