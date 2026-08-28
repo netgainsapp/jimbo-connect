@@ -438,3 +438,123 @@ the application, or the Aug 26 slot again, in any session or any scheduled
 run. The only remaining automation duty for Orlando: the sequence stays
 STOPPED (replied thread), and if anything about the presentation changes,
 Scott will say so himself.
+
+---
+
+**2026-08-28 (FRIDAY), daily run. Fired 3:33 PM, not 9:00 AM.**
+
+**FOUR SCHEDULED RUNS DID NOT FIRE: Mon Aug 24, Tue Aug 25, Wed Aug 26, Thu Aug
+27.** Evidence, not inference: no commits in this repo between 2026-08-21 and
+2026-08-28, and no draft files dated in that window. Scheduled tasks only fire
+while the desktop app is open, which is the most likely cause. This is a
+seven calendar day gap in the campaign, and it is the single most important
+fact of this run.
+
+**GMAIL WAS NOT REACHABLE ON THIS RUN. NOTHING WAS VERIFIED AND NOTHING WAS
+LOADED.** The Claude in Chrome extension reported not connected, and
+`list_connected_browsers` returned an empty list. Retried once, then skipped
+per the task's no retry loop rule. Consequences, stated plainly rather than
+papered over:
+- STEP 1B verification did not run. Sent, still sitting in Drafts, and
+  misdirected counts for the whole Aug 21 to Aug 28 window are UNKNOWN.
+- STEP 1C reply mining did not run. Seven days of inbox went unread. Any human
+  reply, autoresponder or bounce in that window is unrecorded.
+- STEP 6 loading did not run. No draft was created in Gmail on this run.
+- Every number below that describes Gmail state is carried forward from
+  2026-08-21 and is explicitly NOT a measurement taken today.
+
+**Nothing was sent by the campaign on this run, and nothing can be reported as
+sent.** The last measured send remains cohort C on 2026-08-20.
+
+**CARRIED FORWARD, UNVERIFIED. Cohort D send state is unknown.** As of the last
+measurement on 2026-08-21 there were 10 drafts sitting unsent in Gmail: nine
+cohort D touch 1, plus the stale automation draft in the Erik Deckers thread.
+Whether Scott sent the nine at any point in the last week cannot be determined
+from here.
+- **Cohort D's drip clock does not advance.** Touch 2 and touch 3 are measured
+  from the actual send date. Until a Gmail check establishes that date, cohort
+  D gets no follow up. Do not compute its dates from the Aug 21 draft date.
+- The stale Orlando draft hazard stands until someone confirms it is gone. It
+  contradicts the reply Scott already sent. Discard it, do not send it.
+
+**OVERDUE DRIPS, all missed because the runs did not fire.** None of these were
+drafted or loaded, on their due date or since.
+- Cohort A (12, touch 1 Aug 12, touch 2 Aug 19): touch 3 was due **Tue Aug 25**.
+  Missed by 3 business days.
+- Cohort B (7, touch 1 Aug 19): touch 2 was due **Wed Aug 26**. Missed by 2
+  business days. Copy already exists in `drafts-2026-08-26-touch2-cohortB.md`.
+- Cohort C (21 delivered, touch 1 Aug 20): touch 2 was due **Thu Aug 27**.
+  Missed by 1 business day. Orlando stays excluded permanently.
+
+RESCHEDULED, weekdays verified against the system clock (2026-08-28 is a
+Friday; Aug 31 Mon, Sep 1 Tue, Sep 2 Wed, Sep 3 Thu):
+- Cohort A touch 3: **Mon 2026-08-31**.
+- Cohort B touch 2: **Mon 2026-08-31**. Melanie Hassenfratz works M-Th, so a
+  Monday is inside her working days. Her touch 3 must also avoid Fridays.
+- Cohort C touch 2: **Tue 2026-09-01**.
+- Cohort D: frozen until its real send date is measured from Gmail.
+
+**Follow up copy for cohorts A and C was deliberately NOT written on this run.**
+Drafting 33 follow ups into threads whose reply status has been unreadable for
+seven days risks writing a "just following up" note to somebody who already
+replied, which the campaign's own rule forbids. The next run with a working
+browser should read the inbox FIRST, remove any replied thread, and only then
+generate the copy. Cohort B's copy already exists and is unaffected.
+
+**Cohort F sourced. Honest count: 15 vetted and send ready, not 25.** Copy,
+per target provenance and scoring in `drafts-2026-08-28-touch1-cohortF.md`.
+Twelve have a named person with a published direct address (score 8). Three are
+published young professionals programme aliases with a verified recurring
+cadence and no named person (score 7): ypg@anchoragechamber.org,
+ypc@memphischamber.com, ypn@bemidji.org. Every address was extracted from the
+organisation's own page source. Nothing constructed. One contact per
+organisation. All checked against the contacted and do_not_contact lists.
+Named contacts: Emily Pettinato (Scranton), Amy Rosica (Princeton Mercer),
+Sophia Bibbey (Aurora CO), Jessica Behringer (San Angelo), Leanne (Pasadena),
+Cressa Bronson (Palm Beach North), Amirah Hussain (NJ Chamber), Jessie Martin
+(Forsyth County GA), Mara McJilton (Wilmington NC), Abby Zimmerman (FMWF ND),
+Callie Manis (Kerrville TX), Mallory Mullis (Dallas Regional).
+
+**Sourcing method was measured this run, and the result should change the
+target.** Two methods were run head to head:
+- Search led discovery then page source extraction: about 30 pages inspected,
+  15 usable contacts.
+- Direct path probing of `/young-professionals/`, `/ypn/`, `/yp/` and
+  `/young-professionals-network/` across 42 uncontacted chamber domains:
+  **168 pages probed, 2 usable contacts, a 1.2 percent hit rate.**
+
+A new obstacle worth recording: **Cloudflare email obfuscation**, which strips
+addresses out of page source entirely. It was present on 5 of roughly 30 pages
+inspected by hand, including four that had a named YP director and would have
+scored 8 (Greater Raleigh, Main Line, Hilton Head, Arlington VA). These are not
+form only chambers; they publish the address and the tooling hides it.
+
+RECOMMENDATION, third consecutive run short of 25 (9 on Aug 21, 6 on the Aug 21
+duplicate, 15 today): the daily target of 25 is not reachable by public page
+extraction. Either lower it to 10 to 15, which the method sustains, or add a
+channel that does not depend on organisations publishing addresses.
+
+**qualifiedRemaining is 21**, and this is the healthiest that number has been.
+Cohort E's 6 from 2026-08-21 were never loaded into Gmail and are still vetted
+and uncontacted, plus cohort F's 15 today. Note this is a queue of drafting
+work, not of sent mail.
+
+**DELIVERABILITY, raising it now because the threshold in the task has been
+crossed.** Everything queued and unsent totals roughly 70 emails: cohort A
+touch 3 (12), cohort B touch 2 (7), cohort C touch 2 (21), cohort D touch 1 (9,
+if unsent), cohort E touch 1 (6), cohort F touch 1 (15). If the backlog is
+cleared in one or two days, that is 35 to 70 sends a day from one consumer
+Gmail, well past the 50 a day mark the task says to flag. Spread the backlog
+across several days rather than clearing it in one morning. Scott's own docs
+put sending, warmup and compliance at volume with signal-scout.
+
+**Command Center push STILL BLOCKED, third confirmation.** `SNAPSHOT_SECRET` in
+`C:\Users\sweis\command-center\.env.blob-probe` is still literally
+`SNAPSHOT_SECRET=""`. Read merge write cannot run without it, so the tile keeps
+showing stale numbers. Unattended runs cannot fix this: `vercel env pull` is not
+on the allowlist. Needs one human action.
+
+**Skipped this run, for the record:** STEP 1B verification, STEP 1C reply
+mining, STEP 2 reply triage, STEP 6 Gmail loading, STEP 7B Command Center push.
+The first four were blocked by the Chrome extension being disconnected, the
+fifth by the empty secret.
