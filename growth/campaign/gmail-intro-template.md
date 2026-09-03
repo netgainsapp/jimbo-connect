@@ -27,6 +27,10 @@ Rules that carry over from the campaign (non negotiable):
 
 ## Template 1: the intro (day 0)
 
+(Second paragraph and "Feel free to reach out" closing updated 2026-09-03,
+wording Scott's own. Every future touch 1 uses this version; cohorts F, G and
+H's staged copy was rewritten to it the same day.)
+
 **Subject:** what members remember after [EVENT]
 
 Hi [FIRST NAME],
@@ -36,16 +40,17 @@ in the bin, and most of those conversations never turn into anything. When
 renewal time comes, "I met someone interesting once" is a hard memory to bill
 against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in
 about a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your
 next mixer? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect

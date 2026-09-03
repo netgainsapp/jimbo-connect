@@ -32,16 +32,17 @@ event ends, the name tags go in the bin, and most of those conversations never
 turn into anything. When renewal time comes, "I met someone interesting once"
 is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 YPN event? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -63,16 +64,17 @@ event ends, the name tags go in the bin, and most of those conversations never
 turn into anything. When renewal time comes, "I met someone interesting once"
 is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 Young Professionals event? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -94,16 +96,17 @@ name tags go in the bin, and most of those conversations never turn into
 anything. When renewal time comes, "I met someone interesting once" is a hard
 memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 mixer? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -124,16 +127,17 @@ tags go in the bin, and most of those conversations never turn into anything.
 When renewal time comes, "I met someone interesting once" is a hard memory to
 bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 monthly mixer? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -155,16 +159,17 @@ event ends, the name tags go in the bin, and most of those conversations never
 turn into anything. When renewal time comes, "I met someone interesting once"
 is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 one? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -187,16 +192,17 @@ mixer ends, the name tags go in the bin, and most of those conversations never
 turn into anything. When renewal time comes, "I met someone interesting once"
 is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 mixer or CEO Connections? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -217,10 +223,9 @@ event ends, the name tags go in the bin, and most of those conversations never
 turn into anything. When renewal time comes, "I met someone interesting once"
 is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 That matters more on a multi chamber night, where most of the room is meeting
 across organisations for the first time. Guests never pay and never install
@@ -228,6 +233,8 @@ anything. They join in the browser in about a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 one? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -248,16 +255,17 @@ ends, the name tags go in the bin, and most of those conversations never turn
 into anything. When renewal time comes, "I met someone interesting once" is a
 hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 mixer? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -278,16 +286,17 @@ event ends, the name tags go in the bin, and most of those conversations never
 turn into anything. When renewal time comes, "I met someone interesting once"
 is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 one? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -310,16 +319,17 @@ event ends, the name tags go in the bin, and most of those conversations never
 turn into anything. When renewal time comes, "I met someone interesting once"
 is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 YPN event? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -341,16 +351,17 @@ the evening ends, the name tags go in the bin, and most of those conversations
 never turn into anything. When renewal time comes, "I met someone interesting
 once" is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 social hour? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -372,16 +383,17 @@ event ends, the name tags go in the bin, and most of those conversations never
 turn into anything. When renewal time comes, "I met someone interesting once"
 is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 one? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -411,16 +423,17 @@ name tags go in the bin, and most of those conversations never turn into
 anything. When renewal time comes, "I met someone interesting once" is a hard
 memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before the next
 last Friday luncheon? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -442,16 +455,17 @@ mixer ends, the name tags go in the bin, and most of those conversations never
 turn into anything. When renewal time comes, "I met someone interesting once"
 is a hard memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 luncheon or mixer? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect
@@ -472,16 +486,17 @@ name tags go in the bin, and most of those conversations never turn into
 anything. When renewal time comes, "I met someone interesting once" is a hard
 memory to bill against.
 
-I built Intro Connect to close that gap. It turns each of your events into a
-private directory of everyone who came. Members browse who they met, save
-contacts, message each other, and the value of showing up becomes something
-they can see all year.
+I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.
 
 Guests never pay and never install anything. They join in the browser in about
 a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your next
 luncheon? https://intro-connect.com
+
+Feel free to reach out if you have any questions,
 
 Scott Weiss
 Founder, Intro Connect

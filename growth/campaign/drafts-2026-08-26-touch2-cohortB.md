@@ -1,5 +1,11 @@
 # Cohort B touch 2 drafts, prepared early, for Wed 2026-08-26
 
+**RESCHEDULED to Mon 2026-08-31.** The Aug 26 run never fired (see tracker,
+2026-08-28 entry). Melanie works M-Th, so Monday is inside her working days.
+Her draft below was rewritten on 2026-08-30 for the new send date: Pints in
+the Park happened Sat Aug 29, so the copy now leads with the morning-after
+angle instead of announcing the event as upcoming.
+
 Cohort B is the 7 Tier A organizations first contacted on Wed 2026-08-19.
 Touch 2 is due Wed 2026-08-26 (day 7). All go IN THE EXISTING THREAD as a reply.
 
@@ -21,30 +27,152 @@ ticketed event with an actual attendee list. Do not send this on a Friday.
 
 Hi Melanie,
 
-Welcome back. Quick follow up, and I will keep it short since you are probably digging out of an inbox.
+Quick follow up, and I will keep it short.
 
-I noticed from your signature that Pints in the Park is this Saturday. That is exactly the kind of night this was built for. A ticketed crowd, a lot of introductions over a few hours, and by Monday almost nobody can remember who they talked to.
+How did Pints in the Park go on Saturday? I am guessing a good crowd and a lot of introductions over a few hours. Here is the problem I keep seeing: by the Monday after, almost nobody can remember who they talked to. That is the exact gap Intro Connect closes.
 
-Intro Connect turns one event into a private directory of everyone who came. Setup is an afternoon:
+It turns one event into a private directory of everyone who came. Setup is an afternoon:
 
 1. Create the event. You get a join code and a link.
-2. Import the Eventbrite list, or let people join with the code at the gate.
-3. After Saturday, the directory stays live. Members find each other, message directly, and you can post announcements and run a three question survey.
+2. Import the Eventbrite list, or let people join with the code.
+3. The directory stays live afterward. Members find each other, message directly, and you can post announcements and run a three question survey.
 
 You see who actually showed and what they thought. Members get a reason to remember the night. Nobody's email address gets handed around.
 
-If Saturday is too close to add anything new, the next one works just as well. The free plan covers a full event for 50 people: https://intro-connect.com
+It is not too late to capture Saturday's crowd while the night is fresh, and the next event works just as well. The free plan covers a full event for 50 people: https://intro-connect.com
 
 Scott Weiss
 Founder, Intro Connect
 
 ---
 
-## Remaining 6 cohort B threads, draft from Template 2 on the day
+## Remaining 6 cohort B threads, drafted 2026-08-31 from Template 2
 
-- Westminster Chamber, info@westminsterchamber.biz, thread "what members remember after The Rainmakers"
-- Enterprise Coworking, membership@enterprisecoworking.com, thread "what members remember after a rooftop happy hour"
-- Colorado Chamber (CACI), SAsbury@cochamber.com, thread "what members remember after Executive Connections"
-- Longmont EDP, kelly@longmont.org, thread "what attendees remember after the Economic Summit"
-- Colorado LGBTQ Chamber, info@colgbtqcc.org, thread "what members remember after Chamber 101"
-- Colorado Women's Chamber, info@cwcc.org, thread "what members remember after the ATHENA luncheon"
+Greetings match each thread's touch 1 exactly (from
+`drafts-2026-08-19-touch1-wave2.md`). All go in the existing thread as a reply.
+
+---
+
+### Westminster Chamber of Commerce
+**To:** info@westminsterchamber.biz
+**Thread:** Re: what members remember after The Rainmakers
+
+Hi there,
+
+Quick follow up. Testing this at The Rainmakers takes one afternoon:
+
+1. Create the event. You get a join code and a link.
+2. Import your RSVP list from a spreadsheet or Eventbrite, or let members join with the code at the door.
+3. After the event, the directory stays live. Members find each other, message directly, and you can post announcements and run a three question survey.
+
+You see attendance and feedback. Members see a benefit they can point to. Nobody's email address gets handed around.
+
+The free plan covers a full event for 50 people: https://intro-connect.com
+
+Scott Weiss
+Founder, Intro Connect
+
+---
+
+### Enterprise Coworking
+**To:** membership@enterprisecoworking.com
+**Thread:** Re: what members remember after a rooftop happy hour
+
+Hi there,
+
+Quick follow up. Testing this at your next rooftop happy hour takes one afternoon:
+
+1. Create the event. You get a join code and a link.
+2. Import your RSVP list from a spreadsheet or Eventbrite, or let members join with the code at the door.
+3. After the night, the directory stays live. Members find each other, message directly, and you can post announcements and run a three question survey.
+
+You see attendance and feedback. Members see a benefit they can point to. Nobody's email address gets handed around.
+
+The free plan covers a full event for 50 people: https://intro-connect.com
+
+Scott Weiss
+Founder, Intro Connect
+
+---
+
+### Summer Asbury, Colorado Chamber of Commerce (CACI)
+**To:** SAsbury@cochamber.com
+**Thread:** Re: what members remember after Executive Connections
+
+Hi Summer,
+
+Quick follow up. Testing this at Executive Connections takes one afternoon:
+
+1. Create the event. You get a join code and a link.
+2. Import your RSVP list from a spreadsheet or Eventbrite, or let members join with the code at the door.
+3. After the event, the directory stays live. Members find each other, message directly, and you can post announcements and run a three question survey.
+
+You see attendance and feedback. Members see a benefit they can point to. Nobody's email address gets handed around.
+
+The free plan covers a full event for 50 people: https://intro-connect.com
+
+Scott Weiss
+Founder, Intro Connect
+
+---
+
+### Kelly Sage, Longmont Economic Development Partnership
+**To:** kelly@longmont.org
+**Thread:** Re: what attendees remember after the Economic Summit
+
+Hi Kelly,
+
+Quick follow up. Testing this at the next Economic Summit takes one afternoon:
+
+1. Create the event. You get a join code and a link.
+2. Import your RSVP list from a spreadsheet or Eventbrite, or let attendees join with the code at the door.
+3. After the event, the directory stays live. Attendees find each other, message directly, and you can post announcements and run a three question survey.
+
+You see attendance and feedback. Attendees see a benefit they can point to. Nobody's email address gets handed around.
+
+The free plan covers a full event for 50 people: https://intro-connect.com
+
+Scott Weiss
+Founder, Intro Connect
+
+---
+
+### Colorado LGBTQ Chamber of Commerce
+**To:** info@colgbtqcc.org
+**Thread:** Re: what members remember after Chamber 101
+
+Hi there,
+
+Quick follow up. Testing this at Chamber 101 takes one afternoon:
+
+1. Create the event. You get a join code and a link.
+2. Import your RSVP list from a spreadsheet or Eventbrite, or let members join with the code at the door.
+3. After the event, the directory stays live. Members find each other, message directly, and you can post announcements and run a three question survey.
+
+You see attendance and feedback. Members see a benefit they can point to. Nobody's email address gets handed around.
+
+The free plan covers a full event for 50 people: https://intro-connect.com
+
+Scott Weiss
+Founder, Intro Connect
+
+---
+
+### Simone D. Morrison, Colorado Women's Chamber of Commerce
+**To:** info@cwcc.org
+**Thread:** Re: what members remember after the ATHENA luncheon
+
+Hi Simone,
+
+Quick follow up. Testing this at the ATHENA luncheon takes one afternoon:
+
+1. Create the event. You get a join code and a link.
+2. Import your RSVP list from a spreadsheet or Eventbrite, or let members join with the code at the door.
+3. After the luncheon, the directory stays live. Members find each other, message directly, and you can post announcements and run a three question survey.
+
+You see attendance and feedback. Members see a benefit they can point to. Nobody's email address gets handed around.
+
+The free plan covers a full event for 50 people: https://intro-connect.com
+
+Scott Weiss
+Founder, Intro Connect

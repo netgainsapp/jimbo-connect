@@ -558,3 +558,439 @@ on the allowlist. Needs one human action.
 mining, STEP 2 reply triage, STEP 6 Gmail loading, STEP 7B Command Center push.
 The first four were blocked by the Chrome extension being disconnected, the
 fifth by the empty secret.
+
+---
+
+**2026-08-30 (SUNDAY), interactive session on the SECOND machine. Measurement
+only. Nothing drafted, nothing sent, no runner created here.**
+
+**The campaign mailbox is UNREACHABLE from this machine, verified directly:**
+- The Gmail connector on this machine authenticates as sdwbouldah55@gmail.com,
+  not introconnectme@gmail.com.
+- The connected Chrome profile holds three signed-in accounts:
+  u/0 bouldercreatornetwork@gmail.com, u/1 netgainspb@gmail.com,
+  u/2 sdwbouldah55@gmail.com. introconnectme is NOT signed in; both /u/3 and
+  ?authuser=introconnectme fall back to u/0. The "slot /u/3" pointer used in
+  earlier entries is stale on this machine: indices shifted when the Boulder
+  Creator Network account was added.
+- Consequence: reply mining (9 days of inbox now unread since Aug 21), cohort
+  D send-state measurement, the stale Orlando draft check, and all Gmail
+  loading remain impossible from here. The Aug 21 measurement is still the
+  latest. Cohort A and C follow-up copy stays unwritten per the Aug 28 rule
+  (inbox must be read first).
+
+Schedule unchanged from the Aug 28 reschedule: cohort A touch 3 AND cohort B
+touch 2 due Mon 2026-08-31 (19 emails), cohort C touch 2 Tue 2026-09-01,
+cohort D frozen until its send date is measured. Monday's drips can only
+happen where BOTH the 9:04 runner and an introconnectme Chrome session exist,
+which is the other machine, and only while its desktop app is open.
+
+**DECIDED by Scott, evening of 2026-08-30: Monday runs from THIS machine,
+manually, in-session.** He signs in to introconnectme@gmail.com in this
+machine's Chrome on Monday morning. Consequences that must hold:
+- The OTHER machine's desktop app stays CLOSED all Monday, so its 9:04 runner
+  cannot fire and double-draft cohorts A and B. No second runner was or will
+  be created on this machine.
+- Prep done tonight, no mailbox needed: the Melanie Hassenfratz cohort B
+  touch 2 draft was rewritten for the Monday send (Pints in the Park happened
+  Sat Aug 29; copy now opens with the morning-after angle, it is no longer
+  announced as upcoming). See the 2026-08-30 note in
+  `drafts-2026-08-26-touch2-cohortB.md`.
+
+**MONDAY RUN ORDER (2026-08-31), in-session, in this sequence:**
+1. Confirm introconnectme resolves in Chrome (Scott signs in first).
+2. Verification pass: measure Sent since Aug 21 to establish whether cohort
+   D's 9 drafts ever went out (its drip clock starts from the real send
+   date); inventory Drafts; the stale Orlando automation draft, if still
+   present, is discarded by Scott, never sent.
+3. Reply mining, Aug 21 to Aug 31 window: human replies stop their sequence
+   same day; autoresponders are logged but do not stop anything; hard
+   bounces are marked do_not_contact same day.
+4. Remove any replied thread from the cohort A and B lists.
+5. Draft: cohort A touch 3 from Template 3 (12 threads minus replies,
+   in-thread), cohort B touch 2 = Melanie's rewritten custom draft plus 6
+   from Template 2 (in-thread). Templates: `gmail-intro-template.md`.
+6. Load into Gmail, verify recipient and greeting one by one, Scott sends.
+   About 19 emails, well under the volume threshold.
+7. Later days, to keep daily volume sane: cohort C touch 2 (21) Tue Sep 1;
+   cohorts E (6) and F (15) touch 1 from Wed Sep 2; cohort D follow ups only
+   once step 2 establishes its send date.
+8. Record every measurement from steps 2 and 3 in this file before drafting.
+
+---
+
+**2026-08-31 (MONDAY), manual run from the second machine. Scott signed in to
+introconnectme in this machine's Chrome; mailbox reachable again at u/3.**
+
+**MEASUREMENTS, taken from the mailbox this morning:**
+- **Cohort D touch 1 WAS SENT Fri 2026-08-21, 10:52 to 10:53 AM**, by Scott,
+  to 6 of the 9: Cat Boose (Nashville), Brandon Pinnix (Durham), Camille
+  Adams (Greenville), Nyila Johnson (synerG), Celeste Lloyd-Jones (Sarasota),
+  Jessica Buettgenbach (Wichita). Cohort D's drip clock is now set from
+  Aug 21: its day 7 touch 2 (Fri Aug 28) was missed while the runs were down.
+- **The 3 drafts sitting in Gmail are the other three cohort D rows**, created
+  2026-08-21 with NO recipient (the run ended before extracting them): Jess
+  Jones (Business Exchange, 10:31 AM), Jaci Pieters (YPN, 10:32 AM), Sharla
+  Rowe (Chamber event, 10:52 AM). Their published addresses are already in
+  the cohort D list above. Plan: fill recipients and send today as touch 1.
+  This also resolves the "3 unsendable drafts" note from the Aug 22 handoff.
+- **The stale Orlando automation draft is GONE.** The Drafts folder holds
+  exactly the 3 above and nothing in the Erik Deckers thread. Hazard closed.
+- **Reply mining, Aug 21 to Aug 31: ZERO campaign replies, autoresponders,
+  or bounces.** The only inbox traffic in the window is Scott's own iApplyAI
+  and Offrr test mail, plus a "TESSSST" self-test sent Mon Aug 24 7:24 PM.
+  No thread drops from any cohort. All 12 cohort A and all 7 cohort B
+  threads proceed.
+
+**REVISED WEEK, keeping every day at or under 25 sends:**
+- Mon Aug 31: cohort A touch 3 (12) + cohort B touch 2 (7) + cohort D
+  remainder touch 1 (Jess, Jaci, Sharla = 3). Total 22.
+- Tue Sep 1: cohort C touch 2 (21). Orlando stays excluded permanently.
+- Wed Sep 2: cohort D touch 2 for the six Aug 21 sends (day 12, since day 7
+  was missed) + cohort E touch 1 (6). Total 12. Cohort D touch 3 moves to
+  Wed Sep 9.
+- Thu Sep 3: cohort F touch 1 (15). Jess/Jaci/Sharla touch 2 due Mon Sep 7.
+
+Copy: cohort A touch 3 in `drafts-2026-08-31-touch3-cohortA.md` (written this
+morning after reply mining, per the Aug 28 rule). Cohort B touch 2 complete in
+`drafts-2026-08-26-touch2-cohortB.md` (Melanie rewritten 2026-08-30, the six
+Template 2 bodies added 2026-08-31).
+
+**LOADED INTO GMAIL 2026-08-31 morning, verified draft by draft. 22 total,
+Drafts folder went 3 to 22 one draft per step with no skips. Scott sends.**
+- 12 cohort A touch 3, in-thread replies (Alex Zarookian, Nathan Straubel,
+  Alexandra Poelstra, 1MC Denver "Andrew", 1MC Fort Collins "Nathalie", 1MC
+  Colorado Springs "Oscar", Maye Cordero, Sarah Schierkolk, Paetyn Fritzler,
+  Cory Thompson, Rebecca Green, Tia). Each opened via a to:-scoped search of
+  the exact thread, so no stale-row misdirection was possible; each verified
+  by screenshot showing recipient, greeting, and Draft saved.
+- 7 cohort B touch 2, in-thread replies: Melanie Hassenfratz got the custom
+  morning-after Pints in the Park copy; Westminster, Enterprise Coworking,
+  Summer Asbury, Kelly Sage, LGBTQ Chamber, and Simone Morrison got their
+  Template 2 bodies with greetings matching touch 1.
+- 3 cohort D remainder touch 1: recipients filled into the Aug 21 recipient-less
+  drafts and verified against their greetings (sharla@madisonbiz.com "Hi
+  Sharla", jpieters@siouxfalls.com "Hi Jaci", jess@grandrapids.org "Hi Jess").
+- The Erik Deckers / Orlando thread was not touched.
+
+---
+
+**2026-09-01 (TUESDAY), scheduled run. Fired 5:44 AM MDT, not 9:00 AM.**
+
+**GMAIL WAS NOT REACHABLE. NOTHING WAS VERIFIED, NOTHING WAS LOADED, NOTHING
+WAS SENT.** The Claude in Chrome extension reported not connected. Retried once
+per the task's no retry loop rule, then skipped. This is the second run lost to
+the same cause, after 2026-08-28.
+
+**Yesterday's 22 drafts: send state UNKNOWN.** The 12 cohort A touch 3, 7 cohort
+B touch 2 and 3 cohort D remainder touch 1 loaded on Mon 2026-08-31 could not be
+checked against the Sent folder. Stated plainly rather than assumed:
+- STEP 1B verification did not run. Sent, still-in-Drafts and misdirected counts
+  for 2026-08-31 are unmeasured.
+- STEP 1C reply mining did not run. One day of inbox unread.
+- STEP 6 loading did not run. No draft was created on this run.
+- **No cohort clock advances on the strength of a draft.** If those 22 are still
+  sitting unsent, cohort A touch 3, cohort B touch 2 and the Jess/Jaci/Sharla
+  touch 1 have not happened, and their next touches are not due. The next run
+  with a browser measures the real send date first, then schedules from it.
+- Last measured campaign send remains cohort D touch 1 on Fri 2026-08-21, and
+  before that cohort C on Thu 2026-08-20.
+
+**Cohort C touch 2 was due today and was NOT sent.** Copy is written and staged
+in `drafts-2026-09-01-touch2-cohortC.md`, 20 recipients, Orlando excluded
+permanently. It carries an explicit gate: the inbox must be read and any replied
+thread dropped before loading, because reply status is only measured through
+Aug 31. Cohort C touch 3 now sets from the real touch 2 send date, not from
+Aug 20.
+
+**Cohort G sourced. Honest count: 21 vetted and send ready, not 25.** Copy,
+provenance and scoring in `drafts-2026-09-01-touch1-cohortG.md`. Best sourcing
+run of the campaign to date, against 9, 6 and 15 on the three prior runs. Every
+address extracted from the organisation's own page source. Nothing constructed.
+One contact per organisation. All filtered against the contacted and
+do_not_contact lists. Three more rows are parked as verify-first and were not
+drafted: Duluth (first name not published), Columbia SC and Savannah (no
+recurring event series confirmed).
+
+**CLOUDFLARE EMAIL OBFUSCATION IS SOLVED. Reverse the Aug 28 recommendation.**
+The Aug 28 run recorded it as a hard obstacle hiding addresses on pages that had
+named YP directors, naming Greater Raleigh, Main Line, Hilton Head and Arlington
+VA. The `data-cfemail` attribute is a reversible XOR encoding of the address the
+page renders to every ordinary visitor, so decoding it reads a published address
+rather than constructing one, which is exactly what the Aug 20 rule requires.
+Three of those four named blockers produced usable contacts today: Greater
+Raleigh, Main Line and Arlington. Method that produced the 21: homepage link
+discovery across 57 uncontacted chamber domains, then extraction from the
+discovered staff, team and YP pages. 53 of 57 homepages resolved, 195 pages
+inspected, 32 domains yielded a usable published address, 267 raw addresses
+before filtering. **The daily target of 25 now looks reachable. Do not lower it.**
+
+**A NEW VERIFICATION RULE, and it caught a real error today.** Adjacency on a
+staff page is not proof of ownership. Waco's page put `rsheehy@wacochamber.com`
+directly beside the name "Rebecca Barrera". Every accepted row must have a local
+part consistent with the person's own name (first initial plus surname,
+first.last, or first name plus surname initial). Rows failing the check are
+dropped, never guessed at. Kacie Birkes was taken from that same Waco page
+instead, where the local part matches.
+
+**qualifiedRemaining is 42**, the healthiest it has ever been: cohort E's 6 from
+Aug 21 and cohort F's 15 from Aug 28, neither ever loaded into Gmail, plus
+cohort G's 21 today. This is a queue of drafting and loading work, not of sent
+mail.
+
+**DELIVERABILITY, restating it because the backlog grew again.** Queued and
+unsent now totals roughly 84 emails: cohort A touch 3 (12), cohort B touch 2 (7)
+and cohort D remainder touch 1 (3) if Monday's drafts are still sitting, plus
+cohort C touch 2 (20), cohort E touch 1 (6), cohort F touch 1 (15) and cohort G
+touch 1 (21). Clearing that in one or two days means 40 or more sends a day from
+one consumer Gmail. Spread it across the week. Scott's own docs put sending,
+warmup and compliance at volume with signal-scout.
+
+**MON 2026-09-07 IS LABOR DAY.** Weekdays verified against the system clock
+(2026-09-01 is a Tuesday; Sep 2 Wed, Sep 3 Thu, Sep 4 Fri, Sep 7 Mon, Sep 8
+Tue). The Aug 31 plan put the Jess, Jaci and Sharla touch 2 on Mon Sep 7, which
+is a US federal holiday and a poor send day for chamber staff. Move it to
+**Tue 2026-09-08**, and only after their real touch 1 send date is measured.
+
+**Command Center push STILL BLOCKED, fourth confirmation.** `SNAPSHOT_SECRET` in
+`C:\Users\sweis\command-center\.env.blob-probe` is still literally
+`SNAPSHOT_SECRET=""`, and it is empty in `.env.example` and absent from
+`.env.local`. Read merge write cannot run, so the tile keeps showing stale
+numbers. Unattended runs cannot fix this because `vercel env pull` is not on the
+allowlist. One human action needed.
+
+**Skipped this run, for the record:** STEP 1B verification, STEP 1C reply
+mining, STEP 2 reply triage, STEP 6 Gmail loading, STEP 7B Command Center push.
+The first four were blocked by the Chrome extension being disconnected, the
+fifth by the empty secret.
+
+**TWO RUNS IN A ROW LOST TO THE SAME CAUSE.** Aug 28 and today both failed at
+the browser. Sourcing is no longer the campaign's binding constraint; the
+mailbox connection is. 42 vetted contacts are queued behind it.
+
+---
+
+**2026-09-01 (TUESDAY), SECOND scheduled run of the same day. Fired 10:24 AM MDT.**
+
+**GMAIL STILL NOT REACHABLE, and this is now THREE RUNS IN A ROW.** Both
+`list_connected_browsers` (returned an empty list) and `tabs_context_mcp`
+(reported the extension not connected) were tried once each, then abandoned per
+the task's no retry loop rule. Aug 28, this morning's 5:44 AM run, and this run
+all died at the same point.
+
+**Nothing was verified, nothing was loaded, nothing was sent.** Every Gmail
+number in this file remains the 2026-08-31 measurement. Specifically still
+unmeasured:
+- STEP 1B verification. Whether Monday's 22 drafts (12 cohort A touch 3, 7
+  cohort B touch 2, 3 cohort D remainder touch 1) were ever sent is UNKNOWN.
+- STEP 1C reply mining. Now two days of inbox unread, Aug 31 and Sep 1.
+- STEP 2 reply triage, STEP 6 Gmail loading, STEP 7B Command Center push.
+
+**No cohort clock advances.** Cohort A touch 3, cohort B touch 2 and the
+Jess/Jaci/Sharla touch 1 are not confirmed sent, so nothing downstream of them
+is due. Cohort C touch 2 was due today and did not go out; its copy stays staged
+in `drafts-2026-09-01-touch2-cohortC.md` behind the same inbox gate. Last
+measured campaign send is still cohort D touch 1 on Fri 2026-08-21.
+
+**Cohort H sourced. Honest count: 20 vetted and send ready, not 25.** Copy,
+provenance, scoring and method in `drafts-2026-09-01-touch1-cohortH.md`. Second
+best sourcing result of the campaign, behind cohort G's 21 this morning and
+ahead of 15, 9 and 6 on the runs before that. 124 uncontacted chamber domains
+probed, 21 dead, 46 yielded a name-verified published address, 27 organisations
+reached one-contact selection, 20 cleared the recurring-event bar. Nothing
+constructed, one contact per organisation, all filtered against the contacted
+and do_not_contact lists.
+
+**A SECOND VERIFICATION GATE WAS ADDED THIS RUN, and it removed 7 rows.** The
+Waco name-consistency rule from cohort G is now enforced in code rather than by
+eye, and a new pass verifies the RECURRING EVENT itself: each organisation's own
+calendar is fetched and scanned for a named networking series, with ribbon
+cuttings treated as noise because a ribbon cutting is not a room where attendees
+are meant to meet each other. Seven organisations with a perfectly good named
+contact were parked as verify-first rather than drafted against a guessed event:
+ChamberRVA, Fort Myers, Frederick County, Greater Binghamton, Sheboygan County,
+Greater Wausau, Williamsport Lycoming. The name check also caught
+`inverness@citruscountychamber.com` sitting beside the words "Inverness Send".
+
+**qualifiedRemaining is 62**, the highest of the campaign: cohort E's 6 (Aug 21),
+cohort F's 15 (Aug 28), cohort G's 21 (this morning), cohort H's 20 (this run).
+None of the four has ever been loaded into Gmail. This is a queue of loading
+work, not of sent mail, and it is growing roughly 20 a day while the mailbox
+stays unreachable.
+
+**DELIVERABILITY, and the backlog is now the dominant risk.** Queued and unsent
+totals roughly 104 emails: cohort A touch 3 (12), cohort B touch 2 (7) and
+cohort D remainder touch 1 (3) if Monday's drafts are still sitting, plus cohort
+C touch 2 (20), and touch 1 for cohorts E (6), F (15), G (21) and H (20).
+Clearing that at any sane pace takes a week of sending. Do NOT clear it in one
+or two mornings from one consumer Gmail. Scott's own docs put sending, warmup
+and compliance at volume with signal-scout.
+
+**Command Center push STILL BLOCKED, fifth confirmation.** `SNAPSHOT_SECRET` in
+`C:\Users\sweis\command-center\.env.blob-probe` is still literally
+`SNAPSHOT_SECRET=""`. Read merge write cannot run, so the tile keeps showing
+stale numbers. `vercel env pull` is not on the unattended allowlist. One human
+action needed.
+
+**NEW THIS RUN: `curl` is no longer usable in scheduled runs.** A context-mode
+hook intercepts every `curl` and `wget` Bash call and redirects it to the
+context-mode execute tool. Sourcing was completed through that tool instead,
+which worked well and is what produced the 124-domain sweep. The task file's
+STEP 7B still tells the runner to do its GET and POST with single curl commands;
+that instruction is now stale and should be rewritten before the secret is fixed,
+or the push will fail for a second reason on top of the empty secret.
+
+**THE ONE THING THAT UNBLOCKS EVERYTHING.** Sourcing has produced 62 vetted
+contacts that no one can mail. Three consecutive runs have failed at the Claude
+in Chrome extension. Until that extension is connected and signed in to
+introconnectme@gmail.com on the machine running the 9:00 AM task, this campaign
+sends zero emails per day regardless of how well sourcing performs.
+
+---
+
+**2026-09-02 (WEDNESDAY), interactive session.**
+
+**SCOTT CONFIRMS: the 22 drafts loaded Mon 2026-08-31 WERE SENT, by him, from
+Gmail, that day.** Scott-reported on 2026-09-02; the extension is still
+disconnected, so timestamps are not yet Gmail-verified. The next connected run
+does STEP 1B against `in:sent after:2026/08/30` to confirm, but planning
+proceeds from his confirmation now:
+- **Cohort A sequence COMPLETE.** Touch 3 was the last email, and it said so.
+  All 12 threads are closed unless someone replies.
+- Cohort B touch 2 sent Aug 31. Touch 3 (day 7) lands Mon Sep 7, which is
+  Labor Day, so it moves to **Tue 2026-09-08**.
+- Jess, Jaci, Sharla touch 1 sent Aug 31. Touch 2 **Tue 2026-09-08** (the
+  Labor Day move already recorded on Sep 1).
+- sentThisWeek for the week of Aug 31: 22. Campaign sends confirmed to date:
+  Aug 7-12 wave (~140 retired), Aug 12 (12), Aug 19 (19), Aug 20 (25, 21
+  delivered), Aug 21 (6), Aug 31 (22).
+- Queued and unsent drops to roughly 88: cohort C touch 2 (20), cohort D
+  touch 2 (6), cohort E (6), F (15), G (21), H (20) touch 1.
+
+**SOURCING ON HOLD, Scott's instruction, 2026-09-02.** "I will not source
+anything." The daily task's STEP 3 and STEP 4 are gated in the task file
+itself: no new sourcing until Scott says resume or qualifiedRemaining drops
+below 15. Loading the existing 62 is the work. The task file's stale STEP 7B
+curl instruction was also rewritten (curl is intercepted; use the
+context-mode execute tool).
+
+**WEEK PLAN from here, 25 or fewer sends a day, each day gated on reading the
+inbox first and dropping any replied thread:**
+- Wed Sep 2: cohort C touch 2 (20), the moment the browser connects.
+- Thu Sep 3: cohort D touch 2 (6) + cohort E touch 1 (6).
+- Fri Sep 4: cohort F touch 1 (15).
+- Mon Sep 7: LABOR DAY, nothing sends.
+- Tue Sep 8: cohort B touch 3 (7) + Jess/Jaci/Sharla touch 2 (3) + first 15
+  of cohort G touch 1.
+- Wed Sep 9: rest of cohort G (6) + first ~14 of cohort H touch 1.
+- Thu Sep 10: rest of cohort H. Backlog clear.
+
+**Still blocked right now: the Chrome extension is not connected in this
+session either.** Cohort C's load waits on it, both for the loading itself and
+for the two unread inbox days (Sep 1-2) that must be mined first.
+
+---
+
+**2026-09-02 evening, extension CONNECTED. Everything measured and loaded.**
+
+**STEP 1B verification of Mon Aug 31, from the Sent folder: all 22 sent,
+CONFIRMED.** `in:sent after:2026/08/30` shows exactly the 12 cohort A touch 3,
+7 cohort B touch 2, and 3 cohort D remainder touch 1, all dated Aug 31, plus
+Scott's own Dallas reply from today. Zero bounces on the whole batch.
+
+**THIRD HUMAN REPLY OF THE CAMPAIGN: 1 MILLION CUPS DALLAS, 2026-09-02.**
+dallas@1millioncups.com (cohort C, touch 1 Aug 20) replied at 1:19 PM: 1MC is
+a nonprofit with zero budget and no funding "for this." Scott replied himself
+at 4:45 PM clarifying we are not selling to 1MC, free forever, seeking usage
+and intelligent feedback. Dallas wrote back again (a Gabriel) and Scott has a
+reply draft in the thread now. CONVERSATION IS LIVE AND SCOTT OWNS IT.
+- dallas@1millioncups.com: status REPLIED, sequence STOPPED permanently.
+  Removed from the cohort C touch 2 load. Do not automate into that thread.
+- Copy lesson logged: to 1MC chapters the generic pitch reads as a paid
+  product. Any future 1MC-audience copy leads with free, not ends with it.
+- Campaign human replies to date: Erik/Orlando (Aug 20), Dallas (Sep 2). Both
+  from the 1MC org-alias wave. The audience thesis keeps proving out.
+
+**STEP 1C reply mining, Aug 31 to Sep 2: clean.** Besides Dallas: one
+autoresponder from Maye Cordero (Boulder Chamber, high email volume notice,
+phone 303-938-2091 for urgent) logged as auto_reply; her cohort A sequence was
+already complete, no action. No other replies, no autoresponders, no bounces.
+Deliverability signal: two humans processed mail from this account this week.
+
+**COHORT C TOUCH 2 LOADED: 19 in-thread drafts, 4:51 to 5:01 PM, verified one
+by one** (recipient, greeting, Draft saved, via to:-scoped thread search). The
+12 remaining 1MC chapters (Body A), Karin, Boulder Rotary, Boulder Bar,
+Veronica, Zuza, Arts Alliance, Jen (Bodies B through H). Drafts folder ended
+at 20: these 19 plus Scott's own Dallas draft. Scott sends; RECOMMENDED
+Thu Sep 3 first thing, since 5 PM Mountain is after hours for the central and
+eastern recipients. Cohort C touch 3 = one week after the real send date.
+
+**WEEK PLAN, adjusted for a Thursday-morning cohort C send, 25/day max:**
+- Thu Sep 3: cohort C touch 2 (19). Scott presses Send.
+- Fri Sep 4: cohort D touch 2 (6) + cohort E touch 1 (6).
+- Tue Sep 8: cohort B touch 3 (7) + Jess/Jaci/Sharla touch 2 (3) + cohort F
+  touch 1 (15). Exactly 25.
+- Wed Sep 9: cohort G touch 1 (21).
+- Thu Sep 10: cohort H touch 1 (20). Backlog clear.
+
+---
+
+**2026-09-03 (THURSDAY) morning. COHORT C TOUCH 2 SENT, verified.** Scott sent
+all 19 this morning; measured from the mailbox at 9:25 AM: `in:sent
+after:2026/09/02` shows exactly 19 conversations and the Drafts folder is
+EMPTY (his own Dallas reply also went). Cohort C touch 2 real send date =
+Thu 2026-09-03, so **cohort C touch 3 is due Thu 2026-09-10**.
+
+**PERMANENT EXCLUSIONS, restated per Scott 2026-09-03, both status `replied`,
+both conversations his to run, never drip or automate into either thread:**
+- orlando@1millioncups.com (Erik Deckers), replied Aug 20. Excluded since.
+- dallas@1millioncups.com (Gabriel), replied Sep 2. Excluded since.
+Cohort C touch 3 on Sep 10 therefore goes to at most the 19 minus any new
+replies between now and then.
+
+Next send day: Fri Sep 4, cohort D touch 2 (6) + cohort E touch 1 (6).
+
+**2026-09-03 mid-morning: Scott asked for MORE today, beyond 1MC. Cohorts D
+and E pulled forward from Friday and LOADED, 12 drafts, verified one by one.**
+- Inbox gate re-checked first: only new inbound was 1MC Lincoln's chapter
+  auto-acknowledgement to this morning's touch 2 (auto_reply, sequence
+  continues, second ack from them) and, in the Dallas thread Scott runs, a
+  further reply from Gabriel OFFERING A CALL, the campaign's first. Scott is
+  handling Dallas directly. No cohort D or E recipient has replied.
+- Cohort D touch 2 (6), in-thread, day 13: Cat Boose, Brandon Pinnix, Camille
+  Adams, Nyila Johnson, Celeste Lloyd-Jones, Jessica Buettgenbach. Copy in
+  `drafts-2026-09-03-touch2-cohortD.md`. Touch 3 one week after today's real
+  send date, Thu 2026-09-10.
+- Cohort E touch 1 (6), new threads, from `drafts-2026-08-21-touch1-cohortE.md`:
+  Hayley Loftus (Chapel Hill YP), Molly Crouser (Lancaster), Laura Dryden
+  (Greater KC), Alison (La Crosse YP), Lorance Uwinaza (Chippewa Valley YP),
+  Joanne Ortega (San Marcos YP). Touch 2 day 7 = Thu 2026-09-10.
+- Drafts folder verified at exactly 12, loaded 9:37 to 9:44 AM. Scott sends.
+- Today's total once sent: 19 (cohort C, sent ~9:15 AM) + 12 = 31. Over the
+  25 comfort line, under the 50 flag line, accepted knowingly at Scott's
+  request. Do not go higher today.
+- Rest of the week unchanged: Fri Sep 4 cohort F touch 1 (15); Tue Sep 8
+  cohort B touch 3 (7) + Jess/Jaci/Sharla touch 2 (3) + first of cohort G;
+  Wed Sep 9 rest of G; Thu Sep 10 cohort H + cohort C touch 3 + cohort D
+  touch 3 + cohort E touch 2 will STACK. Thu Sep 10 is overloaded; the next
+  planning pass must respread it before Wednesday.
+
+**2026-09-03 SENT, all of it, verified from the mailbox.** `in:sent` for today
+shows 31 conversations and the Drafts folder is EMPTY. Scott pasted the new
+Template 1 wording into the loaded drafts himself before sending. The day:
+cohort C touch 2 (19, ~9:15 AM), cohort D touch 2 (6), cohort E touch 1 (6).
+Consequences: cohort C touch 3, cohort D touch 3, and cohort E touch 2 are all
+due Thu 2026-09-10 (the respread of that stacked day is still owed). Watch
+tomorrow's run for bounces on the six first-time cohort E addresses; any
+bounce is do_not_contact same day.
+
+**TEMPLATE 1 UPDATED 2026-09-03, wording Scott's own.** New second paragraph
+("I built IntroConnect to turn every event into a private member directory
+where attendees can find who they met, save contacts, message each other, and
+keep those connections alive long after the event.") and a new closing line
+before the signature ("Feel free to reach out if you have any questions,").
+Applied to `gmail-intro-template.md` and rewritten into ALL staged touch 1
+copy: cohort F (15), G (21), H (20), verified 56 of 56 bodies converted, zero
+old paragraphs remain. Two notes: "any question" was normalized to "any
+questions", and the one-word "IntroConnect" in Scott's sentence was kept
+verbatim while the signature stays "Founder, Intro Connect".
