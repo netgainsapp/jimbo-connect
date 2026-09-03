@@ -984,6 +984,15 @@ due Thu 2026-09-10 (the respread of that stacked day is still owed). Watch
 tomorrow's run for bounces on the six first-time cohort E addresses; any
 bounce is do_not_contact same day.
 
+**SCOTT'S STANDING INSTRUCTION FOR FRI 2026-09-04, given at close on Sep 3:
+"we are doing more tomorrow."** Tomorrow is a BIG send day, more than the
+planned 15. Plan: cohort F touch 1 (15) PLUS cohort G touch 1 (21) = 36,
+matching today's proven volume and staying under the 50 line. Both cohorts'
+copy is already staged in the new Template 1 voice. Read the inbox first,
+drop replies, mark bounces, then load both cohorts. Pulling G forward also
+thins the Sep 8-9 load; the Thu Sep 10 stack (C t3 + D t3 + E t2, ~31) still
+needs its own day and the respread pass still applies.
+
 **TEMPLATE 1 UPDATED 2026-09-03, wording Scott's own.** New second paragraph
 ("I built IntroConnect to turn every event into a private member directory
 where attendees can find who they met, save contacts, message each other, and
