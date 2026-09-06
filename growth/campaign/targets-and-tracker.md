@@ -1047,6 +1047,176 @@ the gating next step before any of it becomes cohort I.
   When sourcing resumes, it resumes from that file, not the old
   chamber-scrape spec.
 
+**2026-09-05, COHORT I sourced for the A+B channel test Scott called.** Two
+files: `cohortI-B-linkedin.md` (11 named association board leads with
+published LinkedIn URLs, Scott sends connection notes from his own profile)
+and `cohortI-A-email.md` (the email side). MEASURED FINDING, important and
+durable: the association lane is a LinkedIn vein, NOT the email vein I
+predicted. AMA/PRSA/NAWBO/CREW chapters publish boards as LinkedIn profiles
+with no email. ~20 fetches yielded exactly ONE clean named-person published
+email (Ellen Scirrotto, admin@crewsandiego.org, CREW San Diego). The
+published-email ceiling that capped chambers is structural across every new
+segment, not chamber-specific. Coworking contact pages are generic info@ or
+forms too. Consequence: A is starved and needs a decision (accept published
+role aliases for volume, or a longer named-email dig); B is rich and ready.
+Recommendation logged in cohortI-A-email.md: run B now, take role aliases for
+A so both send Tuesday and the reply data compares the channels.
+
+**2026-09-05, SCOTT CHOSE A2** (hold the named-person bar). Did the dig, ~32
+more fetches. The clean named-exec email vein is AAF (American Advertising
+Federation) local ad clubs + custom-domain CREW chapters: take the Executive
+Director where the club publishes a named-org email. Yield ~1 clean per 2-3
+clubs. `cohortI-A-email.md` now holds 3 verified, fully-drafted, cited rows:
+Ellen Scirrotto (CREW San Diego, admin@crewsandiego.org), Allison Deely (AAF
+Louisville, Allison@AAFLouisville.org), Tiffany L. Ryan (AAF Orlando,
+executivedirector@aaf-orlando.org). Rejected for cause: AAF Houston (personal
+Gmails, one name-misaligned), AAF Dallas (names only), CREW subdomains
+(generic), coworking (generic/forms), Omaha REIA (generic). The file carries a
+repeatable extend path (fetch AAF club board, take the ExecDir with a named-org
+email) to grow A to ~8-12 before the cohort I send window (~week of Sep 15).
+Nothing sent yet; all still do_not_send. Cohort I send timing is AFTER next
+week's follow-up crunch, so there is runway to extend A.
+
+**2026-09-05, SCOTT SET THE TARGET: 50/day cold, moving forward, sent from
+introconnectme@gmail.com.** He was shown the deliverability risk explicitly
+(one consumer Gmail at 50/day cold risks throttling, spam-foldering, and
+blacklisting the mailbox that ALSO receives inbound hello@ forwarding) and the
+safer alternatives (route volume through signal-scout; or a multi-channel
+split capping Gmail at ~25). He chose to push Gmail to 50/day as-is. His call,
+his mailbox, made informed. Execute it, but build in the risk-reduction below
+because a bounce/spam spike is what would actually hurt the mailbox he is
+spending:
+- **RAMP, do not jump.** Step the volume up: ~40/day, then ~45, then ~50 over
+  the first week, so sender reputation climbs with volume instead of being
+  shocked. Do not go 36 -> 50 in one day.
+- **PACE across the morning**, never one 50-message burst. Gmail penalizes
+  bursts harder than steady sends.
+- **ADDRESS QUALITY STAYS IRONCLAD, gets stricter not looser.** At 50/day a
+  bounce spike is the fastest path to a blacklist. Published-address-only,
+  name-consistency, no personal Gmails, no constructed aliases. Feed volume
+  from BREADTH (more segments and metros), never by lowering the address bar.
+  The Aug 7 lesson (140 padded sends, 0 replies, burned addresses) is the
+  thing 50/day must not repeat.
+- **DAILY DELIVERABILITY WATCH.** Report bounce rate and a periodic
+  mail-tester score; pull volume back immediately if either slips. Protects
+  the reply flow.
+
+**SOURCING ENGINE (must be always-on to feed 50/day = ~250 qualified/week).**
+Launched 4 parallel harvest agents 2026-09-05 across AAF ad clubs (email lane),
+AMA chapters (LinkedIn lane), PRSA/IABC chapters, and commercial-real-estate
+associations (CREW/ULI/NAIOP/CoreNet). Each pulls ~15 chapters with verified,
+cited, name-checked contacts and an honest clean-yield count. Their output gets
+compiled into the scaled cohort. The binding constraint remains the published
+address, so the engine has to run continuously across many segments and metros,
+not scrape once.
+
+**2026-09-05, ALL 4 AGENTS DONE, COMPILED.** Files: `cohortI-A-email.md`
+(email) and `cohortI-B-linkedin.md` (LinkedIn). Verified, cited, deduped totals:
+- **EMAIL Tier 1 (strict named quality, A2 bar): 15.** ULI Colorado/Denver
+  (Rodney Milton) leads. Best vein = commercial-real-estate execs
+  (ULI/NAIOP/CoreNet/custom-domain CREW), then AAF clubs, then PRSA.
+- **EMAIL Tier 2 (published role inboxes, generic, 50/day volume): 10 AAF.**
+- **LINKEDIN: ~38** named leads (~22 with published URL), AMA/IABC/NAWBO.
+- **Known expansion:** Cloudflare-decode pass recovers clean IABC Houston +
+  PRSA Chicago org aliases (decoding already accepted 2026-09-01). CRE and AAF
+  veins extend widely; AMA/PRSA/IABC LinkedIn supply is effectively unlimited.
+
+**HONEST 50/DAY MATH.** Current sendable email supply = 25 (15 named + 10 role)
+= ~half a single 50-day. LinkedIn ~38 but capped ~15-20/day by LinkedIn itself.
+So this harvest is a strong START, not a standing 50/day. Sustaining 50/day cold
+email needs the engine to keep producing ~250/week, which at the measured hit
+rate (~3 clean named per 15 chapters strict, more with role aliases + Cloudflare
+decode) means fetching ~75-100 chapter pages/week, ongoing. RECOMMENDATION:
+ramp using next week's follow-up volume as the base (Tue B t3 + JJS t2; Thu-Fri
+C t3 + D t3 + E t2 + F/G t2 already push 30-40/day) and layer cohort I cold on
+top to reach 40 -> 45 -> 50 across the week, sending Tier 1 named emails first
+(quality protects deliverability during the ramp), Tier 2 + fresh harvest
+filling volume, and re-running the harvest agents weekly to keep the pipeline
+full. Await Scott before sending any of cohort I.
+
+**2026-09-05, WAVE-2 HARVEST DONE ("start looking now" + "both to get to 50").**
+Launched 4 more agents; 3 produced, 1 declined. Compiled into the same two files.
+- **CRE execs wave 2: +15 clean Tier 1**, all verbatim-verified name-attached
+  org-domain emails. 10 ULI district councils (first.last@uli.org beside the
+  named ED: Austin/Boston/Minnesota/Arizona/Dallas-FW/San Diego-Tijuana/Orange
+  County/Atlanta/Tampa Bay/Nashville) + 5 NAIOP chapters (MA/MD/WA/AZ/N.VA, all
+  rebranded to CREDA, live domains creda*.org). The ULI /about/contact-us/ path
+  is now the single highest-yield clean vein; many untried councils remain.
+- **AAF clubs wave 2: +1 Tier 1** (Evie DeSarno, AAF Pittsburgh, evie@aafpgh.org)
+  **+18 Tier 2 role inboxes** (Atlanta/Phoenix/Seattle/St.Louis/Triangle/Buffalo/
+  Hartford/Birmingham/Fresno/Richmond/Denver-aafcolorado/E.Central-Indiana/
+  Baltimore/Greater-Rochester/West-Michigan/Fox-River/Tucson/Fort-Wayne). AAF
+  Baltimore publishes first-name board inboxes = future Tier-1 source if mapped.
+- **AMA/PRSA/IABC LinkedIn wave 2: +25 named, ALL with a published URL**, 12 fresh
+  chapters (AMA Columbus/Nashville/Pittsburgh/Madison/Wichita/Puget-Sound/Detroit/
+  Orlando + PRSA San Diego/Colorado + IABC LA/Houston), 0 name-only, 0 overlap with
+  the prior list. 8 programming + 5 membership + 12 president fallbacks. FLAGS:
+  AMA Orlando is the marketing-assoc chapter, DISTINCT from 1MC Orlando/Erik
+  (handled) but pull if "Orlando excluded" means the metro; Andy Milligan's slug
+  (mmgdesign) is a branded handle, verify. LinkedIn lane now ~63 named (~47 URL'd).
+- **Cloudflare-decode recovery: agent DECLINED** on anti-scraping/anti-harvesting
+  grounds (defeating an obfuscation control the site owner deliberately enabled,
+  at scale, for cold outreach). Not forced. The ULI contact-us vein already
+  yields plainly-published addresses, so this pass is dropped, not essential.
+  Its compliance points (use published contact forms; LinkedIn; CAN-SPAM/CASL
+  opt-out on every cold send) are noted for the always-on engine.
+
+**REVISED SUPPLY (post wave-2):** EMAIL Tier 1 = 31 (15 + 16), EMAIL Tier 2 = 28
+(10 + 18) = **59 sendable email leads**, plus LinkedIn ~63 named/~47 URL'd (still
+capped ~15-20/day). 59 email covers ~1.2 days at 50/day, or the first named-quality-first days
+of the ramp comfortably. Still not a standing 50/day by itself; the weekly engine
+must keep producing. Best-proven fetch order for the engine: ULI district
+councils (contact-us) > NAIOP/CREDA chapters > AAF clubs (board pages) > AMA/
+PRSA/IABC (LinkedIn lane).
+
+**2026-09-05, ALL 59 COHORT I EMAIL DRAFTS LOADED INTO GMAIL (Scott: "I rather
+they all just be in the drafts now").** Per Scott's request to remove himself
+from the daily generate-and-monitor loop, all 59 email leads (31 Tier 1 + 28
+Tier 2) are now sitting in introconnectme@gmail.com /u/3 Drafts as new-thread
+touch-1 composes, each with a verified committed recipient, subject "what
+members remember after [ORG]'s next event", and Template 1 v3 body ([ORG]/[EVENT]
+filled). Rendered source of record: `drafts-2026-09-05-cohortI-touch1.md`.
+Every recipient chip was verified inline at creation (input cleared + chip ==
+intended address). NOTHING SENT: Scott sends on his own paced cadence. Recommended
+send order in the file: Tier 1 named first (~10-15/day on top of drip volume),
+Tier 2 volume after the domain is warm, ramp 40->45->50, stop cold volume on a
+bounce spike (>~5%) or spam signal. Each draft's drip clock starts on its ACTUAL
+send date (runner reconciles Sent), not draft-creation date.
+- KNOWN CLEANUP: there is ONE duplicate CREW Boston draft (two identical drafts
+  to laura@crewboston.org). Gmail's recipient-chip removal and draft deletion
+  were both blocked in the automation (delete is classifier-gated; chip removal
+  failed in this Gmail build), so Scott should delete one CREW Boston draft by
+  hand before sending so laura is not emailed twice. Total drafts in folder = 60
+  (59 leads + 1 dup).
+- The 59 subjects were all verified present (no empties), 59 unique + CREW Boston
+  twice, deduped against prior cohorts.
+
+Await Scott before sending any of cohort I.
+
+**2026-09-06, WAVE-3 HARVEST + FULL LOAD (Scott: "why do I only have 60 for
+ALL of next week?").** Ran 5 more parallel agents; compiled 99 verified,
+deduped, org-domain leads (record: `drafts-2026-09-05-cohortI-wave3.md`) and
+LOADED ALL 99 into /u/3 Drafts. Breakdown: 17 named CRE execs (CREDA/NAIOP/CREW),
+15 named ULI council staff + 8 ULI city aliases, 14 AAF club inboxes, 23
+PRSA/IABC chapter inboxes, 22 alumni/REIA/CreativeMornings/ILEA/young-pro. Each
+recipient chip verified inline at creation. Cross-agent dedupe caught Theresa
+Burnett (ED of BOTH CREDA Charlotte and ULI Charlotte) - kept one.
+- **Scott decisions 2026-09-06:** (1) Dallas/Orlando "permanently excluded" rule
+  means the 1MC CHAPTERS ONLY, not the metros - keep all CRE/PRSA/IABC Dallas &
+  Orlando orgs. (2) Leave the 6 borderline held leads OUT (3 org-Gmail: USC CO
+  Gamecocks, ILEA RI, ILEA Chicago; 3 Facebook-sourced: PRSA Tampa Bay, IABC
+  Phoenix, PRSA Sierra Nevada). Also dropped accreditation@prsamidamerica.org
+  (wrong inbox).
+- **Gmail folder now = 160 drafts** = 59 cohort-I + 99 wave-3 + 2 artifact drafts
+  Scott must hand-delete (the duplicate CREW Boston, and one blank "(no subject)"
+  left when CREDA Greater Philadelphia's recipient first failed to commit; it was
+  reloaded cleanly, so the blank is junk). Automated draft deletion is
+  classifier-blocked, so those 2 are manual.
+- **Supply now covers the week+.** ~158 unique cold email drafts staged. At a
+  50/day TOTAL ceiling (drips count toward it), that is ~1.5 weeks of cold runway.
+  Send order unchanged: Tier 1 named first, Tier 2 volume after, ramp 40->45->50,
+  stop on a bounce spike (>~5%) or spam signal. NOTHING SENT.
+
 **WEEK AHEAD (updated):** Mon Sep 7 Labor Day, nothing sends. Tue Sep 8:
 cohort B touch 3 (7) + Jess/Jaci/Sharla touch 2 (3), only 10, all in-thread.
 Wed Sep 9: nothing due (Dallas call 10 AM Mountain). Thu Sep 10: cohort C
