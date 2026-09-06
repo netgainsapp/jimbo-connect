@@ -27,30 +27,29 @@ Rules that carry over from the campaign (non negotiable):
 
 ## Template 1: the intro (day 0)
 
-(Second paragraph and "Feel free to reach out" closing updated 2026-09-03,
-wording Scott's own. Every future touch 1 uses this version; cohorts F, G and
-H's staged copy was rewritten to it the same day.)
+(v3, 2026-09-04, wording Scott's own: this is the exact body he pasted into
+and sent with all 36 cohort F and G touch 1 emails. It replaces the v2 body
+from 2026-09-03. Note it opens "Greetings," rather than "Hi [FIRST NAME],";
+keep the named greeting where a name exists unless Scott says otherwise, and
+personalize [EVENT] in the closing question.)
 
 **Subject:** what members remember after [EVENT]
 
-Hi [FIRST NAME],
+Greetings,
 
-Your members join [ORG] to meet people. Then the event ends, the name tags go
-in the bin, and most of those conversations never turn into anything. When
-renewal time comes, "I met someone interesting once" is a hard memory to bill
-against.
+Your members join your events to network, but after the event is over the
+opportunity is gone.
 
 I built IntroConnect to turn every event into a private member directory
 where attendees can find who they met, save contacts, message each other, and
-keep those connections alive long after the event.
-
-Guests never pay and never install anything. They join in the browser in
-about a minute.
+keep those connections alive long after the event. Guests never pay and never
+install anything. They join in the browser in about a minute.
 
 Your first event is free for up to 50 attendees. Worth a look before your
-next mixer? https://intro-connect.com
+next [EVENT]? https://intro-connect.com
 
-Feel free to reach out if you have any questions,
+Feel free to reach out if you have any questions, I would love for you to try
+IntroConnect.
 
 Scott Weiss
 Founder, Intro Connect

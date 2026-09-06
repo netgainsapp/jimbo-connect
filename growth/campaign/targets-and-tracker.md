@@ -984,6 +984,82 @@ due Thu 2026-09-10 (the respread of that stacked day is still owed). Watch
 tomorrow's run for bounces on the six first-time cohort E addresses; any
 bounce is do_not_contact same day.
 
+**2026-09-04 (FRIDAY) 9:16 AM: the 9:04 scheduled run left no tracks (no
+commits, no tracker changes, Drafts empty), so the interactive session is
+loading cohorts F and G by hand starting 9:20 AM. ANY RUN FIRING LATER TODAY
+MUST NOT LOAD TOUCH 1 FOR COHORT F OR COHORT G; verify and report only.**
+
+**LOADED by ~10:40 AM: ALL 36, verified draft by draft, Drafts folder at
+exactly 36.** Cohort F touch 1 (15: Emily Pettinato, Amy Rosica, Sophia
+Bibbey, Jessica Behringer, Leanne, Cressa Bronson, Amirah Hussain, Jessie
+Martin, Mara McJilton, Abby Zimmerman, Callie Manis, Mallory Mullis, plus the
+Anchorage YPG, Memphis YPC and Bemidji YPN aliases) and cohort G touch 1 (21:
+Shannon Gowen, Julie Sanderson, Anna Richards, Brittany Keal, Susan George,
+Lauren Cognato, Kristen Luna, Kiley Michulka, Nichole Martinez, Kacie Birkes,
+Chris DeAntonio, Barbara Boone, Julianne Raymond Flinchum, Nate Ehmke, Brody
+Johnson, McKenzie, Andra Popescu, Brooke Willis, Quincy Hentzel, plus the
+Raleigh YPN and Boise BYP aliases). All bodies in the new Template 1 voice.
+Every draft verified by screenshot: recipient chip, subject, greeting.
+One flaky first attempt left NOTHING behind (empty compose discarded, Drafts
+was confirmed empty before the run of 36 began). Scott sends. Touch 2 for
+both cohorts: day 7 from the real send date, Thu 2026-09-11 if sent today.
+qualifiedRemaining after this load: 0 (plus the 3+3 verify-first parked rows).
+
+**2026-09-04 SENT AND VERIFIED: all 36, 10:00 to 10:03 AM, from the Sent
+folder row by row.** Every recipient correct, no duplicates, no misdirects,
+Drafts folder EMPTY afterward. Before sending, Scott replaced the body in all
+36 with his own new copy, now recorded as **Template 1 v3** in
+`gmail-intro-template.md`: "Greetings," opener, "join your events to network,
+but after the event is over the opportunity is gone" first line, and the
+closing "Feel free to reach out if you have any questions, I would love for
+you to try IntroConnect." All future touch 1 uses v3.
+- Cohorts F and G touch 1 date: Fri 2026-09-04. Touch 2 day 7: **Thu
+  2026-09-11**. Touch 3 day 14: Fri 2026-09-18.
+- sentThisWeek (Sep 1-4): 67. Sent Wed 31, Thu 36, plus Scott's own Dallas
+  thread replies. Watch Monday-Tuesday for bounces across these 36 first-time
+  addresses; any bounce is do_not_contact same day.
+
+**DALLAS CALL IS ON.** Scott's 7:33 AM reply in the Dallas thread: "Ok,
+great, I will send over a google invite." Gabriel's real address:
+gabriel@connectedcoworkingdallas.com, Connected Coworking Dallas, a coworking
+operator, squarely the campaign's target profile. Call set for **Wednesday
+11 AM CST** (Wed 2026-09-09, 10 AM Mountain). Scott runs it; the thread stays
+his; nothing automated touches it. First live product conversation of the
+campaign.
+
+**2026-09-05: LEAD HUNT v2 PACKAGE reviewed** (Desktop:
+`Intro_Connect_Lead_List_and_Scoring.xlsx` + review docx). ICP spec, 100-point
+scoring model, 18 seed accounts, all marked draft/do-not-send. Dedupe run
+against this tracker found TWO collisions the list missed: **Startup Grind
+Denver (Alexandra Poelstra)** and **1MC Denver**, both cohort A, both received
+the "I will not email again" touch 3 on Aug 31 — HARD EXCLUDED from any email
+outreach forever (a LinkedIn approach to Lindsey McCune at 1MC Denver is
+Scott's call, not email). Also flagged: Nashville JUNIOR Chamber is a
+different org from Nashville Area Chamber (Cat Boose, cohort D), and Dallas
+Junior Chamber is distinct from both Dallas Regional Chamber (cohort F) and
+1MC Dallas (replied). Roughly half the 18 seeds lack a published sendable
+address yet. Full review delivered in chat 2026-09-05; verification sprint is
+the gating next step before any of it becomes cohort I.
+- **The bigger outcome: `lead-types-v2.md`**, written the same day at Scott's
+  direction to widen the hunt. Fifteen lead types in three tiers plus a
+  channel expansion (1MC presenter motion, referral loop, Meetup/Luma
+  platform messages, LinkedIn) that breaks the published-email ceiling.
+  When sourcing resumes, it resumes from that file, not the old
+  chamber-scrape spec.
+
+**WEEK AHEAD (updated):** Mon Sep 7 Labor Day, nothing sends. Tue Sep 8:
+cohort B touch 3 (7) + Jess/Jaci/Sharla touch 2 (3), only 10, all in-thread.
+Wed Sep 9: nothing due (Dallas call 10 AM Mountain). Thu Sep 10: cohort C
+touch 3 (~19) + cohort D touch 3 (6) + cohort E touch 2 (6) = 31, trim or
+split with Fri. Thu Sep 11: cohorts F and G touch 2 (36) also lands this
+window, so Sep 10-11 MUST be respread before Wednesday: roughly C t3 Thu,
+D t3 + E t2 Fri Sep 11 morning, F + G t2 split Fri Sep 11 and Mon Sep 14.
+The next planning pass makes this concrete after reply mining removes rows.
+Overnight measurement, 8:52 AM: yesterday's 31 delivered with ZERO bounces
+(all six first-time cohort E addresses held). Dallas thread: Gabriel proposed
+a call Wed 11 AM CST; Scott's conversation. Only other inbound was the known
+1MC Lincoln bot ack and iApplyAI self-test digests.
+
 **SCOTT'S STANDING INSTRUCTION FOR FRI 2026-09-04, given at close on Sep 3:
 "we are doing more tomorrow."** Tomorrow is a BIG send day, more than the
 planned 15. Plan: cohort F touch 1 (15) PLUS cohort G touch 1 (21) = 36,
