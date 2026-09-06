@@ -68,6 +68,22 @@ def _check_photo_value(v):
     raise ValueError("photo must be an https URL or an image data URL")
 
 
+def _normalize_linkedin_value(v):
+    """Make a pasted LinkedIn value clickable without inventing one.
+
+    People paste "linkedin.com/in/me" straight off their own profile; a bare
+    scheme-less value renders as dead text wherever the app links it. Only a
+    value that already names linkedin.com gets the https:// prefix; anything
+    else (a handle, a company page on another host) is left exactly as typed.
+    """
+    if v is None:
+        return None
+    v = v.strip()
+    if v.lower().startswith(("linkedin.com", "www.linkedin.com")):
+        return "https://" + v
+    return v
+
+
 class ProfileUpdateRequest(BaseModel):
     name: Optional[str] = Field(default=None, max_length=100)
     role: Optional[str] = Field(default=None, max_length=100)
@@ -78,6 +94,11 @@ class ProfileUpdateRequest(BaseModel):
     phone: Optional[str] = Field(default=None, max_length=40)
     linkedin: Optional[str] = Field(default=None, max_length=300)
     photo_url: Optional[str] = Field(default=None, max_length=2_200_000)
+
+    @field_validator("linkedin")
+    @classmethod
+    def _linkedin_normalized(cls, v):
+        return _normalize_linkedin_value(v)
 
     @field_validator("phone")
     @classmethod
@@ -104,6 +125,30 @@ class PhotoUploadRequest(BaseModel):
         if not v or not v.startswith(_PHOTO_DATA_PREFIXES):
             raise ValueError("photo_data must be an image data URL")
         return v
+
+
+class GuestJoinRequest(BaseModel):
+    """Join-by-code without an account: a name, optionally a LinkedIn.
+
+    No email, no password. The card is a pointer, not a second resume, so
+    this is deliberately the entire ask at the door.
+    """
+
+    name: str = Field(max_length=100)
+    linkedin: Optional[str] = Field(default="", max_length=300)
+
+    @field_validator("name")
+    @classmethod
+    def _name_present(cls, v):
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("name is required")
+        return v
+
+    @field_validator("linkedin")
+    @classmethod
+    def _linkedin_normalized(cls, v):
+        return _normalize_linkedin_value(v) or ""
 
 
 class UserPublic(BaseModel):

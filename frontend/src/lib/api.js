@@ -96,6 +96,9 @@ export const eventsApi = {
   update: (id, data) => api.put(`/api/events/${id}`, data),
   remove: (id) => api.del(`/api/events/${id}`),
   join: (code) => api.post(`/api/events/join/${code}`),
+  // Door path: no account, no email. Name required, LinkedIn optional; the
+  // server answers with a session cookie exactly like a login would.
+  guestJoin: (code, payload) => api.post(`/api/events/join/${code}/guest`, payload),
   attendees: (id) => api.get(`/api/events/${id}/attendees`),
   removeAttendee: (eventId, userId) =>
     api.del(`/api/events/${eventId}/attendees/${userId}`),

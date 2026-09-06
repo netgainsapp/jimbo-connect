@@ -1,6 +1,9 @@
 export function profileComplete(profile) {
+  // A card can be just a name and a LinkedIn link (the profile-as-pointer
+  // rule, 2026-09-05). Role and company enrich a card; they no longer gate
+  // joining a room.
   if (!profile) return false;
-  return Boolean(profile.name && profile.role && profile.company);
+  return Boolean(profile.name);
 }
 
 export function initials(name) {

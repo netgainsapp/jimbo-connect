@@ -47,7 +47,38 @@ host_email_templates = db["host_email_templates"]
 
 
 async def ensure_indexes():
-    await users.create_index("email", unique=True)
+    # Email stays unique for everyone WHO HAS one, but door guests are stored
+    # with no email key at all, and a plain unique index treats every missing
+    # value as the same null, so the second guest ever would be rejected. The
+    # partial filter scopes uniqueness to documents that actually carry an
+    # email. The legacy full index (email_1) is dropped once; Mongo refuses to
+    # hold both shapes for the same key pattern.
+    email_index = {
+        "keys": "email",
+        "unique": True,
+        "name": "email_unique_when_present",
+        "partialFilterExpression": {"email": {"$exists": True}},
+    }
+    try:
+        await users.create_index(
+            email_index["keys"],
+            unique=email_index["unique"],
+            name=email_index["name"],
+            partialFilterExpression=email_index["partialFilterExpression"],
+        )
+    except Exception:
+        # Almost certainly the legacy email_1 index. Replace it, then let a
+        # real failure surface on the retry instead of being swallowed here.
+        try:
+            await users.drop_index("email_1")
+        except Exception:
+            pass
+        await users.create_index(
+            email_index["keys"],
+            unique=email_index["unique"],
+            name=email_index["name"],
+            partialFilterExpression=email_index["partialFilterExpression"],
+        )
     await events.create_index("join_code", unique=True)
     # created_by is queried on nearly every host action (create/list/nurture).
     await events.create_index("created_by")

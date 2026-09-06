@@ -57,6 +57,11 @@ PUBLIC = {
     # to produce a document before the visitor has an account. Stateless and
     # rate limited per IP; see routers/agenda.py.
     ("POST", "/api/agenda/export"),
+    # Public by design: join-by-code never forces account creation. A door
+    # guest gives a name (LinkedIn optional), gets a credential-less guest
+    # user and the normal session cookie. Rate limited per IP; see
+    # routers/events.py join_event_as_guest.
+    ("POST", "/api/events/join/{code}/guest"),
     # Public by design: the marketing site's one pager lead form. Rate limited
     # per IP and per email, honeypot gated; see routers/public.py.
     ("POST", "/api/one-pager"),

@@ -84,7 +84,8 @@ async def admin_list_users(_: dict = Depends(get_current_admin)):
         out.append(
             {
                 "id": str(u["_id"]),
-                "email": u["email"],
+                # Door guests have no email at all.
+                "email": u.get("email", ""),
                 "profile": Profile(**(u.get("profile") or {})).model_dump(),
                 "event_count": len(event_ids),
                 "event_ids": event_ids,

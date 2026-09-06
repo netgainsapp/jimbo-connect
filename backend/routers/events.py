@@ -14,7 +14,12 @@ import email_send
 import invites
 import rate_limit
 import surveys
-from auth import get_current_user, get_current_admin
+from auth import (
+    get_current_user,
+    get_current_admin,
+    get_current_user_optional,
+    create_access_token,
+)
 import attendee_import
 from models import (
     AnnouncementCreateRequest,
@@ -22,6 +27,8 @@ from models import (
     EventAttendeeImportRequest,
     EventCreateRequest,
     EventUpdateRequest,
+    GuestJoinRequest,
+    Profile,
     RequestInviteRequest,
     InviteGuestsRequest,
     SurveyUpsertRequest,
@@ -33,6 +40,8 @@ from core import (
     assert_event_has_room,
     serialize_event,
     serialize_attendee,
+    serialize_user,
+    set_auth_cookie,
     FREE_EVENT_LIMIT,
     _can_manage_event,
     _thread_id,
@@ -543,11 +552,9 @@ async def leave_event(event_id: str, user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
-@router.post("/api/events/join/{code}")
-async def join_event(code: str, user: dict = Depends(get_current_user)):
-    e = await events.find_one({"join_code": code.upper()})
-    if not e:
-        raise HTTPException(status_code=404, detail="Invalid join code")
+async def _join_user_to_event(e: dict, user: dict) -> None:
+    """Membership insert shared by the signed-in and at-the-door join paths,
+    so the capacity check can never drift between them."""
     existing = await event_attendees.find_one(
         {"event_id": e["_id"], "user_id": user["_id"]}
     )
@@ -568,11 +575,69 @@ async def join_event(code: str, user: dict = Depends(get_current_user)):
                 "joined_at": datetime.now(timezone.utc),
             }
         )
-    # Stop any pending invite reminders for this guest on this event.
-    await invites.mark_joined(e["_id"], user.get("email", ""))
+    # Stop any pending invite reminders for this guest on this event. Door
+    # guests have no email, so there is nothing to mark for them.
+    if user.get("email"):
+        await invites.mark_joined(e["_id"], user["email"])
+
+
+@router.post("/api/events/join/{code}")
+async def join_event(code: str, user: dict = Depends(get_current_user)):
+    e = await events.find_one({"join_code": code.upper()})
+    if not e:
+        raise HTTPException(status_code=404, detail="Invalid join code")
+    await _join_user_to_event(e, user)
     count = await event_attendees.count_documents({"event_id": e["_id"]})
     host = await users.find_one({"_id": e["created_by"]}) if e.get("created_by") else None
     return serialize_event(e, count, host_branding=branding.public_branding(host) if host else None)
+
+
+@router.post("/api/events/join/{code}/guest")
+async def join_event_as_guest(
+    code: str,
+    payload: GuestJoinRequest,
+    response: Response,
+    request: Request,
+):
+    """Join with a code and a name. No email, no password, no account form.
+
+    Creates a credential-less guest user (no `email`, no `password_hash`) and
+    signs them in with the same session cookie a login would set, so the rest
+    of the app (directory, messages, saved contacts) works unchanged. If a
+    signed-in session already exists, that user is joined instead: hitting the
+    guest form while logged in must never mint a second identity.
+    """
+    rate_limit.guard(request, "guest_join", limit=20, window_seconds=3600)
+    e = await events.find_one({"join_code": code.upper()})
+    if not e:
+        raise HTTPException(status_code=404, detail="Invalid join code")
+    user = await get_current_user_optional(request)
+    if user is None:
+        doc = {
+            "is_admin": False,
+            "is_guest": True,
+            "created_at": datetime.now(timezone.utc),
+            "profile": Profile(
+                name=payload.name, linkedin=payload.linkedin or ""
+            ).model_dump(),
+            # Guests gave no address and never opted into anything; keep every
+            # mail path structurally off for them.
+            "nurture_enabled": False,
+            "email_verified": False,
+        }
+        result = await users.insert_one(doc)
+        doc["_id"] = result.inserted_id
+        user = doc
+        set_auth_cookie(response, create_access_token(str(result.inserted_id)))
+    await _join_user_to_event(e, user)
+    count = await event_attendees.count_documents({"event_id": e["_id"]})
+    host = await users.find_one({"_id": e["created_by"]}) if e.get("created_by") else None
+    return {
+        "user": serialize_user(user),
+        "event": serialize_event(
+            e, count, host_branding=branding.public_branding(host) if host else None
+        ),
+    }
 
 
 @router.post("/api/events/{event_id}/invite")
@@ -659,7 +724,7 @@ async def request_invite(
 
     note = (payload.message or "").strip()
     profile = user.get("profile") or {}
-    name = profile.get("name") or user["email"]
+    name = profile.get("name") or user.get("email") or "A guest"
     role_company = " · ".join(
         [s for s in [profile.get("role"), profile.get("company")] if s]
     )

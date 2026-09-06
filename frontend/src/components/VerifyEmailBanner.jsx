@@ -19,7 +19,17 @@ export default function VerifyEmailBanner() {
   const [error, setError] = useState("");
 
   // Admins are created server side and never go through the email flow.
-  if (!user || user.is_admin || user.email_verified || hidden) return null;
+  // Door guests have no email at all, so there is nothing to confirm and the
+  // banner would read "We sent a link to ." with a blank address.
+  if (
+    !user ||
+    user.is_admin ||
+    user.is_guest ||
+    !user.email ||
+    user.email_verified ||
+    hidden
+  )
+    return null;
 
   const dismiss = () => {
     sessionStorage.setItem("hideVerifyBanner", "1");

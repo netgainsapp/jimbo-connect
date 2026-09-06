@@ -63,8 +63,10 @@ export default function ProfileSetup({ editMode = false }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.role || !form.company) {
-      toast.show("Name, role, and company are required", "error");
+    // Profile-as-pointer: a name (ideally plus a LinkedIn link) is a complete
+    // card. Everything else enriches it but blocks nothing.
+    if (!form.name) {
+      toast.show("Your name is required", "error");
       return;
     }
     // The field formats as you type and caps at ten digits, so this is mostly
@@ -140,29 +142,43 @@ export default function ProfileSetup({ editMode = false }) {
             <input id="profile-name" className="input" value={form.name} onChange={setField("name")} required />
           </div>
           <div>
-            <label className="label" htmlFor="profile-role">Role / title *</label>
-            <input id="profile-role" className="input" value={form.role} onChange={setField("role")} required />
+            <label className="label" htmlFor="profile-linkedin">LinkedIn</label>
+            <input
+              id="profile-linkedin"
+              className="input"
+              value={form.linkedin}
+              onChange={setField("linkedin")}
+              placeholder="linkedin.com/in/you"
+              aria-describedby="profile-linkedin-hint"
+            />
+            <p id="profile-linkedin-hint" className="mt-1 text-xs text-text-muted">
+              The one link people need to reach you after the event.
+            </p>
           </div>
           <div>
-            <label className="label" htmlFor="profile-company">Company *</label>
+            <label className="label" htmlFor="profile-role">Role / title</label>
+            <input id="profile-role" className="input" value={form.role} onChange={setField("role")} />
+          </div>
+          <div>
+            <label className="label" htmlFor="profile-company">Company</label>
             <input
               id="profile-company"
               className="input"
               value={form.company}
               onChange={setField("company")}
-              required
             />
           </div>
-          <div>
-            <label className="label" htmlFor="profile-industry">Industry</label>
-            <input
-              id="profile-industry"
-              className="input"
-              value={form.industry}
-              onChange={setField("industry")}
-              placeholder="e.g. SaaS, CPG, Hardware"
-            />
-          </div>
+        </div>
+
+        <div>
+          <label className="label" htmlFor="profile-industry">Industry</label>
+          <input
+            id="profile-industry"
+            className="input"
+            value={form.industry}
+            onChange={setField("industry")}
+            placeholder="e.g. SaaS, CPG, Hardware"
+          />
         </div>
 
         <div>
@@ -218,16 +234,6 @@ export default function ProfileSetup({ editMode = false }) {
                 ? "10 digits, like 303-555-0100."
                 : PHONE_ERROR}
             </p>
-          </div>
-          <div>
-            <label className="label" htmlFor="profile-linkedin">LinkedIn</label>
-            <input
-              id="profile-linkedin"
-              className="input"
-              value={form.linkedin}
-              onChange={setField("linkedin")}
-              placeholder="linkedin.com/in/you"
-            />
           </div>
         </div>
 

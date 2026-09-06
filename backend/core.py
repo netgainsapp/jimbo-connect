@@ -126,7 +126,10 @@ def serialize_user(user: dict) -> dict:
     profile = user.get("profile") or {}
     return {
         "id": str(user["_id"]),
-        "email": user["email"],
+        # Guests joined at the door have no email at all; "" keeps every
+        # consumer that expects the key working without leaking anything.
+        "email": user.get("email", ""),
+        "is_guest": bool(user.get("is_guest")),
         "is_admin": bool(user.get("is_admin")),
         "email_verified": bool(user.get("email_verified")),
         "plan": user.get("plan") or "free",
@@ -155,7 +158,8 @@ def serialize_attendee(user: dict, *, include_email: bool = False) -> dict:
         "profile": Profile(**profile).model_dump(),
     }
     if include_email:
-        out["email"] = user["email"]
+        # Door guests have no email; hosts see an empty cell, not a crash.
+        out["email"] = user.get("email", "")
     return out
 
 
