@@ -1249,3 +1249,17 @@ copy: cohort F (15), G (21), H (20), verified 56 of 56 bodies converted, zero
 old paragraphs remain. Two notes: "any question" was normalized to "any
 questions", and the one-word "IntroConnect" in Scott's sentence was kept
 verbatim while the signature stays "Founder, Intro Connect".
+
+**2026-10-01 (Thu, 1:56 PM MDT), scheduled run BLIND, nothing measured or
+loaded.** Claude in Chrome was not connected (two attempts), so the /u/3
+mailbox could not be read: no Sent reconcile, no Drafts count, no reply or
+bounce mining, no drafts loaded. The Gmail connector is the sdwbouldah55
+account, not introconnectme, so it is no substitute. This tracker has no
+entry after 2026-09-06; whether any of the ~158 staged cold drafts or the
+Sep 8 to Sep 18 drips went out is UNKNOWN, so no drip clock advances and
+no touch 2/3 is computed until Sent is read. Sourcing skipped on purpose:
+with ~158 staged drafts of unknown status, the binding gap is measurement,
+not supply. Command Center push also skipped: /api/snapshot now redirects
+to the /unlock passcode page (HTTP 200 HTML), so the x-snapshot-secret
+header no longer gets through the gate; the route needs exempting from
+the passcode middleware before the runner can write the tile.
