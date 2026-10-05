@@ -1263,3 +1263,48 @@ not supply. Command Center push also skipped: /api/snapshot now redirects
 to the /unlock passcode page (HTTP 200 HTML), so the x-snapshot-secret
 header no longer gets through the gate; the route needs exempting from
 the passcode middleware before the runner can write the tile.
+
+**2026-10-05 (Mon, 9:05 AM MDT), scheduled run, MAILBOX MEASURED (Chrome
+connected). The Oct 1 unknown is now resolved.** Read from /u/3 directly:
+- **SENT since Sep 5: exactly 10, all Tue 2026-09-08 at 7:54 AM, all cohort I
+  wave-3 touch 1.** By subject: ILEA New York Metro, ILEA Napa-Sonoma, WIPA,
+  Pittsburgh Young Professionals, GET Phoenix, Columbus Young Professionals
+  Club, YPNG, Young Professionals of Minneapolis, NEFBA Young Professionals
+  Group, CREDA Greater Philadelphia. Nothing has been sent from this mailbox
+  in the 27 days since.
+- **Bounces on those 10: 0. Human replies: 0. Auto replies: 0.** Searched
+  in:anywhere (spam and trash included) after Sep 4; 42 messages, 38 are
+  iApplyAI digests and a vendor newsletter, 2 are Rally UP system mail.
+- **STILL SITTING: Drafts = 150**, all cohort I touch 1 new-thread composes
+  dated Sep 5 to 6. That is 148 unique leads plus the 2 junk drafts (duplicate
+  CREW Boston, blank no-subject) if Scott has not hand-deleted them; not
+  re-verified this run. Their drip clocks have NOT started.
+- **NO DRIP WENT OUT. Every planned in-thread touch is overdue and its clock is
+  held:** cohort B touch 3 (7) and Jess/Jaci/Sharla touch 2 (3), due Sep 8;
+  cohort C touch 3 (~19), D touch 3 (6), E touch 2 (6), due Sep 10 to 11;
+  cohorts F and G touch 2 (36), due Sep 11 to 14; the 10 Sep 8 sends, touch 2
+  due Tue Sep 15 and touch 3 due Tue Sep 22. None of these were ever loaded as
+  drafts. No thread advances a touch.
+- **OPEN HUMAN THREAD, Gabriel (1MC Dallas, gabriel@connectedcoworkingdallas.com):**
+  Wed Sep 9, 10:11 AM, "Hey Scott are you still able to chat? I am not seeing
+  the link". The last message from this mailbox in that thread is Sep 4 ("I
+  will send over a google invite"). No reply to his Sep 9 note exists in this
+  mailbox. Scott's conversation; logged as unanswered here unless he handled it
+  by phone or another address.
+- **Auto reply logged late:** mmullis@dallaschamber.org (Dallas Regional
+  Chamber, Young Professionals, cohort F/G send of Sep 4), out through Mon Sep
+  7, back Tue Sep 8. Row = auto_reply, long since back, so normal schedule.
+  Alternate named for immediate inquiries: Evelyn Solorzano,
+  esolorzano@dallaschamber.org. Logged only, do NOT pitch.
+- **Runner decisions this run (unattended):** (1) No sourcing. 148 vetted
+  drafts are unsent, so supply is not the gap; qualifiedRemaining = 148.
+  (2) No drip drafts loaded. About 87 in-thread touches are 3 to 4 weeks late
+  and the campaign has been idle since Sep 8; a "following up" a month late
+  and a "last email" touch 3 need Scott's call on whether to restart, reword,
+  or drop them, so nothing was written into those threads. (3) Ramp ceiling
+  resets to 40/day when sending resumes, because the mailbox has been cold for
+  four weeks; do not restart at 50.
+- **Command Center push still blocked:** GET /api/snapshot returns 307 to
+  /unlock even with the secret header. Tile not updated. Numbers that would
+  have been pushed: sentThisWeek 0, draftsWaiting 150, humanReplies +0 (one
+  unanswered inbound from Gabriel), bounces +0, qualifiedRemaining 148.
