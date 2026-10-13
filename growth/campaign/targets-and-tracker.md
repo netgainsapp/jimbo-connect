@@ -1308,3 +1308,17 @@ connected). The Oct 1 unknown is now resolved.** Read from /u/3 directly:
   /unlock even with the secret header. Tile not updated. Numbers that would
   have been pushed: sentThisWeek 0, draftsWaiting 150, humanReplies +0 (one
   unanswered inbound from Gabriel), bounces +0, qualifiedRemaining 148.
+
+**2026-10-13 (Tue, 3:24 PM MDT), scheduled run BLIND again, nothing measured
+or loaded.** Claude in Chrome not connected (three attempts), so /u/3 could not
+be read: no Sent reconcile since Oct 5, no Drafts count, no reply or bounce
+mining. Last measured state (Oct 5) stands: 10 sent total since Sep 5 (all Sep
+8), 150 drafts sitting, every drip clock held, Gabriel's Sep 9 note unanswered
+in this mailbox. Whether anything went out Oct 5 to Oct 13 is UNKNOWN; no clock
+advances until Sent is read. Runner decisions: (1) no sourcing, because 148
+vetted drafts remain unsent, so supply is not the gap; (2) no drip drafts,
+because the ~87 overdue in-thread touches still await Scott's restart/reword/
+drop call from Oct 5; (3) Command Center push skipped, GET /api/snapshot with
+the secret header still returns 307 to /unlock (checked 3:25 PM). Fix needed
+before the next run is useful: reconnect the Chrome extension on the machine
+whose Chrome holds the introconnectme /u/3 session.
