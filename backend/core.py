@@ -171,14 +171,14 @@ def host_block(user: dict | None) -> dict | None:
     }
 
 
-async def mark_activated(user_id) -> None:
-    """Stamp the first time this person signed in or joined an event. Set once:
-    the filter skips anyone already stamped, so the date never moves. Lives on
-    the user, not the membership, because an account someone has used is
-    theirs in every event, including ones a host imports them into later."""
+async def mark_activated(user_id, now: datetime | None = None) -> None:
+    """Stamp the first time this person signed in, claimed or joined an event.
+    Set once: the filter skips anyone already stamped, so the date never moves.
+    Lives on the user, not the membership, because an account someone has used
+    is theirs in every event, including ones a host imports them into later."""
     await users.update_one(
         {"_id": user_id, "activated_at": {"$exists": False}},
-        {"$set": {"activated_at": datetime.now(timezone.utc)}},
+        {"$set": {"activated_at": now or datetime.now(timezone.utc)}},
     )
 
 

@@ -121,6 +121,7 @@
  "POST /api/events/{event_id}/sponsors",
  "POST /api/events/{event_id}/sponsors/{sponsor_id}/refresh",
  "POST /api/events/{event_id}/survey/responses",
+ "POST /api/invites/remove/{token}",
  "POST /api/invites/tick",
  "POST /api/messages",
  "POST /api/news/tick",

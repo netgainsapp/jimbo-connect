@@ -97,7 +97,7 @@ class Db:
 def db(monkeypatch):
     d = Db()
     monkeypatch.setattr(event_leads_store, "event_leads", d.leads)
-    for module in (auth, event_leads_claim, event_leads_approve):
+    for module in (auth, core, event_leads_claim, event_leads_approve):
         monkeypatch.setattr(module, "users", d.users)
     monkeypatch.setattr(event_leads_claim, "events", d.events)
     monkeypatch.setattr(outreach, "notify_claimed", d.notify)

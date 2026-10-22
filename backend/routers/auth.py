@@ -119,13 +119,24 @@ async def logout(response: Response):
     return {"ok": True}
 
 
+async def _activate_session_user(user: dict) -> None:
+    """Accounts from before activation existed only ever come back through a
+    long lived cookie, never a fresh login. Stamping them on a session load
+    keeps them from reading as "not yet active" when a host imports them.
+    Skipped once stamped, so this is one write per account, not per request."""
+    if not user.get("activated_at"):
+        await mark_activated(user["_id"])
+
+
 @router.get("/api/auth/me")
 async def me(user: dict = Depends(get_current_user)):
+    await _activate_session_user(user)
     return serialize_user(user)
 
 
 @router.post("/api/auth/refresh")
 async def refresh(response: Response, user: dict = Depends(get_current_user)):
+    await _activate_session_user(user)
     token = create_access_token(str(user["_id"]))
     set_auth_cookie(response, token)
     return {"token": token}

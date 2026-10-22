@@ -215,13 +215,6 @@ async def _mark_event_claimed(event, now):
     )
 
 
-async def _mark_activated(user, now):
-    await users.update_one(
-        {"_id": user["_id"], "activated_at": {"$exists": False}},
-        {"$set": {"activated_at": now}},
-    )
-
-
 async def _mark_first_claim(lead, now):
     """True for the one completion that moved the lead to claimed."""
     return await store.update_lead_if(
@@ -240,6 +233,6 @@ async def complete(token, payload, session_user, now):
     elif not lead.get("host_user_id"):
         await _record_host(lead, host["_id"])  # repair a half finished attach
     await _mark_event_claimed(event, now)
-    await _mark_activated(host, now)
+    await core.mark_activated(host["_id"], now)
     first = await _mark_first_claim(lead, now)
     return Claimed(lead=lead, event=event, user=host, first=first)

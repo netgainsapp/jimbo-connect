@@ -149,6 +149,11 @@ async def apply_removal(event_id, email: str):
     return await events.find_one({"_id": event_id})
 
 
+async def removal_event(event_id):
+    """The event a remove link names, read only, for the confirm page."""
+    return await events.find_one({"_id": event_id})
+
+
 def _too_close_to_remind(event_date, now) -> bool:
     """Less than a Denver calendar day to go, or already past. A date Mongo
     hands back naive is UTC."""

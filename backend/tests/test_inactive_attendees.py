@@ -142,10 +142,11 @@ EVENT = {
 }
 
 
-def _wire_import(monkeypatch, *, invite_rows=(), user_rows=(), email_on=False):
+def _wire_import(monkeypatch, *, invite_rows=(), user_rows=(), link_rows=(),
+                 email_on=False):
     users = _Coll([{"_id": HOST, "plan": "pro", "profile": {"name": "Scott"}},
                    *user_rows])
-    links = _Coll()
+    links = _Coll(link_rows)
     invite_coll = _Coll(invite_rows)
     for module in (attendee_import, core):
         monkeypatch.setattr(module, "users", users)
@@ -175,6 +176,33 @@ def test_an_imported_guest_is_seated_as_not_yet_active(monkeypatch):
     assert membership["activated"] is False
     created = next(u for u in users.rows if u.get("email") == "new@acme.co")
     assert "activated_at" not in created
+
+
+def test_importing_someone_who_joined_an_event_themselves_seats_them_active(monkeypatch):
+    """An account from before activation existed has no activated_at, but a
+    membership no import made shows they came in on their own."""
+    veteran = ObjectId()
+    _, links, _ = _wire_import(
+        monkeypatch,
+        user_rows=[{"_id": veteran, "email": "veteran@acme.co", "profile": {}}],
+        link_rows=[{"event_id": E2, "user_id": veteran, "joined_at": 1}],
+    )
+    _import([_Row("veteran@acme.co")])
+    seat = next(r for r in links.rows if r["event_id"] == E1)
+    assert seat["activated"] is True
+
+
+def test_importing_someone_only_ever_imported_seats_them_inactive(monkeypatch):
+    stranger = ObjectId()
+    _, links, _ = _wire_import(
+        monkeypatch,
+        user_rows=[{"_id": stranger, "email": "stranger@acme.co", "profile": {}}],
+        link_rows=[{"event_id": E2, "user_id": stranger, "imported_at": 1,
+                    "activated": False}],
+    )
+    _import([_Row("stranger@acme.co")])
+    seat = next(r for r in links.rows if r["event_id"] == E1)
+    assert seat["activated"] is False
 
 
 def test_a_join_by_code_seats_an_active_member_and_activates_the_person(monkeypatch):
@@ -241,6 +269,40 @@ def test_magic_link_sign_in_sets_activated_at(monkeypatch):
     res = client.get(f"/api/auth/magic/{token}")
     assert res.status_code == 200
     assert isinstance(users.rows[0].get("activated_at"), datetime)
+
+
+def _wire_session(monkeypatch, user):
+    import auth
+
+    users = _Coll([user])
+    monkeypatch.setattr(auth, "users", users)
+    monkeypatch.setattr(core, "users", users)
+    client.cookies.set(auth.COOKIE_NAME, auth.create_access_token(str(user["_id"])))
+    return users
+
+
+def test_a_session_load_activates_an_account_from_before_activation(monkeypatch):
+    """Long lived accounts come back on a cookie, never a fresh login."""
+    users = _wire_session(monkeypatch, {"_id": ObjectId(), "email": "old@acme.co",
+                                        "profile": {}, "is_admin": False})
+    try:
+        assert client.get("/api/auth/me").status_code == 200
+        stamped = users.rows[0]["activated_at"]
+        assert isinstance(stamped, datetime)
+        client.get("/api/auth/me")
+        assert users.rows[0]["activated_at"] == stamped
+    finally:
+        client.cookies.clear()
+
+
+def test_a_session_refresh_activates_too(monkeypatch):
+    users = _wire_session(monkeypatch, {"_id": ObjectId(), "email": "r@acme.co",
+                                        "profile": {}, "is_admin": False})
+    try:
+        assert client.post("/api/auth/refresh").status_code == 200
+        assert isinstance(users.rows[0].get("activated_at"), datetime)
+    finally:
+        client.cookies.clear()
 
 
 def test_a_self_registered_user_is_active_from_the_start(monkeypatch):
@@ -447,10 +509,23 @@ def _wire_remove(monkeypatch):
     return links, invite_coll
 
 
-def test_the_remove_link_takes_the_guest_off_that_event_only(monkeypatch):
+def test_opening_the_remove_link_only_asks_and_writes_nothing(monkeypatch):
+    """Mail scanners open every link, so the GET must not remove anyone."""
     links, invite_coll = _wire_remove(monkeypatch)
     token = invites.make_remove_token(E1, "guest@acme.co")
     res = client.get(f"/api/invites/remove/{token}")
+    assert res.status_code == 200
+    assert "Remove yourself from Dinner's guest list?" in res.text
+    assert 'method="post"' in res.text
+    assert f'action="/api/invites/remove/{token}"' in res.text
+    assert "guest@acme.co" not in res.text
+    assert len(links.rows) == 2 and invite_coll.rows == []
+
+
+def test_confirming_takes_the_guest_off_that_event_only(monkeypatch):
+    links, invite_coll = _wire_remove(monkeypatch)
+    token = invites.make_remove_token(E1, "guest@acme.co")
+    res = client.post(f"/api/invites/remove/{token}")
     assert res.status_code == 200
     assert "You have been removed from Dinner's guest list." in res.text
     assert "guest@acme.co" not in res.text
@@ -462,9 +537,10 @@ def test_the_remove_link_takes_the_guest_off_that_event_only(monkeypatch):
 
 def test_a_bad_remove_link_is_a_plain_400(monkeypatch):
     links, invite_coll = _wire_remove(monkeypatch)
-    res = client.get("/api/invites/remove/not-a-token")
-    assert res.status_code == 400
-    assert "not valid" in res.text
+    for send in (client.get, client.post):
+        res = send("/api/invites/remove/not-a-token")
+        assert res.status_code == 400
+        assert "not valid" in res.text
     assert len(links.rows) == 2 and invite_coll.rows == []
 
 

@@ -43,6 +43,15 @@ def _random_password() -> str:
     return "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
 
 
+async def _has_joined_before(user_id) -> bool:
+    """True when this account holds a membership no import made, i.e. they
+    joined an event themselves. Covers people who predate `activated_at`."""
+    joined = await event_attendees.find_one(
+        {"user_id": user_id, "imported_at": {"$exists": False}}
+    )
+    return joined is not None
+
+
 async def import_rows(
     *,
     actor: dict,
@@ -107,9 +116,13 @@ async def import_rows(
             continue
         try:
             existing = await users.find_one({"email": email})
+            # An imported seat starts inactive unless this person already came
+            # in on their own somewhere (see _has_joined_before).
+            seat_active = False
             if existing:
                 skipped += 1
                 user_id = existing["_id"]
+                seat_active = await _has_joined_before(user_id)
             else:
                 temp_password = default_password or _random_password()
                 profile = {
@@ -223,7 +236,7 @@ async def import_rows(
                                 "imported_at": now,
                                 # Not yet active until they sign in once; see
                                 # core.is_active.
-                                "activated": False,
+                                "activated": seat_active,
                             }
                         )
                         added_to_event += 1
