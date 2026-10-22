@@ -16,6 +16,13 @@ GET previews (writes nothing, signs nobody in). POST completes:
    the caller to tell Signal Scout; the write is conditional, so two devices
    racing produce one notify.
 
+The host is the lead's host_user_id, else the event's created_by: a pending
+attach writes the event first and the lead second, so a crash between the two
+leaves an attached event that the next POST repairs onto the lead.
+
+Refusals carry a stable code in the detail ({code, message}) so the page can
+tell "log in first" from the other conflicts.
+
 The claim token is not consumed: it works until it expires.
 """
 from dataclasses import dataclass
@@ -40,6 +47,11 @@ SIGN_IN_FIRST = (
     "That email already has an account. Log in with it, then open this link again."
 )
 CLAIM_RACE = "This event was just claimed. Open the link again."
+ACCOUNT_EXISTS, PLAN_LIMIT, JUST_CLAIMED = "account_exists", "plan_limit", "just_claimed"
+
+
+def _conflict(code, message):
+    return HTTPException(status_code=409, detail={"code": code, "message": message})
 
 
 class DeadLink(Exception):
@@ -90,12 +102,20 @@ async def _load(token, now):
     event = await _by_id(events, lead.get("event_id"))
     if event is None:
         raise DeadLink("unknown")
+    host_id = lead.get("host_user_id") or event.get("created_by")
     host = None
-    if lead.get("host_user_id"):
-        host = await _by_id(users, lead["host_user_id"])
+    if host_id:
+        host = await _by_id(users, host_id)
         if host is None:
             raise DeadLink("unknown")
     return lead, event, host
+
+
+async def _record_host(lead, host_id):
+    """Write host_user_id onto a lead that does not have one yet."""
+    await store.update_lead_if(
+        lead["_id"], {"host_user_id": None}, {"host_user_id": str(host_id)}
+    )
 
 
 def _event_view(event):
@@ -140,21 +160,21 @@ async def _refuse_at_plan_limit(user, event):
         {"created_by": user["_id"], "_id": {"$ne": event["_id"]}}
     )
     if hosted >= limit:
-        raise HTTPException(status_code=409, detail=plan_limit_detail(user, limit))
+        raise _conflict(PLAN_LIMIT, plan_limit_detail(user, limit))
 
 
 async def _host_for_email(lead, email, name, session_user, now):
     user = await users.find_one({"email": email})
     if user is not None:
         if not session_user or session_user["_id"] != user["_id"]:
-            raise HTTPException(status_code=409, detail=SIGN_IN_FIRST)
+            raise _conflict(ACCOUNT_EXISTS, SIGN_IN_FIRST)
         return user, False
     contact_name = (lead.get("contact") or {}).get("name") or ""
     display = (name or "").strip() or contact_name or lead.get("organizer_name") or ""
     try:
         return await create_lead_host(email, display, now, email_verified=False), True
     except DuplicateKeyError:
-        raise HTTPException(status_code=409, detail=CLAIM_RACE) from None
+        raise _conflict(JUST_CLAIMED, CLAIM_RACE) from None
 
 
 async def _attach_pending_host(lead, event, payload, session_user, now):
@@ -169,8 +189,20 @@ async def _attach_pending_host(lead, event, payload, session_user, now):
         {"$set": {"created_by": user["_id"], "provenance.pending_host": False}},
     )
     if attached.matched_count == 0:
-        raise HTTPException(status_code=409, detail=CLAIM_RACE)
-    await store.update_lead(lead["_id"], {"host_user_id": str(user["_id"])})
+        return await _after_lost_attach(lead, event, user)
+    await _record_host(lead, user["_id"])
+    return user
+
+
+async def _after_lost_attach(lead, event, user):
+    """Someone attached the event first. Make sure the lead knows who, so the
+    next visit signs straight in, then carry on only if it was this user."""
+    current = await events.find_one({"_id": event["_id"]}) or {}
+    owner = current.get("created_by")
+    if owner:
+        await _record_host(lead, owner)
+    if owner != user["_id"]:
+        raise _conflict(JUST_CLAIMED, CLAIM_RACE)
     return user
 
 
@@ -194,7 +226,7 @@ async def _mark_first_claim(lead, now):
     """True for the one completion that moved the lead to claimed."""
     return await store.update_lead_if(
         lead["_id"],
-        {"status": {"$ne": "claimed"}},
+        {"funnel.claimed_at": {"$exists": False}, "status": {"$ne": "archived"}},
         {"status": "claimed", "funnel.claimed_at": now},
     )
 
@@ -205,6 +237,8 @@ async def complete(token, payload, session_user, now):
     lead, event, host = await _load(token, now)
     if host is None:
         host = await _attach_pending_host(lead, event, payload, session_user, now)
+    elif not lead.get("host_user_id"):
+        await _record_host(lead, host["_id"])  # repair a half finished attach
     await _mark_event_claimed(event, now)
     await _mark_activated(host, now)
     first = await _mark_first_claim(lead, now)

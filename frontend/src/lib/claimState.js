@@ -5,6 +5,12 @@
 
 const DEAD_LINK_STATUSES = new Set([404, 410]);
 const GENERIC_FAILURE = "Something went wrong. Please try again.";
+const INVALID_EMAIL = "Enter a valid email address.";
+const INVALID_STATUS = 422;
+// The 409 the server sends when the email belongs to an account that is not
+// the one signed in. The other 409 codes (plan_limit, just_claimed) get no
+// log in link, because logging in does not fix them.
+const ACCOUNT_EXISTS = "account_exists";
 // Deliberately loose: one @, something before it, a dot in the domain, no
 // spaces. The server's EmailStr is the real check.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,11 +28,19 @@ export function viewFor(response) {
   return { view: "dead" };
 }
 
-/** A failed claim call: 404 and 410 mean the link is dead, anything else is
- *  a message the host can act on (rate limit, an account to log in to). */
+/** A failed claim call: 404 and 410 mean the link is dead, 422 is a bad
+ *  email, anything else is a message the host can act on. `login` is true
+ *  only when logging in is the fix. */
 export function failureView(err) {
   if (DEAD_LINK_STATUSES.has(err?.status)) return { view: "dead" };
-  return { view: "error", message: err?.message || GENERIC_FAILURE };
+  if (err?.status === INVALID_STATUS) {
+    return { view: "error", message: INVALID_EMAIL, login: false };
+  }
+  return {
+    view: "error",
+    message: err?.message || GENERIC_FAILURE,
+    login: err?.code === ACCOUNT_EXISTS,
+  };
 }
 
 export function isValidEmail(value) {

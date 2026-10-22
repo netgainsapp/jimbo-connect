@@ -44,14 +44,29 @@ async function request(path, options = {}) {
       }
     }
     let detail = "Request failed";
+    let code;
     try {
       const data = await res.json();
-      detail = data.detail || JSON.stringify(data);
+      // detail is a string from most routes, {code, message} from routes
+      // whose page must tell refusals apart (the claim flow), or a Pydantic
+      // error list. new Error() on the last two would read "[object Object]".
+      const raw = data.detail;
+      if (typeof raw === "string" && raw) {
+        detail = raw;
+      } else if (raw && typeof raw.message === "string") {
+        detail = raw.message;
+        code = raw.code;
+      } else if (Array.isArray(raw)) {
+        detail = "Please check the form and try again.";
+      } else {
+        detail = JSON.stringify(data);
+      }
     } catch {
       detail = res.statusText;
     }
     const err = new Error(detail);
     err.status = res.status;
+    err.code = code;
     throw err;
   }
   if (res.status === 204) return null;

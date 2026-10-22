@@ -299,6 +299,18 @@ def test_two_racing_completions_notify_once(db):
     assert (first, second) == (True, False)
 
 
+def test_a_lead_archived_after_loading_is_not_marked_claimed(db):
+    _, _, lead_id = _hosted(db)
+    lead = asyncio.run(event_leads_store.get_lead(str(lead_id)))
+    db.leads.rows[lead_id]["status"] = "archived"
+
+    first = asyncio.run(event_leads_claim._mark_first_claim(lead, datetime.now(timezone.utc)))
+
+    assert first is False
+    assert db.leads.rows[lead_id]["status"] == "archived"
+    assert "claimed_at" not in db.leads.rows[lead_id]["funnel"]
+
+
 # ---------- POST: pending host ----------
 
 def test_a_pending_host_completion_creates_the_user_and_attaches_the_event(db):
@@ -355,6 +367,7 @@ def test_an_existing_account_email_needs_that_account_signed_in(db):
     resp = client.post(f"/api/claim/{TOKEN}", json={"email": HOST_EMAIL})
 
     assert resp.status_code == 409
+    assert resp.json()["detail"]["code"] == "account_exists"
     assert auth.COOKIE_NAME not in _set_cookie(resp)
     assert db.writes() == (0, 0, 0, 0, 0) and db.notify.calls == []
 
@@ -383,7 +396,8 @@ def test_an_existing_account_at_its_plan_limit_is_refused(db, monkeypatch):
     resp = client.post(f"/api/claim/{TOKEN}", json={"email": HOST_EMAIL})
 
     assert resp.status_code == 409
-    assert "Upgrade to host more" in resp.json()["detail"]
+    assert resp.json()["detail"]["code"] == "plan_limit"
+    assert "Upgrade to host more" in resp.json()["detail"]["message"]
     assert db.writes() == (0, 0, 0, 0, 0) and db.notify.calls == []
 
 
@@ -453,3 +467,62 @@ def test_notify_claimed_never_raises_and_never_logs_the_email(monkeypatch, capsy
 
     captured = capsys.readouterr()
     assert HOST_EMAIL not in captured.err and HOST_EMAIL not in captured.out
+
+
+# ---------- recovery from a half finished attach ----------
+
+def _half_attached(d):
+    """The event was attached to a new host, then the process died before
+    the lead learned the host's id."""
+    host_id = _host(d)
+    event_id, lead_id = _pending(d)
+    d.events.rows[event_id]["created_by"] = host_id
+    d.events.rows[event_id]["provenance"]["pending_host"] = False
+    return host_id, event_id, lead_id
+
+
+def test_a_half_attached_claim_previews_as_hosted_without_writing(db):
+    _half_attached(db)
+
+    body = client.get(f"/api/claim/{TOKEN}").json()
+
+    assert body["state"] == "ok" and body["host"] == {"name": "Jane Doe"}
+    assert db.writes() == (0, 0, 0, 0, 0)
+
+
+def test_the_next_post_after_a_half_attached_claim_recovers_and_signs_in(db):
+    host_id, event_id, lead_id = _half_attached(db)
+
+    resp = client.post(f"/api/claim/{TOKEN}", json={})
+
+    assert resp.status_code == 200
+    assert auth.decode_token(resp.json()["token"]) == str(host_id)
+    lead = db.leads.rows[lead_id]
+    assert lead["host_user_id"] == str(host_id)
+    assert lead["status"] == "claimed"
+    assert db.events.rows[event_id]["provenance"]["claimed_at"] is not None
+    assert len(db.notify.calls) == 1
+
+
+def test_a_lost_attach_race_records_the_winner_and_answers_just_claimed(db, monkeypatch):
+    """Another device attached the event between this POST's load and its
+    write: the lead learns the winner, and this device is told to reopen."""
+    winner_id = db.users.add(
+        email="winner@host.org", profile={"name": "Win"})
+    event_id, lead_id = _pending(db)
+    real_update = db.events.update_one
+
+    async def racing_update(q, update):
+        if q.get("created_by", "absent") is None:
+            db.events.rows[event_id]["created_by"] = winner_id
+        return await real_update(q, update)
+
+    monkeypatch.setattr(db.events, "update_one", racing_update)
+
+    resp = client.post(f"/api/claim/{TOKEN}", json={"email": "new@host.org"})
+
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["code"] == "just_claimed"
+    assert auth.COOKIE_NAME not in _set_cookie(resp)
+    assert db.leads.rows[lead_id]["host_user_id"] == str(winner_id)
+    assert db.notify.calls == []

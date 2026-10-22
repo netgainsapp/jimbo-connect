@@ -15,7 +15,6 @@ import {
 } from "../lib/claimState.js";
 
 const CONTACT_EMAIL = "hello@intro-connect.com";
-const ACCOUNT_EXISTS_STATUS = 409;
 
 function Shell({ children }) {
   return (
@@ -189,7 +188,7 @@ export default function Claim() {
         if (failed.view === "dead") {
           setView(failed);
         } else {
-          const loginNext = err?.status === ACCOUNT_EXISTS_STATUS ? `/claim/${token}` : null;
+          const loginNext = failed.login ? `/claim/${token}` : null;
           setFormError({ message: failed.message, loginNext });
           setView((v) => (v.view === "form" ? v : failed));
         }

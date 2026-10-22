@@ -82,3 +82,30 @@ test("after the attendee list the photo step shows only when there is no photo",
     "done",
   );
 });
+
+test("a 422 from the claim post asks for a valid email, never a raw error", () => {
+  const out = failureView({ status: 422, message: "[object Object]" });
+  assert.deepEqual(out, {
+    view: "error",
+    message: "Enter a valid email address.",
+    login: false,
+  });
+});
+
+test("only the account exists conflict offers a log in link", () => {
+  const exists = failureView({
+    status: 409,
+    code: "account_exists",
+    message: "That email already has an account.",
+  });
+  assert.equal(exists.login, true);
+  assert.equal(exists.message, "That email already has an account.");
+
+  const limit = failureView({ status: 409, code: "plan_limit", message: "Upgrade to host more." });
+  assert.equal(limit.login, false);
+  assert.equal(limit.message, "Upgrade to host more.");
+
+  const raced = failureView({ status: 409, code: "just_claimed", message: "Open the link again." });
+  assert.equal(raced.login, false);
+  assert.equal(failureView({ status: 429, message: "Slow down." }).login, false);
+});
