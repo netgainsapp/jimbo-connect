@@ -258,3 +258,38 @@ async def push_event_lead(lead: dict, claim_url: str, now: datetime = None) -> d
         print(f"[outreach] event lead push failed: {_redact(exc, email)}", file=sys.stderr)
         return {"ok": False, "error": f"Signal Scout unreachable ({type(exc).__name__})"}
     return _first_result(resp, email)
+
+
+# ---------- Claimed (the host claimed the event Approve built) ----------
+
+async def notify_claimed(lead: dict) -> dict:
+    """Tell Signal Scout the host claimed, so it stops the drip.
+
+    POSTs the claimed contract {prospect_id, lead_id, email}. Skipped when
+    Signal Scout is not configured or the lead was never imported (no
+    prospect_id, e.g. a LinkedIn-only lead). Never raises; logs never carry
+    the email."""
+    if not is_configured():
+        return {"ok": False, "skipped": "not_configured"}
+    prospect_id = (lead.get("signal_scout") or {}).get("prospect_id")
+    if not prospect_id:
+        return {"ok": False, "skipped": "no_prospect"}
+    import httpx
+
+    email = (lead.get("contact") or {}).get("email") or ""
+    payload = {"prospect_id": prospect_id, "lead_id": str(lead["_id"]), "email": email}
+    try:
+        async with httpx.AsyncClient(timeout=PUSH_TIMEOUT_SECONDS) as client:
+            resp = await client.post(
+                f"{SIGNAL_SCOUT_URL}/api/intro-connect/claimed",
+                headers={"Authorization": f"Bearer {SIGNAL_SCOUT_API_KEY}"},
+                json=payload,
+            )
+    except Exception as exc:  # network / DNS / timeout
+        print(f"[outreach] claimed notify failed: {_redact(exc, email)}", file=sys.stderr)
+        return {"ok": False, "error": f"Signal Scout unreachable ({type(exc).__name__})"}
+    if resp.status_code >= 300:
+        print(f"[outreach] claimed notify {resp.status_code}: {_redact(resp.text, email)}",
+              file=sys.stderr)
+        return {"ok": False, "error": f"Signal Scout returned HTTP {resp.status_code}"}
+    return {"ok": True}

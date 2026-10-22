@@ -65,6 +65,12 @@ PUBLIC = {
     # Public by design: the marketing site's one pager lead form. Rate limited
     # per IP and per email, honeypot gated; see routers/public.py.
     ("POST", "/api/one-pager"),
+    # Public by design: the claim link a prospect host opens before they have
+    # a session. The token is the credential (hash stored, expires); GET only
+    # previews and never names an email. Rate limited per IP; see
+    # routers/claim.py and event_leads_claim.py.
+    ("GET", "/api/claim/{token}"),
+    ("POST", "/api/claim/{token}"),
 }
 
 # Shared-secret gated (cron ticks, webhook): callable without a session but

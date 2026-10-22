@@ -26,6 +26,7 @@ import AdminAnalytics from "./pages/AdminAnalytics.jsx";
 import AdminSuppressions from "./pages/AdminSuppressions.jsx";
 import AdminOutreach from "./pages/AdminOutreach.jsx";
 import JoinEvent from "./pages/JoinEvent.jsx";
+import Claim from "./pages/Claim.jsx";
 import AgendaLandingRedirect from "./pages/AgendaLandingRedirect.jsx";
 import AgendaBuilder from "./pages/AgendaBuilder.jsx";
 import AgendaConvert from "./pages/AgendaConvert.jsx";
@@ -84,6 +85,9 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/join/:code" element={<JoinEvent />} />
+          {/* Public by design: a prospect host opens their claim link before
+              they have a session; the page signs them in. */}
+          <Route path="/claim/:token" element={<Claim />} />
 
           {/* Public by design: the Agenda Builder is a free acquisition tool,
               so it must work before the visitor has an account. Deliberately

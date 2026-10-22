@@ -128,9 +128,12 @@ async def _refuse_existing_host(user, lead_id):
         raise _conflict(EXISTING_HOST)
 
 
-async def _create_host(email, name, now):
+async def create_lead_host(email, name, now, email_verified=True):
     """A normal free host account with an unusable random password. The claim
-    link is how its owner gets in; nothing here emails them."""
+    link is how its owner gets in; nothing here emails them. Approve and the
+    claim flow both build hosts here so the shape lives in one place. Approve's
+    email came from sourcing; a claim's was typed on the claim page and nobody
+    has confirmed it, so the claim passes email_verified=False."""
     doc = {
         "email": email,
         "password_hash": await asyncio.to_thread(hash_password, secrets.token_urlsafe(32)),
@@ -140,7 +143,7 @@ async def _create_host(email, name, now):
         "plan": "free",
         "nurture_enabled": False,
         "host_origin": "event_lead",
-        "email_verified": True,
+        "email_verified": email_verified,
     }
     result = await users.insert_one(doc)
     return {**doc, "_id": result.inserted_id}
@@ -157,7 +160,7 @@ async def _resolve_host(lead, now):
         return user
     # Never an empty name: other users would otherwise see nothing (or, in
     # older code paths, the email) where the host's name belongs.
-    return await _create_host(email, name or lead.get("organizer_name") or "", now)
+    return await create_lead_host(email, name or lead.get("organizer_name") or "", now)
 
 
 # ---------- step 2: event ----------

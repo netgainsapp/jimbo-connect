@@ -53,6 +53,18 @@ router = APIRouter()
 
 # ---------- Events ----------
 
+def plan_limit_detail(user: dict, limit: int) -> str:
+    """The message a host at their event limit sees. The claim flow attaches
+    an existing event to a host and refuses with the same words."""
+    import billing
+
+    plan = billing.plan_of(user)
+    return (
+        f"Your {plan} plan includes {limit} "
+        f"event{'s' if limit != 1 else ''}. Upgrade to host more."
+    )
+
+
 async def create_event_for(
     user: Optional[dict], payload: EventCreateRequest, provenance: Optional[dict] = None
 ) -> dict:
@@ -78,14 +90,7 @@ async def create_event_for(
     if limit is not None:
         hosted = await events.count_documents({"created_by": user["_id"]})
         if hosted >= limit:
-            plan = billing.plan_of(user)
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    f"Your {plan} plan includes {limit} "
-                    f"event{'s' if limit != 1 else ''}. Upgrade to host more."
-                ),
-            )
+            raise HTTPException(status_code=403, detail=plan_limit_detail(user, limit))
     code = generate_join_code()
     while await events.find_one({"join_code": code}):
         code = generate_join_code()

@@ -81,6 +81,15 @@ export const authApi = {
   resendVerification: () => api.post("/api/auth/resend-verification"),
 };
 
+// The public claim link. GET answers 200 with a state for every link; the
+// POST answers 404 (unknown) or 410 (expired) for a dead one. Neither ever
+// answers 401, so request() never fires auth:expired here.
+export const claimApi = {
+  get: (token) => api.get(`/api/claim/${encodeURIComponent(token)}`),
+  complete: (token, body) =>
+    api.post(`/api/claim/${encodeURIComponent(token)}`, body),
+};
+
 export const profileApi = {
   get: () => api.get("/api/profile"),
   update: (data) => api.put("/api/profile", data),

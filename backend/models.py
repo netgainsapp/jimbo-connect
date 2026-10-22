@@ -151,6 +151,19 @@ class GuestJoinRequest(BaseModel):
         return _normalize_linkedin_value(v) or ""
 
 
+class ClaimCompleteRequest(BaseModel):
+    """POST /api/claim/{token}. A hosted lead posts nothing; a pending host
+    (LinkedIn-only lead) posts the email the account should live under."""
+
+    email: Optional[EmailStr] = None
+    name: Optional[str] = Field(default="", max_length=100)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _email_normalized(cls, v):
+        return v.strip().lower() if isinstance(v, str) else v
+
+
 class UserPublic(BaseModel):
     id: str
     email: str

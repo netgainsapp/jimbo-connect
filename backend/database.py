@@ -128,3 +128,5 @@ async def ensure_indexes():
     await news_article.create_index([("status", 1), ("published_at", -1)])
     await event_leads.create_index("organizer_key", unique=True)
     await event_leads.create_index([("status", 1), ("updated_at", -1)])
+    # The claim page looks a lead up by its token hash on every visit.
+    await event_leads.create_index("claim_token_hash", sparse=True)

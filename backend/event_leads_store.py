@@ -33,6 +33,16 @@ async def get_lead(lead_id):
     return await event_leads.find_one({"_id": oid})
 
 
+async def get_lead_by_claim_hash(token_hash):
+    """The live lead a claim link points at. An archived lead's link is dead,
+    so it is not found here."""
+    if not token_hash:
+        return None
+    return await event_leads.find_one(
+        {"claim_token_hash": token_hash, "status": {"$ne": "archived"}}
+    )
+
+
 async def list_leads(show_c):
     """All leads, tier C only when asked. Archived leads are not filtered here."""
     query = {} if show_c else {"score.tier": {"$ne": "C"}}
