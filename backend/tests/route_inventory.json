@@ -66,6 +66,7 @@
  "GET /api/my-hosted-events",
  "GET /api/profile",
  "GET /api/profile/{user_id}",
+ "GET /api/public/host-photo/{user_id}",
  "GET /api/unsubscribe",
  "GET /blog",
  "GET /blog/cover/{filename}",

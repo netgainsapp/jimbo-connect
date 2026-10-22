@@ -56,7 +56,11 @@ def normalize_emails(raw) -> list:
 
 
 def invite_subject(event_name: str) -> str:
-    return f"You are invited to {event_name}"
+    return f"{event_name}: you are invited"
+
+
+def reminder_subject(event_name: str) -> str:
+    return f"{event_name}: your host is waiting for you"
 
 
 def invite_heading(event_name: str) -> str:
@@ -212,7 +216,7 @@ async def run_invite_reminder_tick() -> dict:
         host = await users.find_one({"_id": e["created_by"]}) if e.get("created_by") else None
         result = await email_send.send_branded(
             to=inv["email"],
-            subject=invite_subject(e["name"]),
+            subject=reminder_subject(e["name"]),
             heading=invite_heading(e["name"]),
             paragraphs=reminder_paragraphs(e["name"], inv.get("host_name", "")),
             button={"label": "Join the event", "url": join_url},

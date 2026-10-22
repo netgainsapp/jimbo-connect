@@ -10,7 +10,7 @@ the CAN-SPAM unsubscribe footer + List-Unsubscribe headers."""
 import os
 import re
 import httpx
-from email.utils import parseaddr
+from email.utils import formataddr, parseaddr
 from typing import Optional
 
 import email_layout
@@ -38,10 +38,11 @@ def host_from_header(host: dict) -> str:
     """'Jane Doe via Intro Connect <hello@...>'. The host cannot sign our mail,
     so their name rides as the display name on our address. The name is typed
     by the host, so control characters and the characters that frame an address
-    are removed rather than trusted into a header."""
+    are removed, and formataddr quotes what remains when it needs it (a comma
+    in "Smith, Jane" would otherwise read as two addresses)."""
     name = _UNSAFE_NAME_CHARS.sub(" ", host.get("name") or "")
     name = " ".join(name.split())[:_MAX_DISPLAY_NAME] or "Your host"
-    return f"{name} via Intro Connect <{_from_address()}>"
+    return formataddr((f"{name} via Intro Connect", _from_address()))
 
 
 async def send_email(

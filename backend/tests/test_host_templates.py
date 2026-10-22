@@ -120,7 +120,7 @@ def test_list_never_includes_system_or_outreach_templates():
 
 def test_seed_default_when_nothing_is_stored():
     t = _run(host_templates.resolve("invitation", HOST))
-    assert "You're invited to {event_name}" == t["subject"]
+    assert "{event_name}: you're invited" == t["subject"]
 
 
 def test_admin_global_beats_seed(_stub):
@@ -195,7 +195,7 @@ def test_reset_returns_to_the_default():
     _run(host_templates.upsert(HOST, "invitation", "MINE", "MINE B"))
     _run(host_templates.reset(HOST, "invitation"))
     t = _run(host_templates.resolve("invitation", HOST))
-    assert t["subject"] == "You're invited to {event_name}"
+    assert t["subject"] == "{event_name}: you're invited"
     listed = {t["id"]: t for t in _run(host_templates.list_for(HOST))}
     assert listed["invitation"]["customized"] is False
 
@@ -228,7 +228,7 @@ def test_render_for_host_falls_back_to_default_without_an_override():
     out = _run(host_templates.render_for_host(
         "invitation", {"event_name": "Dinner"}, HOST
     ))
-    assert out["subject"] == "You're invited to Dinner"
+    assert out["subject"] == "Dinner: you're invited"
 
 
 def test_render_for_host_unknown_template_returns_none():

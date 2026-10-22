@@ -75,6 +75,16 @@ async def import_rows(
     if event_oid is not None and event_doc:
         attendee_limit, attendee_count = await attendee_room(event_doc)
 
+    # The invitation goes out as the event's host, not as whoever ran the
+    # import: an admin importing into a host's event must not send in the
+    # admin's name with replies to the admin. Override, brand and sender all
+    # come from this one user so they cannot disagree.
+    sender, sender_id = actor, actor["_id"]
+    if event_doc and event_doc.get("created_by"):
+        creator = await users.find_one({"_id": event_doc["created_by"]})
+        if creator:
+            sender, sender_id = creator, event_doc["created_by"]
+
     for row in rows:
         email = row.email.lower().strip()
         try:
@@ -118,10 +128,7 @@ async def import_rows(
                     accounts.append({"email": email, "password": temp_password})
 
                 if email_send.is_configured():
-                    actor_profile = actor.get("profile") or {}
-                    # Host aware: the invitation goes out in the acting
-                    # host's name, so their override applies. Admin imports
-                    # send the admin's own wording by the same rule.
+                    sender_profile = sender.get("profile") or {}
                     rendered = await host_templates.render_for_host(
                         "invitation",
                         {
@@ -135,10 +142,10 @@ async def import_rows(
                             "event_location": event_doc.get("location", "")
                             if event_doc
                             else "",
-                            "host_name": actor_profile.get("name") or "Jim",
+                            "host_name": sender_profile.get("name") or "Jim",
                             "site_url": APP_URL,
                         },
-                        host_id=actor["_id"],
+                        host_id=sender_id,
                     )
                     # The account exists whether or not the invitation lands,
                     # so the two outcomes are counted separately. Reporting
@@ -150,8 +157,8 @@ async def import_rows(
                             rendered=rendered,
                             button_label="Open your directory",
                             button_url=APP_URL,
-                            brand=branding.email_brand(actor),
-                            host=host_block(actor),
+                            brand=branding.email_brand(sender),
+                            host=host_block(sender),
                         )
                         if send_result.get("sent"):
                             emailed += 1

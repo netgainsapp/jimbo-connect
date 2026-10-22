@@ -139,6 +139,18 @@ def serialize_user(user: dict) -> dict:
 
 
 HOST_NAME_FALLBACK = "Your host"
+HOST_PHOTO_PATH = "/api/public/host-photo"
+
+
+def _email_photo_url(user: dict, photo: str) -> str:
+    """A headshot URL an email client can load. Uploads are stored as base64
+    data URLs, which Gmail and Outlook refuse to render, so those are served
+    from a public route instead. An https URL passes through unchanged."""
+    if photo.startswith("https://"):
+        return photo
+    if photo.startswith("data:image/") and user.get("_id") is not None:
+        return f"{suppression.API_PUBLIC_URL}{HOST_PHOTO_PATH}/{user['_id']}"
+    return ""
 
 
 def host_block(user: dict | None) -> dict | None:
@@ -155,7 +167,7 @@ def host_block(user: dict | None) -> dict | None:
     return {
         "name": (profile.get("name") or "").strip() or HOST_NAME_FALLBACK,
         "email": user.get("email", ""),
-        "photo_url": (profile.get("photo_url") or "").strip(),
+        "photo_url": _email_photo_url(user, (profile.get("photo_url") or "").strip()),
     }
 
 

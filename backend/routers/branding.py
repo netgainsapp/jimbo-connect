@@ -1,5 +1,7 @@
 """/api/branding* routes: self-serve host branding (Pro), public logo serving,
 and the admin kill switch. See docs/HOST-BRANDING-SPEC.md."""
+import base64
+import re
 from datetime import datetime, timezone
 
 from bson import Binary, ObjectId
@@ -129,6 +131,35 @@ async def serve_logo(user_id: str):
     return Response(
         content=bytes(logo),
         media_type="image/png",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+_PHOTO_DATA_RE = re.compile(r"^data:(image/(?:png|jpe?g));base64,(.+)$", re.DOTALL)
+
+
+@router.get("/api/public/host-photo/{user_id}")
+async def serve_host_photo(user_id: str):
+    """Public by design: email clients load host headshots anonymously. Uploads
+    live on the profile as base64 data URLs, which Gmail and Outlook will not
+    render, so this decodes one and serves the bytes. 404 when the user has no
+    data URL photo (an https photo is linked directly and never lands here)."""
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Not found")
+    host = await users.find_one({"_id": oid})
+    photo = ((host or {}).get("profile") or {}).get("photo_url") or ""
+    match = _PHOTO_DATA_RE.match(photo)
+    if not match:
+        raise HTTPException(status_code=404, detail="Not found")
+    try:
+        content = base64.b64decode(match.group(2), validate=True)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Not found")
+    return Response(
+        content=content,
+        media_type=match.group(1).replace("jpg", "jpeg"),
         headers={"Cache-Control": "public, max-age=3600"},
     )
 

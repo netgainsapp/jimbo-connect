@@ -6,8 +6,10 @@ sent without a host context renders exactly as it did before.
 Run from backend/: python -m pytest tests/test_host_sender.py
 """
 import asyncio
+import base64
 import hashlib
 import os
+from datetime import datetime, timezone
 
 os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
 os.environ.setdefault("DB_NAME", "test_host_sender")
@@ -239,8 +241,8 @@ def test_a_hostile_host_name_cannot_break_the_from_header(monkeypatch):
     _branded(host={**HOST, "name": 'Jane"\r\nBcc: spy@evil.test <x'})
     sender = posted[0]["from"]
     assert "\r" not in sender and "\n" not in sender
-    assert sender.endswith(" via Intro Connect <hello@intro-connect.com>")
-    assert sender.count("<") == 1 and '"' not in sender
+    assert sender.endswith(' via Intro Connect" <hello@intro-connect.com>')
+    assert sender.count("<") == 1 and sender.count('"') == 2
 
 
 # ---------- invites and reminders ----------
@@ -339,3 +341,156 @@ def test_reminder_for_a_deleted_host_falls_back_to_the_platform_layout(monkeypat
     sender = _reminder_world(monkeypatch, None)
     asyncio.run(invites.run_invite_reminder_tick())
     assert sender.calls[0]["host"] is None
+
+
+# ---------- headshots must be loadable by an email client ----------
+
+_PNG = b"fake-png-bytes"
+_DATA_URL = "data:image/png;base64," + base64.b64encode(_PNG).decode()
+
+
+def test_an_uploaded_photo_becomes_a_public_url():
+    user = {"_id": "64b000000000000000000001", "email": "j@x.co",
+            "profile": {"name": "Jane", "photo_url": _DATA_URL}}
+    url = core.host_block(user)["photo_url"]
+    assert url == f"{suppression.API_PUBLIC_URL}/api/public/host-photo/64b000000000000000000001"
+    assert "data:" not in url
+
+
+def test_an_https_photo_passes_through_unchanged():
+    user = {"_id": "u1", "email": "j@x.co",
+            "profile": {"name": "Jane", "photo_url": "https://cdn.test/jane.jpg"}}
+    assert core.host_block(user)["photo_url"] == "https://cdn.test/jane.jpg"
+
+
+def test_a_data_photo_without_an_id_is_dropped_rather_than_sent_inline():
+    user = {"email": "j@x.co", "profile": {"name": "Jane", "photo_url": _DATA_URL}}
+    assert core.host_block(user)["photo_url"] == ""
+
+
+def _photo_client(monkeypatch, photo):
+    from bson import ObjectId
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from routers import branding as branding_router
+
+    oid = ObjectId()
+
+    class _Users:
+        async def find_one(self, q):
+            return {"_id": oid, "profile": {"photo_url": photo}} if q["_id"] == oid else None
+
+    monkeypatch.setattr(branding_router, "users", _Users())
+    app = FastAPI()
+    app.include_router(branding_router.router)
+    return TestClient(app), oid
+
+
+def test_the_photo_route_serves_the_decoded_bytes(monkeypatch):
+    client, oid = _photo_client(monkeypatch, _DATA_URL)
+    r = client.get(f"/api/public/host-photo/{oid}")
+    assert r.status_code == 200
+    assert r.content == _PNG
+    assert r.headers["content-type"] == "image/png"
+    assert "max-age" in r.headers["cache-control"]
+
+
+def test_the_photo_route_404s_without_a_data_photo(monkeypatch):
+    for photo in ("", "https://cdn.test/jane.jpg", "data:image/png;base64,@@not-base64@@"):
+        client, oid = _photo_client(monkeypatch, photo)
+        assert client.get(f"/api/public/host-photo/{oid}").status_code == 404
+    assert client.get("/api/public/host-photo/not-an-id").status_code == 404
+
+
+# ---------- From header quoting ----------
+
+def test_a_comma_in_the_host_name_is_quoted_in_the_from_header(monkeypatch):
+    posted = _capture(monkeypatch)
+    _branded(host={**HOST, "name": "Smith, Jane"})
+    assert posted[0]["from"] == (
+        '"Smith, Jane via Intro Connect" <hello@intro-connect.com>'
+    )
+
+
+# ---------- subjects lead with the event name ----------
+
+def test_invite_and_reminder_subjects_lead_with_the_event_name():
+    assert invites.invite_subject("Denver Dinner") == "Denver Dinner: you are invited"
+    assert invites.reminder_subject("Denver Dinner").startswith("Denver Dinner: ")
+    for subject in (invites.invite_subject("E"), invites.reminder_subject("E")):
+        assert "—" not in subject and "–" not in subject and "-" not in subject
+
+
+def test_reminder_tick_uses_the_reminder_subject(monkeypatch):
+    sender = _reminder_world(monkeypatch, None)
+    asyncio.run(invites.run_invite_reminder_tick())
+    assert sender.calls[0]["subject"] == invites.reminder_subject("Dinner")
+
+
+def test_seeded_attendee_invitations_lead_with_the_event_name():
+    from template_seeds import DEFAULT_TEMPLATES
+
+    by_id = {t["template_id"]: t for t in DEFAULT_TEMPLATES}
+    for template_id in ("invitation", "save-the-date"):
+        assert by_id[template_id]["subject"].startswith("{event_name}:")
+
+
+# ---------- an admin import sends as the event's host ----------
+
+def test_an_admin_import_into_a_hosts_event_sends_as_that_host(monkeypatch):
+    import attendee_import
+
+    admin = {"_id": "admin-1", "email": "jim@ic.co", "profile": {"name": "Jim"}}
+    owner = {"_id": "host-9", "email": "jane@acme.co", "profile": {"name": "Jane Doe"}}
+    event = {"_id": "evt", "name": "Dinner", "created_by": "host-9",
+             "date": datetime(2026, 9, 1, tzinfo=timezone.utc), "location": "Denver"}
+    sent, rendered_for = [], []
+
+    class _Users:
+        async def find_one(self, q):
+            if "email" in q:
+                return None
+            return owner if q["_id"] == "host-9" else None
+
+        async def insert_one(self, doc):
+            class R:
+                inserted_id = "new"
+            return R()
+
+    class _Attendees:
+        async def find_one(self, _q):
+            return None
+
+        async def insert_one(self, doc):
+            pass
+
+        async def count_documents(self, _q):
+            return 0
+
+    async def _render(_name, _ctx, host_id=None):
+        rendered_for.append((host_id, _ctx["host_name"]))
+        return {"subject": "s", "body": "b"}
+
+    async def _send(*, to, **kw):
+        sent.append(kw)
+        return {"sent": True}
+
+    monkeypatch.setattr(attendee_import, "users", _Users())
+    monkeypatch.setattr(attendee_import, "event_attendees", _Attendees())
+    monkeypatch.setattr(core, "users", _Users())
+    monkeypatch.setattr(core, "event_attendees", _Attendees())
+    monkeypatch.setattr(attendee_import.email_send, "is_configured", lambda: True)
+    monkeypatch.setattr(attendee_import, "hash_password", lambda p: "h")
+    monkeypatch.setattr(attendee_import.host_templates, "render_for_host", _render)
+    monkeypatch.setattr(attendee_import.email_send, "send_template_branded", _send)
+
+    class _Row:
+        email, name = "a@x.co", "A"
+        role = company = industry = bio = looking_for = phone = linkedin = ""
+
+    asyncio.run(
+        attendee_import.import_rows(actor=admin, rows=[_Row()], event_doc=event, event_oid="evt")
+    )
+    assert sent[0]["host"]["name"] == "Jane Doe"
+    assert sent[0]["host"]["email"] == "jane@acme.co"
+    assert rendered_for == [("host-9", "Jane Doe")]

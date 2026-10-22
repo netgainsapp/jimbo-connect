@@ -40,7 +40,7 @@ DEFAULT_TEMPLATES = [
         "title": "Invitation (with login)",
         "blurb": "Sent automatically when Jim imports an attendee.",
         "system": True,
-        "subject": "You're invited to {event_name}",
+        "subject": "{event_name}: you're invited",
         "body": (
             "Hi {attendee_name},\n\n"
             "You're invited to {event_name} on {event_date} at {event_location}.\n\n"
@@ -61,7 +61,7 @@ DEFAULT_TEMPLATES = [
         "title": "Save the date",
         "blurb": "Pre-event invite that gets them to commit.",
         "system": False,
-        "subject": "You're invited: {event_name}",
+        "subject": "{event_name}: save the date",
         "body": (
             "Hi,\n\n"
             "I'm hosting {event_name} on {event_date} at {event_location}, and I'd "
