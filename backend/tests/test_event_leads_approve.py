@@ -49,6 +49,39 @@ def _set_dotted(row, fields):
             row[key] = value
 
 
+def _get(doc, dotted):
+    for part in dotted.split("."):
+        doc = doc.get(part) if isinstance(doc, dict) else None
+    return doc
+
+
+def _matches(doc, q):
+    """Enough of Mongo's filter language for these tests: equality on dotted
+    keys, $ne, $exists, $lt and a top level $or."""
+    for key, want in q.items():
+        if key == "$or":
+            if not any(_matches(doc, sub) for sub in want):
+                return False
+            continue
+        have = _get(doc, key)
+        if isinstance(want, dict) and want and all(k.startswith("$") for k in want):
+            for op, arg in want.items():
+                if op == "$ne" and have == arg:
+                    return False
+                if op == "$exists" and (have is not None) != arg:
+                    return False
+                if op == "$lt" and not (have is not None and have < arg):
+                    return False
+        elif have != want:
+            return False
+    return True
+
+
+class _UpdateResult:
+    def __init__(self, matched):
+        self.matched_count = matched
+
+
 class _Cursor:
     def __init__(self, rows):
         self.rows = rows
@@ -61,6 +94,8 @@ class _Leads:
     def __init__(self):
         self.rows = {}
         self.writes = 0
+        # A predicate on the update document: that one write raises instead.
+        self.fail_when = None
 
     def add(self, **fields):
         doc = {"_id": ObjectId(), **fields}
@@ -85,11 +120,17 @@ class _Leads:
         self.writes += 1
 
     async def update_one(self, q, update):
+        row = self.rows.get(q["_id"])
+        if row is None or not _matches(row, q):
+            return _UpdateResult(0)
+        if self.fail_when and self.fail_when(update):
+            self.fail_when = None
+            raise RuntimeError("injected crash")
         self.writes += 1
-        row = self.rows[q["_id"]]
         _set_dotted(row, update.get("$set", {}))
         for key in update.get("$unset", {}):
             row.pop(key, None)
+        return _UpdateResult(1)
 
 
 class _Runs:
@@ -124,12 +165,10 @@ class _Events:
         self.inserts = 0
 
     async def find_one(self, q):
-        return next((e for e in self.rows.values()
-                     if all(e.get(k) == v for k, v in q.items())), None)
+        return next((e for e in self.rows.values() if _matches(e, q)), None)
 
     async def count_documents(self, q):
-        return sum(1 for e in self.rows.values()
-                   if all(e.get(k) == v for k, v in q.items()))
+        return sum(1 for e in self.rows.values() if _matches(e, q))
 
     async def insert_one(self, doc):
         self.inserts += 1
@@ -206,14 +245,14 @@ def _contact(email="jane@host.org", linkedin_url=""):
             "website": "", "email_status": "verified"}
 
 
-def _lead_doc(key="meetup:denver-devs", score=94, contact=None, status="new"):
+def _lead_doc(key="meetup:denver-devs", score=94, contact=None, status="new", **extra):
     return {
         "organizer_key": key, "organizer_name": "Denver Devs", "city": "Denver",
         "anchor": _anchor(), "events": [_anchor()],
         "score": {"tier": "A", "score": score, "vertical": "tech"},
         "contact": contact if contact is not None else _contact(),
         "status": status, "signal_scout": {}, "linkedin": {"status": "none"},
-        "funnel": {"found_at": NOW},
+        "funnel": {"found_at": NOW}, **extra,
     }
 
 
@@ -222,7 +261,10 @@ def _approve(lead_id, actor="ingest"):
 
 
 def _snapshot(d):
-    return (d.users.inserts, d.events.inserts, d.leads.writes, len(d.push.calls))
+    """Everything Approve could change. The lead rows are compared whole, so
+    a lease that is taken and released again leaves no trace."""
+    rows = {k: dict(v) for k, v in d.leads.rows.items()}
+    return (d.users.inserts, d.events.inserts, rows, len(d.push.calls))
 
 
 # ---------- happy path ----------
@@ -274,6 +316,27 @@ def test_approve_creates_host_event_and_claim_then_pushes_once(db):
         "host_user_id": row["host_user_id"], "claim_url": row["claim_url"],
         "signal_scout": {"prospect_id": "p-1", "outcome": "imported", "error": None},
     }
+
+
+def test_an_empty_contact_name_names_the_host_after_the_organizer(db):
+    lead_id = db.leads.add(**_lead_doc(contact={**_contact(), "name": ""}))
+
+    body = _approve(lead_id)
+
+    host = db.users.rows[ObjectId(body["host_user_id"])]
+    assert host["profile"]["name"] == "Denver Devs"
+
+
+def test_a_naive_anchor_start_uses_the_anchor_timezone(db):
+    doc = _lead_doc()
+    doc["anchor"] = {**doc["anchor"], "start": "2026-11-04T18:00:00",
+                     "timezone": "America/New_York"}
+    lead_id = db.leads.add(**doc)
+
+    _approve(lead_id)
+
+    expires = db.leads.rows[lead_id]["claim_expires_at"]
+    assert expires == datetime(2026, 12, 4, 23, 0, tzinfo=timezone.utc)
 
 
 def test_free_user_without_events_is_reused_as_the_host(db):
@@ -418,8 +481,19 @@ def test_signal_scout_500_still_approves_and_records_the_error(db, monkeypatch):
     assert row["status"] == "approved"
     assert row["signal_scout"]["error"] and "prospect_id" not in row["signal_scout"]
     assert row["signal_scout"]["pushed_at"] is not None
+    assert "outcome" in row["signal_scout"]
     assert body["signal_scout"]["error"] == row["signal_scout"]["error"]
     assert ObjectId(row["event_id"]) in db.events.rows
+
+
+def test_a_rejected_import_keeps_signal_scouts_outcome(db):
+    db.push.result = {"ok": False, "outcome": "error", "error": "not imported"}
+    lead_id = db.leads.add(**_lead_doc())
+
+    body = _approve(lead_id)
+
+    assert db.leads.rows[lead_id]["signal_scout"]["outcome"] == "error"
+    assert body["signal_scout"]["outcome"] == "error"
 
 
 def test_retry_outreach_pushes_again_only_for_a_failed_push(db):
@@ -438,6 +512,16 @@ def test_retry_outreach_pushes_again_only_for_a_failed_push(db):
     assert client.post(f"{BASE}/{lead_id}/retry-outreach").status_code == 409
 
 
+def test_retry_outreach_while_another_run_holds_the_lease_is_409(db):
+    db.push.result = {"ok": False, "error": "HTTP 500"}
+    lead_id = db.leads.add(**_lead_doc())
+    _approve(lead_id)
+    db.leads.rows[lead_id]["approving_at"] = datetime.now(timezone.utc)
+
+    assert client.post(f"{BASE}/{lead_id}/retry-outreach").status_code == 409
+    assert len(db.push.calls) == 1
+
+
 def test_retry_outreach_on_a_lead_not_yet_approved_is_409(db):
     lead_id = db.leads.add(**_lead_doc())
 
@@ -451,12 +535,90 @@ def test_second_approve_returns_the_same_response_and_writes_nothing(db):
     lead_id = db.leads.add(**_lead_doc(
         contact=_contact(linkedin_url="https://linkedin.com/in/jane")))
     first = _approve(lead_id)
-    before = _snapshot(db)
+    before, writes = _snapshot(db), db.leads.writes
 
     second = _approve(lead_id)
 
     assert second == first
-    assert _snapshot(db) == before
+    assert _snapshot(db) == before and db.leads.writes == writes
+    assert "approving_at" not in db.leads.rows[lead_id]
+
+
+def _crash_on_event_write(db):
+    db.leads.fail_when = lambda update: "event_id" in update.get("$set", {})
+
+
+def test_a_crash_after_the_event_insert_resumes_with_the_same_event(db):
+    lead_id = db.leads.add(**_lead_doc())
+    _crash_on_event_write(db)
+
+    with pytest.raises(RuntimeError):
+        _approve(lead_id)
+    assert db.events.inserts == 1 and "event_id" not in db.leads.rows[lead_id]
+    assert "approving_at" not in db.leads.rows[lead_id]
+
+    body = _approve(lead_id)
+
+    assert db.events.inserts == 1 and db.users.inserts == 1
+    (event_id,) = db.events.rows
+    assert body["event_id"] == str(event_id) and body["status"] == "approved"
+    assert body["host_user_id"] == str(db.events.rows[event_id]["created_by"])
+
+
+def test_a_crashed_linkedin_only_approve_does_not_make_a_second_event(db):
+    lead_id = db.leads.add(**_lead_doc(
+        contact=_contact(email="", linkedin_url="https://linkedin.com/in/jane")))
+    _crash_on_event_write(db)
+    with pytest.raises(RuntimeError):
+        _approve(lead_id)
+
+    body = _approve(lead_id)
+
+    assert db.events.inserts == 1 and body["host_user_id"] is None
+
+
+def test_approve_while_another_approve_holds_the_lease_is_409(db):
+    lead_id = db.leads.add(**_lead_doc(approving_at=NOW - timedelta(minutes=1)))
+    before, writes = _snapshot(db), db.leads.writes
+
+    with pytest.raises(HTTPException) as err:
+        _approve(lead_id)
+
+    assert err.value.status_code == 409
+    assert err.value.detail == "Approve is already running for this lead"
+    assert _snapshot(db) == before and db.leads.writes == writes
+
+
+def test_a_lease_older_than_five_minutes_is_taken_over(db):
+    lead_id = db.leads.add(**_lead_doc(approving_at=NOW - timedelta(minutes=6)))
+
+    assert _approve(lead_id)["status"] == "approved"
+    assert "approving_at" not in db.leads.rows[lead_id]
+
+
+def test_the_claim_write_never_replaces_a_stored_hash(db):
+    lead_id = db.leads.add(**_lead_doc(
+        claim_token_hash="stored-hash", claim_url="https://app.test/claim/stored"))
+    stale = {k: v for k, v in db.leads.rows[lead_id].items()
+             if k not in ("claim_token_hash", "claim_url")}
+
+    out = asyncio.run(approve_mod._mint_claim(stale))
+
+    assert db.leads.rows[lead_id]["claim_token_hash"] == "stored-hash"
+    assert out["claim_url"] == "https://app.test/claim/stored"
+
+
+def test_only_events_from_other_leads_make_a_user_an_existing_host(db):
+    uid = ObjectId()
+    user = {"_id": uid, "email": "jane@host.org", "plan": "free"}
+    own = {"created_by": uid, "provenance": {"event_lead_id": "lead-1"}}
+    db.events.rows[ObjectId()] = own
+
+    asyncio.run(approve_mod._refuse_existing_host(user, "lead-1"))
+
+    with pytest.raises(HTTPException) as err:
+        asyncio.run(approve_mod._refuse_existing_host(user, "lead-2"))
+    assert err.value.status_code == 409
 
 
 def test_second_approve_after_a_failed_push_does_not_push_again(db):

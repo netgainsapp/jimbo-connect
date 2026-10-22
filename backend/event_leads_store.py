@@ -3,7 +3,7 @@
 Collections are imported by name so tests can monkeypatch the module
 attributes. Rules live in event_leads_rules; nothing here decides anything.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -46,6 +46,35 @@ async def update_lead(oid, fields, unset=()):
     if unset:
         update["$unset"] = {key: "" for key in unset}
     await event_leads.update_one({"_id": oid}, update)
+
+
+async def update_lead_if(oid, condition, fields):
+    """Set `fields` on one lead only while `condition` still holds. Returns
+    whether it matched, so a caller that lost a race can re-read instead."""
+    update = {"$set": {**fields, "updated_at": datetime.now(timezone.utc)}}
+    result = await event_leads.update_one({"_id": oid, **condition}, update)
+    return result.matched_count > 0
+
+
+async def take_approve_lease(oid, now, ttl):
+    """Mark one lead as being approved. Wins when no Approve holds it or the
+    holder's lease is older than `ttl` (it crashed). Bookkeeping only, so it
+    does not bump `updated_at`."""
+    free = {"$or": [
+        {"approving_at": {"$exists": False}},
+        {"approving_at": {"$lt": now - ttl}},
+    ]}
+    result = await event_leads.update_one(
+        {"_id": oid, **free}, {"$set": {"approving_at": now}}
+    )
+    return result.matched_count > 0
+
+
+async def release_approve_lease(oid, held_at):
+    """Drop the lease taken at `held_at`, never one a later Approve took over."""
+    await event_leads.update_one(
+        {"_id": oid, "approving_at": held_at}, {"$unset": {"approving_at": ""}}
+    )
 
 
 async def record_run(run):

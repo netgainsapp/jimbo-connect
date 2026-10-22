@@ -108,6 +108,28 @@ async def create_event_for(
     return serialize_event(doc, 0)
 
 
+def is_unclaimed_lead_event(event: dict) -> bool:
+    """True for an event Approve built for an event lead whose host has not
+    claimed it yet. Such an event belongs to a prospect who never signed up,
+    so it must stay out of every cross-user listing (discover today). The
+    claim flow (Task 5) sets provenance.claimed_at, which makes it public."""
+    provenance = event.get("provenance") or {}
+    return bool(provenance.get("event_lead_id")) and not provenance.get("claimed_at")
+
+
+def _host_display_name(host) -> str:
+    """The host's name for other users. Falls back to the email only for a
+    host who signed up themselves; an event lead host never agreed to have
+    their address shown, so they get no fallback."""
+    host = host or {}
+    name = (host.get("profile") or {}).get("name")
+    if name:
+        return name
+    if host.get("host_origin") == "event_lead":
+        return ""
+    return host.get("email", "") or ""
+
+
 @router.post("/api/events")
 async def create_event(
     payload: EventCreateRequest, user: dict = Depends(get_current_user)
@@ -159,7 +181,7 @@ async def discoverable_events(user: dict = Depends(get_current_user)):
     candidates = [
         e
         for e in await events.find({"date": {"$gte": now}}).sort("date", 1).to_list(None)
-        if e["_id"] not in joined_ids
+        if e["_id"] not in joined_ids and not is_unclaimed_lead_event(e)
     ]
     event_ids = [e["_id"] for e in candidates]
     counts: dict = {}
@@ -179,7 +201,6 @@ async def discoverable_events(user: dict = Depends(get_current_user)):
     out = []
     for e in candidates:
         host = hosts.get(e.get("created_by"))
-        host_profile = (host or {}).get("profile") or {}
         out.append(
             {
                 "id": str(e["_id"]),
@@ -188,9 +209,7 @@ async def discoverable_events(user: dict = Depends(get_current_user)):
                 "location": e.get("location", ""),
                 "industry_tags": e.get("industry_tags", []),
                 "attendee_count": counts.get(e["_id"], 0),
-                "host_name": host_profile.get("name")
-                or (host or {}).get("email", "")
-                or "",
+                "host_name": _host_display_name(host),
             }
         )
     return out

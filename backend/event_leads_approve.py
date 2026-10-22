@@ -14,10 +14,18 @@ crash part way through) reports what exists and changes nothing:
 6. status approved.
 
 Every lead write is a `$set` of named keys on `event_leads._id`.
+
+Races: an Approve that has work to do first takes a lease on the lead
+(`approving_at`), so a double click or an admin click during auto-approve gets
+a 409 instead of a second run. The event is found again by
+`provenance.event_lead_id` (unique index) and the claim hash is written only
+where none exists, so even a crash between steps resumes onto the same event
+and the same claim link.
 """
 import asyncio
 import secrets
 from datetime import timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException
 from pydantic import ValidationError
@@ -34,6 +42,8 @@ from models import EventCreateRequest, Profile
 from routers.events import create_event_for
 
 CLAIM_VALID_DAYS = 30
+# An Approve lease older than this belongs to a run that crashed.
+APPROVE_LEASE_TTL = timedelta(minutes=5)
 NAME_MAX_CHARS = 200
 LOCATION_MAX_CHARS = 200
 DESCRIPTION_MAX_CHARS = 5000
@@ -47,6 +57,7 @@ EXISTING_HOST = "This contact already hosts on Intro Connect. Reach out to them 
 UNREACHABLE = "This lead has no email or LinkedIn to reach."
 BAD_ANCHOR = "The anchor event needs a title and a start date before it can be approved."
 NOT_RETRYABLE = "Only an approved lead whose Signal Scout push failed can be retried."
+LEASE_HELD = "Approve is already running for this lead"
 
 
 def _conflict(message):
@@ -106,8 +117,13 @@ def _event_payload(lead):
 
 # ---------- step 1: host account ----------
 
-async def _refuse_existing_host(user):
-    hosts = await events.count_documents({"created_by": user["_id"]}) > 0
+async def _refuse_existing_host(user, lead_id):
+    """409 for a real customer. The event this same lead's Approve made does
+    not count, so a resume after a crash is not refused by its own work."""
+    hosts = await events.count_documents({
+        "created_by": user["_id"],
+        "provenance.event_lead_id": {"$ne": lead_id},
+    }) > 0
     if hosts or billing.plan_of(user) != "free" or user.get("is_admin"):
         raise _conflict(EXISTING_HOST)
 
@@ -137,12 +153,28 @@ async def _resolve_host(lead, now):
         return None
     user = await users.find_one({"email": email})
     if user:
-        await _refuse_existing_host(user)
+        await _refuse_existing_host(user, str(lead["_id"]))
         return user
-    return await _create_host(email, name, now)
+    # Never an empty name: other users would otherwise see nothing (or, in
+    # older code paths, the email) where the host's name belongs.
+    return await _create_host(email, name or lead.get("organizer_name") or "", now)
 
 
 # ---------- step 2: event ----------
+
+async def _adopt_existing_event(lead):
+    """Record an event an earlier, interrupted Approve already created."""
+    event = await events.find_one({"provenance.event_lead_id": str(lead["_id"])})
+    if event is None:
+        return None
+    host_id = event.get("created_by")
+    fields = {
+        "event_id": str(event["_id"]),
+        "host_user_id": str(host_id) if host_id else None,
+    }
+    await store.update_lead(lead["_id"], fields)
+    return _with(lead, fields)
+
 
 async def _create_event(lead, host, payload):
     anchor = lead.get("anchor") or {}
@@ -168,14 +200,25 @@ async def _create_event(lead, host, payload):
 
 # ---------- step 3: claim token ----------
 
+def _anchor_zone(lead):
+    """The anchor's own timezone for a naive start, Denver when it has none."""
+    try:
+        return ZoneInfo((lead.get("anchor") or {}).get("timezone") or "")
+    except (ZoneInfoNotFoundError, ValueError):
+        return rules.DENVER
+
+
 def _claim_expiry(lead):
     start = _event_payload(lead).date
     if start.tzinfo is None:
-        start = start.replace(tzinfo=rules.DENVER)
+        start = start.replace(tzinfo=_anchor_zone(lead))
     return (start + timedelta(days=CLAIM_VALID_DAYS)).astimezone(timezone.utc)
 
 
 async def _mint_claim(lead):
+    """Mint the claim once. The write only lands where no hash exists, so a
+    racing or resumed Approve can never replace a link already handed out;
+    the loser re-reads and uses the stored one."""
     if lead.get("claim_token_hash"):
         return lead
     token = core._new_reset_token()
@@ -184,8 +227,10 @@ async def _mint_claim(lead):
         "claim_expires_at": _claim_expiry(lead),
         "claim_url": f"{APP_URL}/claim/{token}",
     }
-    await store.update_lead(lead["_id"], fields)
-    return _with(lead, fields)
+    unclaimed = {"claim_token_hash": {"$exists": False}}
+    if await store.update_lead_if(lead["_id"], unclaimed, fields):
+        return _with(lead, fields)
+    return await _load(str(lead["_id"]))
 
 
 # ---------- step 4: Signal Scout ----------
@@ -199,8 +244,11 @@ async def _push(lead, now):
             "pushed_at": now,
         }
     else:
-        error = result.get("error") or "Signal Scout push failed"
-        signal_scout = {"error": error, "pushed_at": now}
+        signal_scout = {
+            "error": result.get("error") or "Signal Scout push failed",
+            "outcome": result.get("outcome"),
+            "pushed_at": now,
+        }
     fields = {"signal_scout": signal_scout}
     await store.update_lead(lead["_id"], fields)
     return _with(lead, fields)
@@ -259,17 +307,49 @@ def _response(lead):
     }
 
 
+def _needs_work(lead, actor, now):
+    """Would any step write? A finished lead is answered without a lease, so a
+    second Approve writes nothing at all."""
+    email, _, _ = _contact(lead)
+    return bool(
+        not lead.get("event_id")
+        or not lead.get("claim_token_hash")
+        or (email and not (lead.get("signal_scout") or {}).get("pushed_at"))
+        or _linkedin_fields(lead, now)
+        or _approval_fields(lead, actor, now)
+    )
+
+
+async def _run_steps(lead, actor, now):
+    if not lead.get("event_id"):
+        adopted = await _adopt_existing_event(lead)
+        if adopted is not None:
+            lead = adopted
+        else:
+            payload = _event_payload(lead)
+            host = await _resolve_host(lead, now)
+            lead = await _create_event(lead, host, payload)
+    lead = await _mint_claim(lead)
+    lead = await _push_once(lead, now)
+    return await _finish(lead, actor, now)
+
+
 async def approve(lead_id, actor, now):
     """Approve one lead. `actor` is the admin user dict or "ingest"."""
     lead = await _load(lead_id)
     _refuse(lead)
+    if not _needs_work(lead, actor, now):
+        return _response(lead)
     if not lead.get("event_id"):
-        payload = _event_payload(lead)
-        host = await _resolve_host(lead, now)
-        lead = await _create_event(lead, host, payload)
-    lead = await _mint_claim(lead)
-    lead = await _push_once(lead, now)
-    lead = await _finish(lead, actor, now)
+        _event_payload(lead)  # a bad anchor is refused before the lease
+    if not await store.take_approve_lease(lead["_id"], now, APPROVE_LEASE_TTL):
+        raise _conflict(LEASE_HELD)
+    try:
+        lead = await _load(lead_id)  # the state as of winning the lease
+        _refuse(lead)
+        lead = await _run_steps(lead, actor, now)
+    finally:
+        await store.release_approve_lease(lead["_id"], now)
     return _response(lead)
 
 
@@ -280,4 +360,10 @@ async def retry_outreach(lead_id, now):
     prospect_id = (lead.get("signal_scout") or {}).get("prospect_id")
     if lead.get("status") != "approved" or not email or prospect_id:
         raise _conflict(NOT_RETRYABLE)
-    return _response(await _push(lead, now))
+    if not await store.take_approve_lease(lead["_id"], now, APPROVE_LEASE_TTL):
+        raise _conflict(LEASE_HELD)
+    try:
+        lead = await _push(lead, now)
+    finally:
+        await store.release_approve_lease(lead["_id"], now)
+    return _response(lead)

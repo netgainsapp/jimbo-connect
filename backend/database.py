@@ -84,6 +84,14 @@ async def ensure_indexes():
             partialFilterExpression=email_index["partialFilterExpression"],
         )
     await events.create_index("join_code", unique=True)
+    # One event per event lead: a crashed or doubled Approve can never make a
+    # second one. Partial, because ordinary events carry no provenance.
+    await events.create_index(
+        "provenance.event_lead_id",
+        unique=True,
+        name="event_lead_id_unique_when_present",
+        partialFilterExpression={"provenance.event_lead_id": {"$exists": True}},
+    )
     # created_by is queried on nearly every host action (create/list/nurture).
     await events.create_index("created_by")
     await event_attendees.create_index([("event_id", 1), ("user_id", 1)], unique=True)
