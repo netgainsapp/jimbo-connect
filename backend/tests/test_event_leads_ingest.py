@@ -97,12 +97,20 @@ class _Events:
         return 1 if q.get("created_by") in self.hosts else 0
 
 
+class _NoFlags:
+    """app_flags with no auto-approve threshold: auto-approve is off."""
+
+    async def find_one(self, q):
+        return None
+
+
 @pytest.fixture
 def db(monkeypatch):
     monkeypatch.setenv("EVENT_LEADS_INGEST_KEY", KEY)
     leads, runs = _Leads(), _Runs()
     monkeypatch.setattr(event_leads_store, "event_leads", leads)
     monkeypatch.setattr(event_leads_store, "event_lead_runs", runs)
+    monkeypatch.setattr(event_leads_store, "app_flags", _NoFlags())
     monkeypatch.setattr(route, "users", _Users({}))
     monkeypatch.setattr(route, "events", _Events())
     return leads, runs
@@ -138,7 +146,7 @@ def test_counts_and_one_run_record(db):
     assert resp.status_code == 200
     assert resp.json() == {
         "ok": True, "inserted": 2, "updated": 0, "unchanged": 0,
-        "existing_customer": 0,
+        "existing_customer": 0, "auto_approved": 0,
     }
     assert set(leads.rows) == {"a:one", "a:two"}
     assert len(runs.rows) == 1

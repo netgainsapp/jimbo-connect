@@ -1,14 +1,17 @@
-"""Event lead engine routes: the ingest door and the admin list, detail,
-archive and edit routes. Approve and claim build on the same store and rules."""
+"""Event lead engine routes: the ingest door (with auto-approve), the admin
+list, detail, archive and edit routes, Approve, and the engine settings.
+Approve itself lives in event_leads_approve; these routes stay thin."""
 import hmac
 import os
+import sys
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Annotated, Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+import event_leads_approve as approver
 import event_leads_copy as copy
 import event_leads_rules as rules
 import sales_templates
@@ -63,7 +66,7 @@ async def _matching_user(email):
 
 
 async def _ingest_one(incoming, now):
-    """Merge and store one lead. Returns (outcome, resulting status)."""
+    """Merge and store one lead. Returns (outcome, the stored document)."""
     email = ((incoming.get("contact") or {}).get("email") or "").strip().lower()
     existing = await store.get_by_organizer_key(incoming["organizer_key"])
     user = await _matching_user(email)
@@ -76,21 +79,88 @@ async def _ingest_one(incoming, now):
         outcome = "updated"
     if outcome != "unchanged":
         await store.upsert_lead(merged)
-    return outcome, merged["status"]
+    return outcome, merged
+
+
+def _auto_approvable(outcome, doc, min_score):
+    """A lead this request inserted, still new, with an email, scoring high enough."""
+    score = (doc.get("score") or {}).get("score")
+    return (
+        outcome == "inserted"
+        and doc.get("status") == "new"
+        and bool((doc.get("contact") or {}).get("email"))
+        and isinstance(score, (int, float)) and not isinstance(score, bool)
+        and score >= min_score
+    )
+
+
+async def _auto_approve(organizer_key, now):
+    """Approve one freshly ingested lead. Never raises: a failure is recorded
+    on the lead as `auto_approve_error` and logged without the contact."""
+    doc = None
+    try:
+        doc = await store.get_by_organizer_key(organizer_key)
+        await approver.approve(str(doc["_id"]), "ingest", now)
+        return True
+    except Exception as exc:  # recorded below, never raised into the ingest reply
+        reason = exc.detail if isinstance(exc, HTTPException) else type(exc).__name__
+        print(f"[event_leads] auto-approve failed for {organizer_key}: {reason}",
+              file=sys.stderr)
+    if doc is None:
+        return False
+    try:
+        await store.update_lead(doc["_id"], {"auto_approve_error": str(reason)})
+    except Exception as record_exc:  # the ingest reply must still go out
+        print(f"[event_leads] could not record auto-approve error: "
+              f"{type(record_exc).__name__}", file=sys.stderr)
+    return False
+
+
+async def _run_auto_approve(candidates, now):
+    min_score = await store.get_auto_approve_min_score()
+    if min_score is None:
+        return 0
+    keys = [doc["organizer_key"] for outcome, doc in candidates
+            if _auto_approvable(outcome, doc, min_score)]
+    return sum([await _auto_approve(key, now) for key in keys])
 
 
 @router.post("/api/admin/event-leads/ingest", dependencies=[Depends(require_ingest_key)])
 async def ingest_event_leads(body: IngestRequest):
     now = datetime.now(timezone.utc)
     counts = {"inserted": 0, "updated": 0, "unchanged": 0, "existing_customer": 0}
+    stored = []
     for lead in body.leads:
-        outcome, status = await _ingest_one(lead.model_dump(), now)
+        outcome, doc = await _ingest_one(lead.model_dump(), now)
+        stored.append((outcome, doc))
         counts[outcome] += 1
-        if status == "existing_customer":
+        if doc["status"] == "existing_customer":
             counts["existing_customer"] += 1
     if body.run is not None:
         await store.record_run(body.run)
-    return {"ok": True, **counts}
+    response = {"ok": True, **counts}
+    return {**response, "auto_approved": await _run_auto_approve(stored, now)}
+
+
+class SettingsBody(BaseModel):
+    auto_approve_min_score: Optional[Annotated[int, Field(strict=True, ge=0, le=100)]]
+
+
+async def _settings():
+    return {"auto_approve_min_score": await store.get_auto_approve_min_score()}
+
+
+@router.get("/api/admin/event-leads/settings")
+async def get_event_leads_settings(admin: dict = Depends(get_current_admin)):
+    return await _settings()
+
+
+@router.put("/api/admin/event-leads/settings")
+async def put_event_leads_settings(
+    body: SettingsBody, admin: dict = Depends(get_current_admin)
+):
+    await store.set_auto_approve_min_score(body.auto_approve_min_score)
+    return await _settings()
 
 
 # Declare static routes (ingest, linkedin-queue.csv, settings) above this line:
@@ -160,7 +230,11 @@ async def list_event_leads(show_c: bool = False, admin: dict = Depends(get_curre
     now = datetime.now(timezone.utc)
     docs = await store.list_leads(show_c)
     docs.sort(key=lambda d: (d.get("status") == "archived", rules.tier_sort_key(d, now)))
-    return {"leads": [serialize_lead(d, now) for d in docs], "kpis": []}
+    return {
+        "leads": [serialize_lead(d, now) for d in docs],
+        "kpis": [],
+        "settings": await _settings(),
+    }
 
 
 @router.get("/api/admin/event-leads/{lead_id}")
@@ -227,3 +301,13 @@ async def override_event_lead_score(
     doc = await _load_or_404(lead_id)
     await store.update_lead(doc["_id"], {"score_override": body.score})
     return await _reload(doc)
+
+
+@router.post("/api/admin/event-leads/{lead_id}/approve")
+async def approve_event_lead(lead_id: str, admin: dict = Depends(get_current_admin)):
+    return await approver.approve(lead_id, admin, datetime.now(timezone.utc))
+
+
+@router.post("/api/admin/event-leads/{lead_id}/retry-outreach")
+async def retry_event_lead_outreach(lead_id: str, admin: dict = Depends(get_current_admin)):
+    return await approver.retry_outreach(lead_id, datetime.now(timezone.utc))

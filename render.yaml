@@ -43,6 +43,13 @@ services:
       # POST /api/admin/event-leads/ingest. Unset = every call gets a 401.
       - key: EVENT_LEADS_INGEST_KEY
         sync: false
+      # Signal Scout outreach engine. Approve pushes each event lead to
+      # {SIGNAL_SCOUT_URL}/api/intro-connect/import. Either unset = the push
+      # is skipped and recorded as an error on the lead.
+      - key: SIGNAL_SCOUT_URL
+        sync: false  # e.g. https://<signal-scout host>
+      - key: SIGNAL_SCOUT_API_KEY
+        sync: false  # Signal Scout's CRON_SECRET
       # Blog and news generation. Absent means both ticks are harmless no-ops
       # that report {"skipped": "no_api_key"} rather than failing.
       - key: ANTHROPIC_API_KEY

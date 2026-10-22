@@ -86,6 +86,11 @@ class _Events:
         return 1 if q.get("created_by") in self.hosts else 0
 
 
+class _NoFlags:
+    async def find_one(self, q):
+        return None
+
+
 @pytest.fixture
 def db(monkeypatch):
     leads = _Leads()
@@ -94,6 +99,7 @@ def db(monkeypatch):
         MEMBER_ID: {"_id": MEMBER_ID, "is_admin": False},
     })
     monkeypatch.setattr(event_leads_store, "event_leads", leads)
+    monkeypatch.setattr(event_leads_store, "app_flags", _NoFlags())
     monkeypatch.setattr(auth, "users", people)
     monkeypatch.setattr(route, "users", people)
     monkeypatch.setattr(route, "events", _Events())

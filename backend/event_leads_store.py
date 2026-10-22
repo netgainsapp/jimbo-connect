@@ -8,7 +8,10 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from bson.errors import InvalidId
 
-from database import event_leads, event_lead_runs
+from database import app_flags, event_leads, event_lead_runs
+
+# app_flags row holding the auto-approve threshold. Absent means off.
+AUTO_APPROVE_FLAG_ID = "event_leads_auto_approve_min_score"
 
 
 async def get_by_organizer_key(organizer_key):
@@ -48,4 +51,23 @@ async def update_lead(oid, fields, unset=()):
 async def record_run(run):
     await event_lead_runs.insert_one(
         {**run, "received_at": datetime.now(timezone.utc)}
+    )
+
+
+async def get_auto_approve_min_score():
+    """The auto-approve threshold, or None when auto-approve is off."""
+    doc = await app_flags.find_one({"_id": AUTO_APPROVE_FLAG_ID}) or {}
+    value = doc.get("value")
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value
+
+
+async def set_auto_approve_min_score(value):
+    """Store the threshold; None deletes the row, which turns auto-approve off."""
+    if value is None:
+        await app_flags.delete_one({"_id": AUTO_APPROVE_FLAG_ID})
+        return
+    await app_flags.update_one(
+        {"_id": AUTO_APPROVE_FLAG_ID}, {"$set": {"value": value}}, upsert=True
     )

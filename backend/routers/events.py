@@ -2,6 +2,7 @@
 routes. Moved verbatim from server.py (M13). Route registration order is
 preserved from the original file."""
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from bson import ObjectId
@@ -52,17 +53,28 @@ router = APIRouter()
 
 # ---------- Events ----------
 
-async def create_event_for(user: dict, payload: EventCreateRequest) -> dict:
+async def create_event_for(
+    user: Optional[dict], payload: EventCreateRequest, provenance: Optional[dict] = None
+) -> dict:
     """Create an event on behalf of `user`.
 
-    Shared by POST /api/events and the Agenda Builder handoff so that the plan
-    limit and join-code generation live in exactly one place. A second creation
-    path that forgot the limit check would be a silent way to hand out free
-    events.
+    Shared by POST /api/events, the Agenda Builder handoff and event lead
+    Approve so that the plan limit and join-code generation live in exactly one
+    place. A second creation path that forgot the limit check would be a silent
+    way to hand out free events.
+
+    `provenance`, when given, is stored on the event as `provenance`. `user`
+    may be None only for a pending host (`provenance["pending_host"]` true):
+    an Approved LinkedIn-only lead has no account yet, so there is nobody to
+    apply a limit to and `created_by` is None. The limit applies when the host
+    is attached at claim.
     """
     import billing
 
-    limit = billing.event_limit_for(user)
+    pending_host = bool((provenance or {}).get("pending_host"))
+    if user is None and not pending_host:
+        raise ValueError("create_event_for needs a user unless the host is pending")
+    limit = billing.event_limit_for(user) if user is not None else None
     if limit is not None:
         hosted = await events.count_documents({"created_by": user["_id"]})
         if hosted >= limit:
@@ -84,11 +96,13 @@ async def create_event_for(user: dict, payload: EventCreateRequest) -> dict:
         "location": payload.location or "",
         "industry_tags": payload.industry_tags or [],
         "join_code": code,
-        "created_by": user["_id"],
+        "created_by": user["_id"] if user is not None else None,
         "created_at": now,
         "description": payload.description or "",
         "end_date": payload.end_date,
     }
+    if provenance is not None:
+        doc["provenance"] = dict(provenance)
     result = await events.insert_one(doc)
     doc["_id"] = result.inserted_id
     return serialize_event(doc, 0)

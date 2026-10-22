@@ -10,12 +10,17 @@ holds the staging list + a status per lead.
 import csv
 import io
 import os
+import re
 import sys
+from datetime import datetime, timezone
 
 from database import outreach_leads
 
 SIGNAL_SCOUT_URL = os.getenv("SIGNAL_SCOUT_URL", "").rstrip("/")
 SIGNAL_SCOUT_API_KEY = os.getenv("SIGNAL_SCOUT_API_KEY", "")
+PUSH_TIMEOUT_SECONDS = 30
+# How much of a Signal Scout body reaches the server log.
+LOG_BODY_CHARS = 500
 
 # Columns signal-scout's CSV import understands (agency/import shape). The
 # operator can upload this file directly on the signal-scout dashboard.
@@ -152,3 +157,104 @@ async def push_to_signal_scout(leads) -> dict:
         }
     except Exception as exc:  # network / DNS / timeout
         return {"ok": False, "error": str(exc)[:300]}
+
+
+# ---------- Event lead push (the Approve button, one lead with its event) ----------
+
+def _event_summary(event: dict) -> dict:
+    """One event in the shape Signal Scout's import contract expects."""
+    event = event or {}
+    return {
+        "name": event.get("title") or "",
+        "date": event.get("start") or "",
+        "venue": event.get("venue") or "",
+        "city": event.get("city") or "",
+        "source_url": event.get("source_url") or "",
+    }
+
+
+def _starts_on_or_after(event: dict, now: datetime) -> bool:
+    try:
+        start = datetime.fromisoformat((event or {}).get("start") or "")
+    except ValueError:
+        return False
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    return start >= now
+
+
+def event_lead_payload(lead: dict, claim_url: str, now: datetime) -> dict:
+    contact = lead.get("contact") or {}
+    upcoming = [e for e in lead.get("events") or [] if _starts_on_or_after(e, now)]
+    return {
+        "leads": [
+            {
+                "email": contact.get("email") or "",
+                "name": contact.get("name") or "",
+                "company": lead.get("organizer_name") or "",
+                "role": "",
+                "event": {
+                    "anchor": _event_summary(lead.get("anchor")),
+                    "upcoming": [_event_summary(e) for e in upcoming],
+                    "claim_url": claim_url,
+                    "lead_id": str(lead["_id"]),
+                },
+            }
+        ]
+    }
+
+
+def _redact(text, email: str) -> str:
+    """Server log copy of a Signal Scout body with the lead's email removed."""
+    text = str(text or "")[:LOG_BODY_CHARS]
+    return re.sub(re.escape(email), "[email]", text, flags=re.I) if email else text
+
+
+def _first_result(resp, email: str) -> dict:
+    """Read results[0] from a Signal Scout reply into the push outcome."""
+    if resp.status_code >= 300:
+        print(f"[outreach] event lead push {resp.status_code}: {_redact(resp.text, email)}",
+              file=sys.stderr)
+        return {"ok": False, "error": f"Signal Scout returned HTTP {resp.status_code}"}
+    try:
+        results = resp.json().get("results")
+        result = results[0] if isinstance(results, list) and results else None
+    except (ValueError, AttributeError):
+        result = None
+    if not isinstance(result, dict):
+        print(f"[outreach] event lead push unreadable body: {_redact(resp.text, email)}",
+              file=sys.stderr)
+        return {"ok": False, "error": "Signal Scout returned an unreadable response"}
+    outcome, prospect_id = result.get("outcome"), result.get("prospect_id")
+    if outcome == "error" or not prospect_id:
+        print(f"[outreach] event lead push rejected: {_redact(result, email)}",
+              file=sys.stderr)
+        return {"ok": False, "outcome": outcome,
+                "error": "Signal Scout did not import the lead"}
+    return {"ok": True, "prospect_id": str(prospect_id), "outcome": outcome}
+
+
+async def push_event_lead(lead: dict, claim_url: str, now: datetime = None) -> dict:
+    """Push one approved event lead to Signal Scout's Intro Connect import.
+
+    Returns {ok, prospect_id?, outcome?, error?} from results[0]. Never raises:
+    a config gap, HTTP error, network error or malformed body is ok False with
+    a short error the admin may see. Raw bodies go to stderr with the lead's
+    email redacted, never to the caller."""
+    if not is_configured():
+        return {"ok": False, "error": "Signal Scout is not configured"}
+    import httpx
+
+    email = (lead.get("contact") or {}).get("email") or ""
+    payload = event_lead_payload(lead, claim_url, now or datetime.now(timezone.utc))
+    try:
+        async with httpx.AsyncClient(timeout=PUSH_TIMEOUT_SECONDS) as client:
+            resp = await client.post(
+                f"{SIGNAL_SCOUT_URL}/api/intro-connect/import",
+                headers={"Authorization": f"Bearer {SIGNAL_SCOUT_API_KEY}"},
+                json=payload,
+            )
+    except Exception as exc:  # network / DNS / timeout
+        print(f"[outreach] event lead push failed: {_redact(exc, email)}", file=sys.stderr)
+        return {"ok": False, "error": f"Signal Scout unreachable ({type(exc).__name__})"}
+    return _first_result(resp, email)
