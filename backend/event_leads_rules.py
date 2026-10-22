@@ -41,7 +41,7 @@ def initial_status(incoming, existing_user):
     """
     if existing_user and (
         existing_user.get("hosts_events")
-        or existing_user.get("plan", "free") != "free"
+        or (existing_user.get("plan") or "free") != "free"
     ):
         return "existing_customer"
     contact = incoming.get("contact") or {}

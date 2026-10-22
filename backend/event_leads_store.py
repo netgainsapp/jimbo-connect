@@ -36,6 +36,15 @@ async def list_leads(show_c):
     return await event_leads.find(query).to_list(None)
 
 
+async def update_lead(oid, fields, unset=()):
+    """Set `fields` and drop the `unset` keys on one lead, keyed on `_id`.
+    Every write bumps `updated_at`."""
+    update = {"$set": {**fields, "updated_at": datetime.now(timezone.utc)}}
+    if unset:
+        update["$unset"] = {key: "" for key in unset}
+    await event_leads.update_one({"_id": oid}, update)
+
+
 async def record_run(run):
     await event_lead_runs.insert_one(
         {**run, "received_at": datetime.now(timezone.utc)}

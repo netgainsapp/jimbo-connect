@@ -146,6 +146,11 @@ def test_initial_status_paid_plan_is_a_customer_even_with_no_events():
     assert rules.initial_status(_incoming(), free_no_events) == "new"
 
 
+def test_user_with_null_plan_counts_as_free():
+    user = {"_id": "u", "plan": None, "hosts_events": False}
+    assert rules.initial_status(_incoming(), user) == "new"
+
+
 def test_linkedin_alone_is_reachable():
     li = _incoming(contact={"email": "", "linkedin_url": "https://linkedin.com/in/j"})
     assert rules.initial_status(li, None) == "new"
