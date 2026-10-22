@@ -9,7 +9,9 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+import event_leads_copy as copy
 import event_leads_rules as rules
+import sales_templates
 import event_leads_store as store
 from auth import get_current_admin
 from database import events, users
@@ -133,6 +135,26 @@ async def _reload(doc):
     return serialize_lead(await _load_or_404(str(doc["_id"])))
 
 
+async def _stored_or_seed(key):
+    """The template row an admin may have edited, else the seeded copy."""
+    row = await sales_templates.sales_templates.find_one({"seed_key": key})
+    return row or copy.seed_template(key)
+
+
+async def _previews(doc):
+    """Step 1 email and both LinkedIn messages as the admin would send them."""
+    email = await _stored_or_seed(copy.EMAIL_KEY)
+    note = await _stored_or_seed(copy.NOTE_KEY)
+    followup = await _stored_or_seed(copy.FOLLOWUP_KEY)
+    return {
+        "email_preview": copy.email_preview(doc, email),
+        "linkedin_preview": {
+            "note": copy.linkedin_note(doc, note["body"]),
+            "followup": copy.linkedin_followup(doc, followup["body"]),
+        },
+    }
+
+
 @router.get("/api/admin/event-leads")
 async def list_event_leads(show_c: bool = False, admin: dict = Depends(get_current_admin)):
     now = datetime.now(timezone.utc)
@@ -144,8 +166,7 @@ async def list_event_leads(show_c: bool = False, admin: dict = Depends(get_curre
 @router.get("/api/admin/event-leads/{lead_id}")
 async def get_event_lead(lead_id: str, admin: dict = Depends(get_current_admin)):
     doc = await _load_or_404(lead_id)
-    # Task 3 fills the previews.
-    return {**serialize_lead(doc), "email_preview": None, "linkedin_preview": None}
+    return {**serialize_lead(doc), **await _previews(doc)}
 
 
 @router.post("/api/admin/event-leads/{lead_id}/archive")

@@ -173,13 +173,36 @@ def test_payload_adds_days_until_and_hides_internals(db):
     assert undated["days_until"] is None
 
 
-def test_detail_returns_lead_with_preview_slots(db):
-    lead_id = _lead(db)
+class _Templates:
+    def __init__(self, rows=()):
+        self.rows = {r["seed_key"]: r for r in rows}
+
+    async def find_one(self, q):
+        return self.rows.get(q.get("seed_key"))
+
+
+def test_detail_returns_email_and_linkedin_previews_from_the_seeds(db, monkeypatch):
+    monkeypatch.setattr(route.sales_templates, "sales_templates", _Templates())
+    lead_id = _lead(db, claim_url="https://app.example.com/claim/t0k")
 
     body = client.get(f"{BASE}/{lead_id}").json()
 
     assert body["id"] == str(lead_id)
-    assert body["email_preview"] is None and body["linkedin_preview"] is None
+    assert body["email_preview"]["subject"].startswith("Mixer on ")
+    assert "https://app.example.com/claim/t0k" in body["email_preview"]["body"]
+    assert set(body["linkedin_preview"]) == {"note", "followup"}
+    assert len(body["linkedin_preview"]["note"]) <= 300
+
+
+def test_detail_previews_honour_an_admin_edited_template(db, monkeypatch):
+    edited = {"seed_key": "ic-linkedin-note", "body": "Edited note for {first_name}"}
+    monkeypatch.setattr(route.sales_templates, "sales_templates", _Templates([edited]))
+    lead_id = _lead(db, contact={"name": "Jane Doe"})
+
+    body = client.get(f"{BASE}/{lead_id}").json()
+
+    assert body["linkedin_preview"]["note"] == "Edited note for Jane"
+    assert body["linkedin_preview"]["followup"].startswith("Thanks for connecting, Jane")
 
 
 @pytest.mark.parametrize("bad", ["not-an-id", str(ObjectId())])
