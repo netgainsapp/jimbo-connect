@@ -9,6 +9,7 @@ import {
   FileText,
   Newspaper,
   Send,
+  Radar,
   MessageSquareText,
   BarChart3,
   MailX,
@@ -120,6 +121,12 @@ export default function AdminDashboard() {
           icon={<Send className="w-5 h-5" />}
           title="Outreach"
           body="Stage host leads and hand them to signal-scout for sending."
+        />
+        <ActionCard
+          to="/admin/event-leads"
+          icon={<Radar className="w-5 h-5" />}
+          title="Event Leads"
+          body="Review scored event hosts, approve them, and track the funnel."
         />
         <ActionCard
           to="/admin/suppressions"

@@ -210,6 +210,21 @@ function splitRecords(text, delim) {
 }
 
 /**
+ * Any CSV as rows keyed by its own header row, with the same delimiter
+ * detection and RFC 4180 quoting as the guest-list parser but no field
+ * mapping. Used for files that are not guest lists, such as the Linked Helper
+ * results export, whose columns the server maps itself.
+ */
+export function parseCsvObjects(text) {
+  const source = String(text ?? "");
+  if (source.trim() === "") return [];
+  const [head, ...body] = splitRecords(source, detectDelimiter(source));
+  return body.map(({ cells }) =>
+    Object.fromEntries(head.cells.map((h, i) => [h, cells[i] ?? ""])),
+  );
+}
+
+/**
  * Header text to one of our fields, or null when we have no use for it.
  *
  * Normalised before matching so "Job Title", "job_title" and "job-title" are

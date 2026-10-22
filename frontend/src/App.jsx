@@ -25,6 +25,7 @@ import AdminSalesTemplates from "./pages/AdminSalesTemplates.jsx";
 import AdminAnalytics from "./pages/AdminAnalytics.jsx";
 import AdminSuppressions from "./pages/AdminSuppressions.jsx";
 import AdminOutreach from "./pages/AdminOutreach.jsx";
+import AdminEventLeads from "./pages/AdminEventLeads.jsx";
 import JoinEvent from "./pages/JoinEvent.jsx";
 import Claim from "./pages/Claim.jsx";
 import AgendaLandingRedirect from "./pages/AgendaLandingRedirect.jsx";
@@ -294,6 +295,14 @@ export default function App() {
             element={
               <RequireAuth adminOnly allowIncompleteProfile>
                 <AdminOutreach />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/event-leads"
+            element={
+              <RequireAuth adminOnly allowIncompleteProfile>
+                <AdminEventLeads />
               </RequireAuth>
             }
           />

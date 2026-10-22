@@ -250,6 +250,31 @@ export const outreachApi = {
   exportCsv: () => api.get("/api/admin/outreach/leads.csv"),
 };
 
+// The event lead engine: leads found and scored upstream, approved here.
+// Approve creates the host and the event and hands the lead to Signal Scout.
+export const eventLeadsApi = {
+  list: (showC = false) => api.get(`/api/admin/event-leads?show_c=${showC ? "true" : "false"}`),
+  get: (id) => api.get(`/api/admin/event-leads/${id}`),
+  approve: (id) => api.post(`/api/admin/event-leads/${id}/approve`),
+  retryOutreach: (id) => api.post(`/api/admin/event-leads/${id}/retry-outreach`),
+  archive: (id) => api.post(`/api/admin/event-leads/${id}/archive`),
+  unarchive: (id) => api.post(`/api/admin/event-leads/${id}/unarchive`),
+  saveContact: (id, { name, email, linkedin_url }) =>
+    api.put(`/api/admin/event-leads/${id}/contact`, { name, email, linkedin_url }),
+  overrideScore: (id, score) =>
+    api.put(`/api/admin/event-leads/${id}/score-override`, { score }),
+  // An absolute URL for a top-level download, so the browser keeps the
+  // server's filename. Without dry_run the server marks every row exported.
+  linkedinQueueUrl: ({ dryRun = false, includeExported = false } = {}) =>
+    `${BACKEND_URL}/api/admin/event-leads/linkedin-queue.csv` +
+    `?dry_run=${dryRun ? "true" : "false"}&include_exported=${includeExported ? "true" : "false"}`,
+  uploadLinkedinResults: (rows) =>
+    api.post("/api/admin/event-leads/linkedin-results", { rows }),
+  getSettings: () => api.get("/api/admin/event-leads/settings"),
+  saveSettings: ({ auto_approve_min_score }) =>
+    api.put("/api/admin/event-leads/settings", { auto_approve_min_score }),
+};
+
 export const blogApi = {
   flags: () => api.get("/api/admin/blog/flags"),
   setFlag: (name, value) => api.put("/api/admin/blog/flags", { name, value }),
