@@ -17,6 +17,7 @@ import {
   contactSummary,
   statusBadge,
   parseScoreInput,
+  safeHttpUrl,
 } from "./eventLeads.js";
 
 const NOW = new Date("2026-10-22T18:00:00Z");
@@ -180,4 +181,17 @@ test("score inputs accept a whole number from 0 to 100, and blank only where all
   assert.equal(parseScoreInput("").ok, false);
   assert.equal(parseScoreInput("101").ok, false);
   assert.equal(parseScoreInput("7.5").ok, false);
+});
+
+test("only http and https links from scraped data are rendered as links", () => {
+  assert.equal(safeHttpUrl("http://example.com/e/1"), "http://example.com/e/1");
+  assert.equal(safeHttpUrl("https://linkedin.com/in/jane"), "https://linkedin.com/in/jane");
+  assert.equal(safeHttpUrl("  https://example.com  "), "https://example.com");
+  assert.equal(safeHttpUrl("javascript:alert(1)"), null);
+  assert.equal(safeHttpUrl("JavaScript:alert(1)"), null);
+  assert.equal(safeHttpUrl("data:text/html,<script>alert(1)</script>"), null);
+  assert.equal(safeHttpUrl("/admin/users"), null);
+  assert.equal(safeHttpUrl("example.com"), null);
+  assert.equal(safeHttpUrl(""), null);
+  assert.equal(safeHttpUrl(undefined), null);
 });

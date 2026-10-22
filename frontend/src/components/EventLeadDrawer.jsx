@@ -16,6 +16,7 @@ import {
   leadDays,
   needsRetry,
   parseScoreInput,
+  safeHttpUrl,
   scoreLabel,
   statusBadge,
 } from "../lib/eventLeads.js";
@@ -48,6 +49,21 @@ function contactForm(lead) {
   return { name: c.name || "", email: c.email || "", linkedin_url: c.linkedin_url || "" };
 }
 
+/**
+ * A link to a scraped URL, rendered only when it is http or https. Anything
+ * else (a javascript: or data: URL, a relative path) shows as plain text, or
+ * as nothing when there is no `fallback`.
+ */
+function ScrapedLink({ url, children, fallback = null, className = "" }) {
+  const href = safeHttpUrl(url);
+  if (!href) return fallback;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+      {children}
+    </a>
+  );
+}
+
 function Section({ title, children }) {
   return (
     <section className="px-6 py-4 border-t border-border-default">
@@ -69,21 +85,35 @@ export default function EventLeadDrawer({ leadId, approving, onClose, onApprove,
   const [contact, setContact] = useState(contactForm(null));
   const [scoreText, setScoreText] = useState("");
   const [busy, setBusy] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const toast = useToast();
 
-  const refresh = useCallback(async () => {
-    const detail = await eventLeadsApi.get(leadId);
+  const apply = useCallback((detail) => {
     setLead(detail);
     setContact(contactForm(detail));
     setScoreText(Number.isInteger(detail.score_override) ? String(detail.score_override) : "");
-    return detail;
-  }, [leadId]);
+  }, []);
 
+  const refresh = useCallback(
+    async () => apply(await eventLeadsApi.get(leadId)),
+    [leadId, apply],
+  );
+
+  // The first load. Cancelled on close or on a switch to another lead, so a
+  // slow answer for the old lead never lands in the drawer.
   useEffect(() => {
+    let cancelled = false;
     setLead(null);
-    refresh().catch((e) => toast.show(e.message, "error"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refresh]);
+    setLoadError("");
+    eventLeadsApi
+      .get(leadId)
+      .then((detail) => !cancelled && apply(detail))
+      .catch((e) => !cancelled && setLoadError(e.message));
+    return () => {
+      cancelled = true;
+    };
+  }, [leadId, loadAttempt, apply]);
 
   const reloadBoth = () => Promise.all([refresh(), onChanged()]);
 
@@ -138,7 +168,14 @@ export default function EventLeadDrawer({ leadId, approving, onClose, onApprove,
 
   return (
     <Modal open onClose={onClose} maxWidth="max-w-3xl" label={`Lead: ${title}`}>
-      {!lead ? (
+      {loadError ? (
+        <div className="p-6" role="alert">
+          <p className="text-sm text-red-600 mb-3">This lead did not load: {loadError}</p>
+          <button onClick={() => setLoadAttempt((n) => n + 1)} className="btn-outline">
+            <RotateCw className="w-4 h-4" /> Retry
+          </button>
+        </div>
+      ) : !lead ? (
         <div className="p-6 text-text-muted">Loading…</div>
       ) : (
         <>
@@ -183,7 +220,18 @@ function Header({ lead, title }) {
       <p className="text-sm text-text-secondary">
         {eventDateLabel(lead)}
         {days && `, ${days}`}
-        {lead.organizer_name && ` · ${lead.organizer_name}`}
+        {lead.organizer_name && (
+          <>
+            {" · "}
+            <ScrapedLink
+              url={lead.organizer_url}
+              fallback={lead.organizer_name}
+              className="text-primary font-semibold"
+            >
+              {lead.organizer_name}
+            </ScrapedLink>
+          </>
+        )}
       </p>
       {lead.status === "existing_customer" && (
         <p className="text-sm text-text-secondary mt-2">
@@ -255,7 +303,7 @@ function DrawerSection({ name, lead, ...props }) {
     case "description":
       return <DescriptionSection anchor={lead.anchor} />;
     case "contact":
-      return <ContactSection {...props} />;
+      return <ContactSection saved={lead.contact || {}} {...props} />;
     case "score":
       return <ScoreSection lead={lead} {...props} />;
     case "email_preview":
@@ -280,21 +328,18 @@ function DescriptionSection({ anchor }) {
       {anchor.description && (
         <p className="text-sm text-text-primary whitespace-pre-line">{anchor.description}</p>
       )}
-      {anchor.source_url && (
-        <a
-          href={anchor.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-sm text-primary font-semibold mt-2"
-        >
-          <ExternalLink className="w-3.5 h-3.5" /> Source listing
-        </a>
-      )}
+      <ScrapedLink
+        url={anchor.source_url}
+        className="inline-flex items-center gap-1 text-sm text-primary font-semibold mt-2"
+      >
+        <ExternalLink className="w-3.5 h-3.5" /> Source listing
+      </ScrapedLink>
     </Section>
   );
 }
 
-function ContactSection({ contact, setContact, onSaveContact, busy }) {
+function ContactSection({ saved, contact, setContact, onSaveContact, busy }) {
+  const linkClass = "inline-flex items-center gap-1 text-sm text-primary font-semibold";
   const field = (key, label, type = "text") => (
     <div>
       <label htmlFor={`lead-contact-${key}`} className="label">
@@ -315,6 +360,14 @@ function ContactSection({ contact, setContact, onSaveContact, busy }) {
         {field("name", "Name")}
         {field("email", "Email", "email")}
         {field("linkedin_url", "LinkedIn URL", "url")}
+      </div>
+      <div className="flex flex-wrap gap-4 mt-3">
+        <ScrapedLink url={saved.linkedin_url} className={linkClass}>
+          <ExternalLink className="w-3.5 h-3.5" /> LinkedIn profile
+        </ScrapedLink>
+        <ScrapedLink url={saved.website} className={linkClass}>
+          <ExternalLink className="w-3.5 h-3.5" /> Website
+        </ScrapedLink>
       </div>
       <button onClick={onSaveContact} className="btn-outline mt-3">
         {busy === "contact" ? "Saving…" : "Save contact"}

@@ -47,22 +47,29 @@ export default function AdminEventLeads() {
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
+  const loadSeq = useRef(0);
   const toast = useToast();
   const confirm = useConfirm();
 
-  // Resolves the list payload, or null after toasting the error.
-  const load = (withC = showC) =>
-    eventLeadsApi
+  // Resolves the list payload, or null after toasting the error. Only the
+  // latest request is applied: toggling Show C quickly fires two requests
+  // that can answer out of order.
+  const load = (withC = showC) => {
+    loadSeq.current += 1;
+    const seq = loadSeq.current;
+    return eventLeadsApi
       .list(withC)
       .then((res) => {
+        if (seq !== loadSeq.current) return null;
         setLeads(res.leads || []);
         setKpis(res.kpis || []);
         return res;
       })
       .catch((e) => {
-        toast.show(e.message, "error");
+        if (seq === loadSeq.current) toast.show(e.message, "error");
         return null;
       });
+  };
 
   useEffect(() => {
     // The setting is read once: a later reload must not clobber an unsaved edit.
@@ -312,7 +319,7 @@ function LinkedinCard({ confirm, onImported }) {
       const res = await eventLeadsApi.uploadLinkedinResults(rows);
       const summary = linkedinResultSummary(res);
       toast.show(summary.message, summary.type);
-      setUnknown(res.unknown || []);
+      setUnknown([...new Set(res.unknown || [])]);
       await onImported();
     } catch (e) {
       toast.show(e.message, "error");
@@ -369,8 +376,8 @@ function LinkedinCard({ confirm, onImported }) {
             Not matched to a lead
           </div>
           <ul className="text-xs text-text-muted font-mono space-y-0.5 max-h-32 overflow-y-auto">
-            {unknown.map((url) => (
-              <li key={url}>{url}</li>
+            {unknown.map((url, i) => (
+              <li key={`${i}-${url}`}>{url}</li>
             ))}
           </ul>
         </div>

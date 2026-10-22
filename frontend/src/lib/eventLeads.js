@@ -121,6 +121,26 @@ export function eventDateLabel(lead) {
   }
 }
 
+// ---------- links ----------
+
+const SAFE_PROTOCOLS = new Set(["http:", "https:"]);
+
+/**
+ * A scraped URL (source listing, organizer site, LinkedIn, website) when it is
+ * an absolute http or https URL, else null. React renders a `javascript:` href
+ * as given, so every scraped link must pass through here before it is a link.
+ */
+export function safeHttpUrl(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (!text) return null;
+  try {
+    return SAFE_PROTOCOLS.has(new URL(text).protocol) ? text : null;
+  } catch {
+    // Relative or malformed: not a link we render.
+    return null;
+  }
+}
+
 // ---------- list ----------
 
 function sortKey(lead, now) {
