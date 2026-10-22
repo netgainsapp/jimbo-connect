@@ -236,14 +236,43 @@ async def reset_password(payload: ResetPasswordRequest, response: Response, requ
     return {"ok": True, "user": serialize_user(user), "token": token}
 
 
+async def _consume_magic_token(hashed: str) -> dict | None:
+    """The user holding this unexpired message-email token, which is pulled
+    so it works once. The pull is filtered on the hash, so of two racing
+    requests only the one whose pull lands signs in. reset_token is never
+    touched (see message_notify)."""
+    now = datetime.now(timezone.utc)
+    user = await users.find_one({"magic_tokens": {"$elemMatch": {
+        "hash": hashed, "expires_at": {"$gt": now}}}})
+    if not user:
+        return None
+    pulled = await users.update_one(
+        {"_id": user["_id"], "magic_tokens.hash": hashed},
+        {"$pull": {"magic_tokens": {"hash": hashed}}},
+    )
+    return user if pulled.modified_count == 1 else None
+
+
+async def _sign_in(user: dict, response: Response) -> dict:
+    await mark_activated(user["_id"])
+    access = create_access_token(str(user["_id"]))
+    set_auth_cookie(response, access)
+    return {"ok": True, "user": serialize_user(user), "token": access}
+
+
 @router.get("/api/auth/magic/{token}")
 async def magic_login(token: str, response: Response, request: Request):
-    """One-tap login via a reset token. Single-use: the token is cleared
-    after a successful login so the link cannot be replayed if it leaks
-    (e.g. via referrer headers, logs, or shared history)."""
+    """One-tap login via a reset token, or a message email's magic token.
+    Single-use: the token is cleared after a successful login so the link
+    cannot be replayed if it leaks (e.g. via referrer headers, logs, or
+    shared history)."""
     rate_limit.guard(request, "magic", limit=10, window_seconds=300)
-    user = await users.find_one({"reset_token": _hash_token(token)})
+    hashed = _hash_token(token)
+    user = await users.find_one({"reset_token": hashed})
     if not user:
+        user = await _consume_magic_token(hashed)
+        if user:
+            return await _sign_in(user, response)
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     expires = user.get("reset_token_expires")
     if not expires or (
@@ -255,7 +284,4 @@ async def magic_login(token: str, response: Response, request: Request):
         {"_id": user["_id"]},
         {"$unset": {"reset_token": "", "reset_token_expires": ""}},
     )
-    await mark_activated(user["_id"])
-    access = create_access_token(str(user["_id"]))
-    set_auth_cookie(response, access)
-    return {"ok": True, "user": serialize_user(user), "token": access}
+    return await _sign_in(user, response)

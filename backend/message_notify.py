@@ -1,28 +1,25 @@
 """A message to an inactive attendee is their activation email (spec section 7).
 
-An imported guest who has never signed in cannot see a message in the app, so
-the first one reaches them by email, in the event host's name, within a minute.
-The email names who wrote and where they met, and carries one button that signs
-the guest in and opens the conversation. Nothing from the message itself is
-ever read into the email.
+One email in the event host's name, within a minute of the message, naming who
+wrote and where they met, with one button that signs the guest in and opens
+the thread. Nothing from the message itself is ever read into the email.
+Rules, in order: recipient not yet active; a real message exists; one email
+per sender per Denver day; then the sender waits for a reply; senders inside
+an hour share one email; COALESCE_SECONDS folds near-simultaneous senders.
 
-Rules, in order: the recipient is not yet active; a real message exists; the
-same sender triggers at most one email per Denver calendar day; after that, a
-sender waits for the recipient to reply before triggering another; two senders
-inside an hour share one email naming both. Messages that land inside the
-COALESCE_SECONDS window after the first are folded into the same email.
-
-State lives on message_notify_state, one document per recipient per event:
-{ recipient_id, event_id, senders, window_opened_at, sent_at, last_notified,
-version }. The pure rules (gate, next_state, email_context, pick_event) sit at
-the top and are tested without Mongo; the Mongo and sleep plumbing is below.
-Every write goes through a version compare-and-set so a coalesced sender and
-the delivery that closes the window can never lose each other.
+State: message_notify_state, one document per recipient per event { senders,
+window_opened_at, window_id, sent_at, last_notified, version }. Pure rules sit
+at the top, Mongo and sleep plumbing below. Writes are version compare-and-set;
+a delivery claims its window by window_id, never by datetime equality (Mongo
+keeps milliseconds). The button token goes on users.magic_tokens (hashed,
+newest MAGIC_TOKENS_KEPT), consumed once by routers/auth.magic_login; it never
+touches users.reset_token.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -41,6 +38,7 @@ DENVER = ZoneInfo("America/Denver")
 COALESCE_SECONDS = 60
 SHARE_WINDOW = timedelta(hours=1)
 TOKEN_DAYS = 7
+MAGIC_TOKENS_KEPT = 5
 SAVE_ATTEMPTS = 3
 ONE_SENDER_TEMPLATE = "message-waiting"
 MANY_SENDERS_TEMPLATE = "messages-waiting"
@@ -58,6 +56,13 @@ SOMEONE = "Someone"
 def _utc(moment: datetime) -> datetime:
     """Mongo hands datetimes back naive; they are UTC."""
     return moment.replace(tzinfo=timezone.utc) if moment.tzinfo is None else moment
+
+
+def _millis(moment: datetime) -> datetime:
+    """UTC at the millisecond precision Mongo stores, so a time this module
+    writes reads back equal to the one it kept."""
+    moment = _utc(moment).astimezone(timezone.utc)
+    return moment.replace(microsecond=moment.microsecond // 1000 * 1000)
 
 
 def _denver_day(moment: datetime):
@@ -226,23 +231,29 @@ async def _replied_since(recipient_id, sender_id, since) -> bool:
     return found is not None
 
 
+STATE_FIELDS = ("senders", "last_notified", "window_opened_at", "sent_at", "window_id")
+
+
 async def _save(key: dict, prev: dict | None, new: dict) -> bool:
-    """Compare-and-set on `version`. False when someone else wrote first."""
+    """Compare-and-set on `version`. False when someone else wrote first.
+    Writes only the state fields, never _id or the key."""
+    fields = {k: new[k] for k in STATE_FIELDS if k in new}
     if prev is None:
         try:
-            await message_notify_state.insert_one({**key, **new, "version": 1})
+            await message_notify_state.insert_one({**key, **fields, "version": 1})
         except DuplicateKeyError:
             return False
         return True
     version = prev.get("version", 0)
     res = await message_notify_state.update_one(
-        {**key, "version": version}, {"$set": {**new, "version": version + 1}})
+        {**key, "version": version}, {"$set": {**fields, "version": version + 1}})
     return res.matched_count == 1
 
 
-async def _record(sender: dict, recipient_id, event_id, now: datetime) -> str:
-    """Apply the gate and next_state against the stored row: a reason, or the
-    action ("open" or "coalesced")."""
+async def _record(sender: dict, recipient_id, event_id, now: datetime) -> tuple:
+    """Apply the gate and next_state against the stored row: (reason or
+    action, window_id). A window this call opens gets a fresh window_id, which
+    is what its delivery claims it by."""
     key = {"recipient_id": recipient_id, "event_id": event_id}
     card = sender_card(sender)
     for _ in range(SAVE_ATTEMPTS):
@@ -251,21 +262,21 @@ async def _record(sender: dict, recipient_id, event_id, now: datetime) -> str:
         replied = await _replied_since(recipient_id, sender["_id"], since)
         reason = gate(state, card["sender_id"], now, replied)
         if reason:
-            return reason
+            return reason, None
         new, action = next_state(state, card, now)
+        if action == "open":
+            new = {**new, "window_id": uuid.uuid4().hex}
         if await _save(key, state, new):
-            return action
-    return "busy"
+            return action, new.get("window_id")
+    return "busy", None
 
 
-async def _claim(key: dict, opened_at: datetime, send_at: datetime) -> list | None:
+async def _claim(key: dict, window_id: str, send_at: datetime) -> list | None:
     """Close the window this delivery owns and take its senders, or None when
     another delivery or a newer window owns it."""
     for _ in range(SAVE_ATTEMPTS):
         state = await message_notify_state.find_one(key)
-        if not state or state.get("sent_at") or state.get("window_opened_at") is None:
-            return None
-        if _utc(state["window_opened_at"]) != _utc(opened_at):
+        if not state or state.get("sent_at") or state.get("window_id") != window_id:
             return None
         if await _save(key, state, {"sent_at": send_at}):
             return list(state.get("senders") or [])
@@ -300,9 +311,10 @@ async def _send(recipient: dict, event: dict, senders: list, send_at: datetime) 
     if not rendered:
         return _result("template_missing")
     token = core._new_reset_token()
-    await users.update_one({"_id": recipient["_id"]}, {"$set": {
-        "reset_token": core._hash_token(token),
-        "reset_token_expires": send_at + timedelta(days=TOKEN_DAYS)}})
+    entry = {"hash": core._hash_token(token),
+             "expires_at": send_at + timedelta(days=TOKEN_DAYS)}
+    await users.update_one({"_id": recipient["_id"]}, {"$push": {
+        "magic_tokens": {"$each": [entry], "$slice": -MAGIC_TOKENS_KEPT}}})
     label, url = button_for(senders, token)
     avatars = [{"url": s["photo_url"], "alt": s["first_name"]}
                for s in senders if s.get("photo_url")]
@@ -311,13 +323,14 @@ async def _send(recipient: dict, event: dict, senders: list, send_at: datetime) 
         host=host, avatars=avatars)
 
 
-async def _deliver_after_window(key: dict, event: dict, opened_at: datetime) -> None:
+async def _deliver_after_window(key: dict, event: dict, window_id: str,
+                                opened_at: datetime) -> None:
     """Background task: wait out the window, then send one email naming every
     sender it collected. Logs carry no address and no message text."""
     try:
         await _sleep(COALESCE_SECONDS)
         send_at = _utc(opened_at) + timedelta(seconds=COALESCE_SECONDS)
-        senders = await _claim(key, opened_at, send_at)
+        senders = await _claim(key, window_id, send_at)
         recipient = await _still_inactive(key["recipient_id"], key["event_id"])
         if not senders or not recipient or not recipient.get("email"):
             return
@@ -338,14 +351,14 @@ async def _maybe_notify(sender: dict, recipient: dict, event: dict, now: datetim
     membership = await event_attendees.find_one(
         {"event_id": event["_id"], "user_id": recipient["_id"]})
     if core.is_active(recipient, membership):
-        return _result("not_active_required")
+        return _result("recipient_active")
     if not await _has_message(sender["_id"], recipient["_id"]):
         return _result("no_message")
-    action = await _record(sender, recipient["_id"], event["_id"], now)
+    action, window_id = await _record(sender, recipient["_id"], event["_id"], now)
     if action != "open":
         return _result(action)
     key = {"recipient_id": recipient["_id"], "event_id": event["_id"]}
-    _spawn(_deliver_after_window(key, event, now))
+    _spawn(_deliver_after_window(key, event, window_id, now))
     return _result()
 
 
@@ -353,7 +366,7 @@ async def maybe_notify(sender: dict, recipient: dict, event: dict, now: datetime
     """{sent: True} when an email is on its way (it leaves when the window
     closes), else {sent: False, reason}. Never raises."""
     try:
-        return await _maybe_notify(sender, recipient, event, now)
+        return await _maybe_notify(sender, recipient, event, _millis(now))
     except Exception as exc:
         log.warning("message notify failed (%s)", type(exc).__name__)
         return _result("error")

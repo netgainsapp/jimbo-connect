@@ -9,6 +9,7 @@ share one email, and nothing from the message itself ever reaches the mail.
 Run from backend/: python -m pytest tests/test_message_notify.py
 """
 import asyncio
+import copy
 import logging
 import os
 import re
@@ -28,12 +29,16 @@ import email_send
 import host_templates
 import message_notify
 import server
+import rate_limit
+from routers import auth as auth_routes
 from routers import people
 
 client = TestClient(server.app)
 
 SECRET_TEXT = "Our merger closes Friday, keep it quiet"
-T0 = datetime(2026, 10, 22, 18, 0, tzinfo=timezone.utc)  # noon in Denver
+# Noon in Denver. The microseconds matter: the route stamps datetime.now(),
+# and Mongo keeps only milliseconds.
+T0 = datetime(2026, 10, 22, 18, 0, 0, 123456, tzinfo=timezone.utc)
 EVENT_ID, HOST_ID = ObjectId(), ObjectId()
 MARCUS, PRIYA, GUEST = ObjectId(), ObjectId(), ObjectId()
 
@@ -46,17 +51,59 @@ def _run(coro):
 # A tiny in-memory collection: only the query shapes this feature uses.
 # ---------------------------------------------------------------------------
 
+def _bson(value):
+    """What a round trip through Mongo does to a value: datetimes come back
+    naive UTC at millisecond precision. Without this, a datetime equality
+    that real Mongo breaks would pass here."""
+    if isinstance(value, datetime):
+        if value.tzinfo is not None:
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value.replace(microsecond=value.microsecond // 1000 * 1000)
+    if isinstance(value, dict):
+        return {k: _bson(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_bson(v) for v in value]
+    return value
+
+
+def _get(doc, dotted):
+    """Values at a dotted path; a list along the way fans out, as in Mongo."""
+    values = [doc]
+    for part in dotted.split("."):
+        nxt = []
+        for v in values:
+            if isinstance(v, list):
+                nxt.extend(x.get(part) for x in v if isinstance(x, dict))
+            elif isinstance(v, dict):
+                nxt.append(v.get(part))
+        values = nxt
+    return values or [None]
+
+
+def _op_ok(have, op, want):
+    if op == "$in":
+        return have in want
+    if op == "$gt":
+        return have is not None and have > want
+    if op == "$regex":
+        return isinstance(have, str) and re.search(want, have) is not None
+    if op == "$exists":
+        return (have is not None) == want
+    if op == "$elemMatch":
+        return isinstance(have, list) and any(
+            isinstance(x, dict) and _matches(x, want) for x in have)
+    raise AssertionError(f"fake does not know {op}")
+
+
 def _matches(doc, query):
-    for key, want in query.items():
-        have = doc.get(key)
-        if isinstance(want, dict):
-            if "$in" in want and have not in want["$in"]:
-                return False
-            if "$gt" in want and not (have is not None and have > want["$gt"]):
-                return False
-            if "$regex" in want and not re.search(want["$regex"], have or ""):
-                return False
-        elif have != want:
+    for key, want in _bson(query).items():
+        candidates = _get(doc, key)
+        if isinstance(want, dict) and all(k.startswith("$") for k in want):
+            ok = any(all(_op_ok(have, op, arg) for op, arg in want.items())
+                     for have in candidates)
+        else:
+            ok = any(have == want for have in candidates)
+        if not ok:
             return False
     return True
 
@@ -75,12 +122,17 @@ class _Cursor:
             raise StopAsyncIteration
 
 
+def _result(**fields):
+    return type("R", (), fields)()
+
+
 class _Coll:
     """Rows are copied in and out, as a real driver does, so a caller holding
-    a document never sees a later write change it underneath them."""
+    a document never sees a later write change it underneath them, and every
+    write goes through _bson."""
 
     def __init__(self, rows=(), unique=()):
-        self.rows = [dict(r) for r in rows]
+        self.rows = [_bson(dict(r)) for r in rows]
         self.unique = tuple(unique)
 
     def _find(self, query):
@@ -88,25 +140,34 @@ class _Coll:
 
     async def find_one(self, query, *_a, **_k):
         row = self._find(query)
-        return dict(row) if row is not None else None
+        return copy.deepcopy(row) if row is not None else None
 
     def find(self, query=None, *_a, **_k):
-        return _Cursor(dict(r) for r in self.rows if _matches(r, query or {}))
+        return _Cursor(copy.deepcopy(r) for r in self.rows
+                       if _matches(r, query or {}))
 
     async def insert_one(self, doc):
-        doc = dict(doc)
+        doc = _bson(dict(doc))
         if self.unique and self._find({k: doc.get(k) for k in self.unique}):
             raise message_notify.DuplicateKeyError("duplicate key")
         doc.setdefault("_id", ObjectId())
         self.rows.append(doc)
-        return type("R", (), {"inserted_id": doc["_id"]})()
+        return _result(inserted_id=doc["_id"])
 
     async def update_one(self, query, update, upsert=False):
         row = self._find(query)
         if row is None:
-            return type("R", (), {"matched_count": 0})()
-        row.update(update.get("$set", {}))
-        return type("R", (), {"matched_count": 1})()
+            return _result(matched_count=0, modified_count=0)
+        assert "_id" not in update.get("$set", {}), "never $set _id"
+        row.update(_bson(update.get("$set", {})))
+        for key in update.get("$unset", {}):
+            row.pop(key, None)
+        for key, spec in _bson(update.get("$push", {})).items():
+            items = row.get(key, []) + list(spec["$each"])
+            row[key] = items[spec["$slice"]:] if "$slice" in spec else items
+        for key, cond in _bson(update.get("$pull", {})).items():
+            row[key] = [x for x in row.get(key, []) if not _matches(x, cond)]
+        return _result(matched_count=1, modified_count=1)
 
 
 def _person(oid, name, company="", role="", photo="", **extra):
@@ -198,14 +259,14 @@ def _button_url(mail):
 def test_an_active_recipient_gets_no_email(world):
     _user(world, GUEST)["activated_at"] = T0 - timedelta(days=3)
     result = _run(_notify(world, MARCUS, T0))
-    assert result == {"sent": False, "reason": "not_active_required"}
+    assert result == {"sent": False, "reason": "recipient_active"}
     assert world["sent"] == []
 
 
 def test_a_member_who_joined_on_their_own_is_active(world):
     world["links"].rows[2]["activated"] = True
     result = _run(_notify(world, MARCUS, T0))
-    assert result["reason"] == "not_active_required"
+    assert result["reason"] == "recipient_active"
     assert world["sent"] == []
 
 
@@ -257,10 +318,86 @@ def test_the_button_signs_them_in_and_opens_the_thread(world):
     parts = urlsplit(_button_url(world["sent"][0]))
     token = parts.path.rsplit("/", 1)[1]
     assert parse_qs(parts.query)["next"] == [f"/messages/{MARCUS}"]
+    sent_at = T0.replace(microsecond=123000, tzinfo=None) + timedelta(
+        seconds=message_notify.COALESCE_SECONDS)
+    assert _user(world, GUEST)["magic_tokens"] == [
+        {"hash": core._hash_token(token), "expires_at": sent_at + timedelta(days=7)}]
+
+
+# ---------------------------------------------------------------------------
+# The button's magic sign in, through GET /api/auth/magic/{token}
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def signin(world, monkeypatch):
+    """The real magic_login route over the same users collection."""
+    monkeypatch.setattr(auth_routes, "users", world["users"])
+    monkeypatch.setattr(core, "users", world["users"])
+    monkeypatch.setattr(rate_limit, "guard", lambda *_a, **_k: None)
+
+    def _open(token):
+        try:
+            return client.get(f"/api/auth/magic/{token}")
+        finally:
+            client.cookies.clear()
+
+    return _open
+
+
+def _token(mail):
+    return urlsplit(_button_url(mail)).path.rsplit("/", 1)[1]
+
+
+def test_two_message_emails_give_two_working_buttons(world, signin):
+    now = datetime.now(timezone.utc)
+
+    async def scenario():
+        await _notify(world, MARCUS, now)
+        await _notify(world, PRIYA, now + timedelta(hours=2))
+
+    _run(scenario())
+    assert len(world["sent"]) == 2
+    first, second = (_token(m) for m in world["sent"])
+    assert signin(first).status_code == 200
+    assert signin(second).status_code == 200
+
+
+def test_a_pending_password_reset_survives_a_message_email(world, signin):
+    now = datetime.now(timezone.utc)
     guest = _user(world, GUEST)
-    assert guest["reset_token"] == core._hash_token(token)
-    assert guest["reset_token_expires"] == T0 + timedelta(
-        seconds=message_notify.COALESCE_SECONDS, days=7)
+    guest["reset_token"] = core._hash_token("reset-link-token")
+    guest["reset_token_expires"] = (now + timedelta(hours=2)).replace(tzinfo=None)
+    _run(_notify(world, MARCUS, now))
+    assert len(world["sent"]) == 1
+    assert _user(world, GUEST)["reset_token"] == core._hash_token("reset-link-token")
+    assert signin("reset-link-token").status_code == 200
+
+
+def test_a_used_magic_token_cannot_be_replayed(world, signin):
+    _run(_notify(world, MARCUS, datetime.now(timezone.utc)))
+    token = _token(world["sent"][0])
+    assert signin(token).status_code == 200
+    assert signin(token).status_code == 400
+    assert _user(world, GUEST)["magic_tokens"] == []
+
+
+def test_an_expired_magic_token_is_refused(world, signin):
+    _run(_notify(world, MARCUS, datetime.now(timezone.utc) - timedelta(days=8)))
+    assert signin(_token(world["sent"][0])).status_code == 400
+
+
+def test_only_the_five_newest_magic_tokens_are_kept(world):
+    async def scenario():
+        for day in range(7):
+            world["messages"].rows.append({
+                "from_user_id": GUEST, "to_user_id": MARCUS, "text": "hi",
+                "sent_at": _bson(T0 + timedelta(days=day, hours=1))})
+            await _notify(world, MARCUS, T0 + timedelta(days=day))
+
+    _run(scenario())
+    assert len(world["sent"]) == 7
+    kept = [t["hash"] for t in _user(world, GUEST)["magic_tokens"]]
+    assert kept == [core._hash_token(_token(m)) for m in world["sent"][2:]]
 
 
 def test_the_sender_headshot_shows_only_for_an_https_photo(world):
@@ -326,7 +463,7 @@ def test_a_reply_releases_the_same_sender(world):
         await _notify(world, MARCUS, T0)
         world["messages"].rows.append({
             "from_user_id": GUEST, "to_user_id": MARCUS, "text": "hi",
-            "sent_at": T0 + timedelta(hours=2)})
+            "sent_at": _bson(T0 + timedelta(hours=2))})
         return await _notify(world, MARCUS, T0 + timedelta(days=1))
 
     assert _run(scenario()) == {"sent": True}
