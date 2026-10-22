@@ -48,6 +48,10 @@ host_email_templates = db["host_email_templates"]
 # per weekly sourcing job. Rules live in event_leads_rules.py.
 event_leads = db["event_leads"]
 event_lead_runs = db["event_lead_runs"]
+# One row per inactive recipient per event: who messaged them, when their
+# activation email went out, and when each sender last triggered one. Rules
+# live in message_notify.py.
+message_notify_state = db["message_notify_state"]
 
 
 async def ensure_indexes():
@@ -99,6 +103,9 @@ async def ensure_indexes():
     await event_sponsors.create_index("event_id")
     await messages.create_index([("thread_id", 1), ("sent_at", 1)])
     await messages.create_index([("to_user_id", 1), ("read_at", 1)])
+    await message_notify_state.create_index(
+        [("recipient_id", 1), ("event_id", 1)], unique=True
+    )
     await email_templates.create_index("template_id", unique=True)
     await blog_post.create_index("slug")
     # Every agenda read is "mine", newest first.

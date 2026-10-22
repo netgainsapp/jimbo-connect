@@ -141,6 +141,22 @@ def _footer(host: dict | None, unsubscribe_url: str, sign_in_url: str) -> str:
     )
 
 
+AVATAR_PX = 48
+
+
+def _avatars(avatars) -> str:
+    """A row of round headshots. Empty when none has an https URL."""
+    imgs = "".join(
+        f'<img src="{_esc(a["url"])}" width="{AVATAR_PX}" height="{AVATAR_PX}" '
+        f'alt="{_esc(a.get("alt"))}" style="display:inline-block;border:0;'
+        f'width:{AVATAR_PX}px;height:{AVATAR_PX}px;border-radius:50%;'
+        'object-fit:cover;margin:0 8px 0 0">'
+        for a in avatars or ()
+        if str(a.get("url") or "").startswith("https://")
+    )
+    return f'<div style="margin:0 0 16px">{imgs}</div>' if imgs else ""
+
+
 def render(
     *,
     heading: str,
@@ -151,6 +167,7 @@ def render(
     brand: dict | None = None,
     host: dict | None = None,
     sign_in_url: str = "",
+    avatars=(),
 ) -> str:
     """Full branded HTML email. `button` is {"label","url"} or None. When
     `unsubscribe_url` is given, the footer carries an unsubscribe link.
@@ -160,7 +177,10 @@ def render(
     `host` ({name,email,photo_url} from core.host_block) makes the mail the
     host's: their name and headshot lead the header, a Pro logo sits beside
     them, and the Intro Connect lockup moves to a footer that links the
-    attendee's own sign in (`sign_in_url`, default the app login)."""
+    attendee's own sign in (`sign_in_url`, default the app login).
+    `avatars` ({url, alt} each) are small round headshots of the people the
+    mail is about, shown above the body. Only https URLs render: an email
+    client will not load an inline data URL, so those are dropped."""
     pre = (
         f'<div style="display:none;max-height:0;overflow:hidden;opacity:0">'
         f"{_esc(preheader)}</div>"
@@ -181,6 +201,7 @@ def render(
         f'line-height:1.6;color:#26323f">{_esc(p).replace(chr(10), "<br>")}</p>'
         for p in paragraphs
     )
+    faces = _avatars(avatars)
     accent = (brand or {}).get("accent_dark") or BLUE
     btn = _button(button["label"], button["url"], color=accent) if button else ""
     if host:
@@ -203,7 +224,7 @@ def render(
         # card
         '<tr><td style="background:#ffffff;border:1px solid ' + LINE + ';'
         'border-radius:14px;padding:36px 32px">'
-        f"{head}{body}{btn}"
+        f"{head}{faces}{body}{btn}"
         "</td></tr>"
         # footer
         '<tr><td style="padding:22px 8px;font-family:' + FONT + ';'
