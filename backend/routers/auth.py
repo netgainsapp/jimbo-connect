@@ -38,6 +38,7 @@ from core import (
     render_email_template,
     _VERIFY_OK_HTML,
     _VERIFY_BAD_HTML,
+    mark_activated,
 )
 
 router = APIRouter()
@@ -67,6 +68,8 @@ async def register(payload: RegisterRequest, response: Response, request: Reques
         "nurture_enabled": True,
         "nurture_step": 0,
         "email_verified": False,
+        # Signed up themselves, so active from the start (see core.is_active).
+        "activated_at": now,
     }
     result = await users.insert_one(doc)
     doc["_id"] = result.inserted_id
@@ -98,6 +101,7 @@ async def login(payload: LoginRequest, response: Response, request: Request):
         verify_password, payload.password, user["password_hash"]
     ):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    await mark_activated(user["_id"])
     token = create_access_token(str(user["_id"]))
     set_auth_cookie(response, token)
     return {"user": serialize_user(user), "token": token}
@@ -213,6 +217,8 @@ async def reset_password(payload: ResetPasswordRequest, response: Response, requ
             "$unset": {"reset_token": "", "reset_token_expires": ""},
         },
     )
+    # Setting a password from the emailed link is signing in.
+    await mark_activated(user["_id"])
     token = create_access_token(str(user["_id"]))
     set_auth_cookie(response, token)
     user["password_hash"] = ""  # don't leak
@@ -238,6 +244,7 @@ async def magic_login(token: str, response: Response, request: Request):
         {"_id": user["_id"]},
         {"$unset": {"reset_token": "", "reset_token_expires": ""}},
     )
+    await mark_activated(user["_id"])
     access = create_access_token(str(user["_id"]))
     set_auth_cookie(response, access)
     return {"ok": True, "user": serialize_user(user), "token": access}

@@ -442,6 +442,10 @@ def test_seeded_attendee_invitations_lead_with_the_event_name():
 
 # ---------- an admin import sends as the event's host ----------
 
+async def _none_removed(*_args):
+    return set()
+
+
 def test_an_admin_import_into_a_hosts_event_sends_as_that_host(monkeypatch):
     import attendee_import
 
@@ -484,6 +488,8 @@ def test_an_admin_import_into_a_hosts_event_sends_as_that_host(monkeypatch):
     monkeypatch.setattr(attendee_import, "event_attendees", _Attendees())
     monkeypatch.setattr(core, "users", _Users())
     monkeypatch.setattr(core, "event_attendees", _Attendees())
+    # Nobody on these lists used the remove link; see test_inactive_attendees.
+    monkeypatch.setattr(attendee_import.invites, "removed_emails", _none_removed)
     monkeypatch.setattr(attendee_import.email_send, "is_configured", lambda: True)
     monkeypatch.setattr(attendee_import, "hash_password", lambda p: "h")
     monkeypatch.setattr(attendee_import.host_templates, "render_for_host", _render)

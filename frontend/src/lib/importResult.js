@@ -25,8 +25,21 @@ function topReason(failures) {
   return text.length > MAX_REASON ? `${text.slice(0, MAX_REASON - 1)}…` : text;
 }
 
+// A guest who used the remove-me link for this event is skipped by the server.
+// Said out loud so the host's numbers still add up.
+function removedNote(r) {
+  const removed = r.removed ?? 0;
+  if (removed <= 0) return "";
+  return ` ${plural(removed, "guest")} skipped because they asked to be removed.`;
+}
+
 export function importOutcome(res) {
   const r = res || {};
+  const outcome = sendOutcome(r);
+  return { ...outcome, message: outcome.message + removedNote(r) };
+}
+
+function sendOutcome(r) {
   const added = r.added_to_event ?? r.created ?? 0;
   const emailed = r.emailed ?? 0;
   const failures = r.email_failures || {};

@@ -18,6 +18,11 @@ use password reset. See `disclose_credentials` / `default_password` below.
 
 The capacity check lives here too, so both paths fill to the cap and report the
 overflow per row rather than failing the whole import.
+
+An event membership made here is `activated: False`: the host put this person
+on the list, and until they sign in once they are shown as not yet active. A
+guest who used the remove-me link for this event is skipped entirely (no
+account, no seat, no mail) and counted under `removed`.
 """
 import asyncio
 import secrets
@@ -29,6 +34,7 @@ import email_send
 from auth import hash_password
 from core import APP_URL, attendee_room, host_block
 import host_templates
+import invites
 from database import event_attendees, users
 from send_report import tally_failure
 
@@ -66,6 +72,15 @@ async def import_rows(
     email_failures: dict = {}
     accounts: list = []
     errors: list = []
+    removed = 0
+
+    # Guests who took themselves off this event stay off. One query up front
+    # rather than one per row.
+    removed_set = set()
+    if event_oid is not None:
+        removed_set = await invites.removed_emails(
+            event_oid, [row.email.lower().strip() for row in rows]
+        )
 
     # Cap read once and tracked locally rather than re-counted per row. An
     # import that would overflow fills to the cap and reports the rest instead
@@ -87,6 +102,9 @@ async def import_rows(
 
     for row in rows:
         email = row.email.lower().strip()
+        if email in removed_set:
+            removed += 1
+            continue
         try:
             existing = await users.find_one({"email": email})
             if existing:
@@ -151,6 +169,16 @@ async def import_rows(
                     # so the two outcomes are counted separately. Reporting
                     # only "created" is how an import that emailed nobody read
                     # exactly like one that worked.
+                    if rendered and event_oid is not None:
+                        # The host put them here, so the invitation says how
+                        # to get off the list. Same last paragraph as invites.
+                        link = invites.remove_paragraph(
+                            invites.remove_url(event_oid, email)
+                        )
+                        rendered = {
+                            **rendered,
+                            "body": f"{rendered['body'].rstrip()}\n\n{link}",
+                        }
                     if rendered:
                         send_result = await email_send.send_template_branded(
                             to=email,
@@ -193,6 +221,9 @@ async def import_rows(
                                 "joined_at": now,
                                 "source": source,
                                 "imported_at": now,
+                                # Not yet active until they sign in once; see
+                                # core.is_active.
+                                "activated": False,
                             }
                         )
                         added_to_event += 1
@@ -204,6 +235,8 @@ async def import_rows(
         "created": created,
         "skipped": skipped,
         "added_to_event": added_to_event,
+        # Rows skipped because that guest removed themselves from this event.
+        "removed": removed,
         # Only new accounts are emailed, so `emailed` is never the row count.
         "emailed": emailed,
         "email_failures": email_failures,

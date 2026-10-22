@@ -1,6 +1,7 @@
 """Public and shared-secret routes: /api/health, the server-rendered blog,
-cron ticks, CAN-SPAM unsubscribe, and the Resend webhook. Moved verbatim from
-server.py (M13)."""
+cron ticks, CAN-SPAM unsubscribe, the invite remove-me link, and the Resend
+webhook. Moved verbatim from server.py (M13)."""
+import html
 import json
 import os
 import re
@@ -311,6 +312,38 @@ async def unsubscribe_post(token: str, request: Request):
         raise HTTPException(status_code=400, detail="Invalid unsubscribe token")
     await suppression.apply_unsubscribe(email)
     return {"ok": True}
+
+
+_REMOVED_PAGE = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Removed</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222">
+<h1 style="font-size:22px">You are off the list</h1>
+<p style="color:#555">You have been removed from {name}'s guest list.
+You will not get any more invitations or reminders for it.</p>
+</body></html>"""
+
+_REMOVE_BAD_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Invalid link</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222">
+<h1 style="font-size:22px">This link is not valid</h1>
+<p style="color:#555">The link looks incomplete or altered.
+Reply to the invitation and the host can take you off the list.</p>
+</body></html>"""
+
+
+@router.get("/api/invites/remove/{token}", response_class=HTMLResponse)
+async def invite_remove(token: str, request: Request):
+    """The remove-me link at the foot of a host's invite and reminders. The
+    token is signed over one event and one address, so no login is needed and
+    it removes that guest from that event only. See invites.apply_removal."""
+    rate_limit.guard(request, "invite_remove", limit=30, window_seconds=3600)
+    verified = invites.verify_remove_token(token)
+    if not verified:
+        return HTMLResponse(_REMOVE_BAD_HTML, status_code=400)
+    event = await invites.apply_removal(*verified)
+    # Event names are host supplied, so escaped before they reach markup.
+    name = html.escape(event["name"]) if event else "the event"
+    return HTMLResponse(_REMOVED_PAGE.format(name=name))
 
 
 @router.post("/api/webhooks/resend")

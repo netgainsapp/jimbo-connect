@@ -171,7 +171,29 @@ def host_block(user: dict | None) -> dict | None:
     }
 
 
-def serialize_attendee(user: dict, *, include_email: bool = False) -> dict:
+async def mark_activated(user_id) -> None:
+    """Stamp the first time this person signed in or joined an event. Set once:
+    the filter skips anyone already stamped, so the date never moves. Lives on
+    the user, not the membership, because an account someone has used is
+    theirs in every event, including ones a host imports them into later."""
+    await users.update_one(
+        {"_id": user_id, "activated_at": {"$exists": False}},
+        {"$set": {"activated_at": datetime.now(timezone.utc)}},
+    )
+
+
+def is_active(user: dict, membership: dict | None = None) -> bool:
+    """A person is active once they have used their account. Before that, a
+    membership an import created says `activated: False`; every other
+    membership (a join, or one that predates the flag) reads as active."""
+    return bool(user.get("activated_at")) or bool(
+        (membership or {}).get("activated", True)
+    )
+
+
+def serialize_attendee(
+    user: dict, *, membership: dict | None = None, include_email: bool = False
+) -> dict:
     """A person as seen by someone else.
 
     The email address is opt IN rather than opt out. It used to be included
@@ -189,6 +211,9 @@ def serialize_attendee(user: dict, *, include_email: bool = False) -> dict:
     out = {
         "id": str(user["_id"]),
         "profile": Profile(**profile).model_dump(),
+        # "Not yet active" tells other guests a message reaches this person by
+        # email. Pass the event membership where the caller has it.
+        "active": is_active(user, membership),
     }
     if include_email:
         # Door guests have no email; hosts see an empty cell, not a crash.

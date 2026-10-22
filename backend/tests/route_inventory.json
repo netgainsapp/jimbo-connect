@@ -58,6 +58,7 @@
  "GET /api/events/{event_id}/survey",
  "GET /api/health",
  "GET /api/host/email-templates",
+ "GET /api/invites/remove/{token}",
  "GET /api/messages/threads",
  "GET /api/messages/unread-count",
  "GET /api/messages/with/{user_id}",

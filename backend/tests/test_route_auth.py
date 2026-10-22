@@ -74,6 +74,11 @@ PUBLIC = {
     # routers/claim.py and event_leads_claim.py.
     ("GET", "/api/claim/{token}"),
     ("POST", "/api/claim/{token}"),
+    # Public by design: the remove-me link in a host's invite and reminders.
+    # The token is HMAC signed over one event and one address, so it removes
+    # that guest from that event only. Rate limited per IP; see
+    # routers/public.py invite_remove and invites.apply_removal.
+    ("GET", "/api/invites/remove/{token}"),
 }
 
 # Shared-secret gated (cron ticks, webhook): callable without a session but

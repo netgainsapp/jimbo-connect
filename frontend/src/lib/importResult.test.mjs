@@ -76,3 +76,21 @@ test("a response without the email fields still describes the import", () => {
   assert.equal(out.type, "success");
   assert.match(out.message, /5 guests added/);
 });
+
+test("guests who removed themselves from the event are counted, not silently dropped", () => {
+  const out = importOutcome({
+    created: 4,
+    added_to_event: 4,
+    emailed: 4,
+    removed: 2,
+    email_failures: {},
+  });
+  assert.equal(out.type, "success");
+  assert.match(out.message, /4 guests added, 4 emailed\./);
+  assert.match(out.message, /2 guests skipped because they asked to be removed\./);
+});
+
+test("nothing is said about removals when there were none", () => {
+  const out = importOutcome({ created: 1, added_to_event: 1, emailed: 1, email_failures: {} });
+  assert.doesNotMatch(out.message, /removed/);
+});

@@ -43,6 +43,7 @@ from core import (
     serialize_attendee,
     serialize_user,
     host_block,
+    mark_activated,
     set_auth_cookie,
     FREE_EVENT_LIMIT,
     _can_manage_event,
@@ -612,8 +613,13 @@ async def _join_user_to_event(e: dict, user: dict) -> None:
                 "event_id": e["_id"],
                 "user_id": user["_id"],
                 "joined_at": datetime.now(timezone.utc),
+                # They came in themselves, so this seat is active.
+                "activated": True,
             }
         )
+    # Joining by code (signed in or at the door) is using the account, which
+    # activates the person in every event, imported ones included.
+    await mark_activated(user["_id"])
     # Stop any pending invite reminders for this guest on this event. Door
     # guests have no email, so there is nothing to mark for them.
     if user.get("email"):
@@ -739,7 +745,9 @@ async def get_event_attendees(event_id: str, user: dict = Depends(get_current_us
         for link in links:
             attendee = by_id.get(link["user_id"])
             if attendee and not attendee.get("is_admin"):
-                out.append(serialize_attendee(attendee, include_email=include_email))
+                out.append(serialize_attendee(
+                    attendee, membership=link, include_email=include_email
+                ))
     return out
 
 
@@ -817,6 +825,9 @@ async def my_attendees(user: dict = Depends(get_current_user)):
         return []
     seen: set = set()
     uids = []
+    # The first membership seen per person, so the card can say "not yet
+    # active" here too (core.is_active).
+    first_link: dict = {}
     async for link in event_attendees.find({"event_id": {"$in": my_event_ids}}):
         uid = link["user_id"]
         if uid == user["_id"]:
@@ -826,6 +837,7 @@ async def my_attendees(user: dict = Depends(get_current_user)):
             continue
         seen.add(key)
         uids.append(uid)
+        first_link[key] = link
     out = []
     if uids:
         docs = {
@@ -835,7 +847,7 @@ async def my_attendees(user: dict = Depends(get_current_user)):
         for uid in uids:
             u = docs.get(uid)
             if u and not u.get("is_admin"):
-                out.append(serialize_attendee(u))
+                out.append(serialize_attendee(u, membership=first_link.get(str(uid))))
     return out
 
 
