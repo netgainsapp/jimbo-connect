@@ -79,11 +79,11 @@ created_at, updated_at, archived_at?
 - Produces (store): `upsert_lead(doc)`, `get_lead(id)`, `list_leads(show_c: bool)`, `record_run(run)`.
 - Produces (route): the Ingest contract.
 
-- [ ] **Step 1: Write the failing tests** (rules): new doc from incoming; approved doc keeps anchor and score but gains an event; `initial_status` three cases; `days_until("2026-11-04T18:00:00-07:00", now=Oct 22 10am Denver) == 13`; sort puts an A event in 20 days before a B event in 3 days. Ingest route test (TestClient with a fake collection the way `test_attendee_import.py` fakes Mongo): 401 without bearer, counts in the response, one run record written.
-- [ ] **Step 2: Run** `cd backend && python -m pytest tests/test_event_leads_rules.py tests/test_event_leads_ingest.py -q` → FAIL.
-- [ ] **Step 3: Implement.** Bearer compare with `hmac.compare_digest`. Ingest looks up `users` by each contact email to feed `initial_status`.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(leads): event_leads collection, merge rules and ingest endpoint"`.
+- [x] **Step 1: Write the failing tests** (rules): new doc from incoming; approved doc keeps anchor and score but gains an event; `initial_status` three cases; `days_until("2026-11-04T18:00:00-07:00", now=Oct 22 10am Denver) == 13`; sort puts an A event in 20 days before a B event in 3 days. Ingest route test (TestClient with a fake collection the way `test_attendee_import.py` fakes Mongo): 401 without bearer, counts in the response, one run record written.
+- [x] **Step 2: Run** `cd backend && python -m pytest tests/test_event_leads_rules.py tests/test_event_leads_ingest.py -q` → FAIL.
+- [x] **Step 3: Implement.** Bearer compare with `hmac.compare_digest`. Ingest looks up `users` by each contact email to feed `initial_status`.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(leads): event_leads collection, merge rules and ingest endpoint"`.
 
 ---
 
@@ -96,9 +96,9 @@ created_at, updated_at, archived_at?
 **Interfaces:**
 - Produces: `GET /api/admin/event-leads?show_c=false` → `{ leads: [serialized], kpis }` sorted by `tier_sort_key`; `GET /api/admin/event-leads/{id}` → serialized with `email_preview` and `linkedin_preview` (Task 3); `POST /api/admin/event-leads/{id}/archive`; `POST /api/admin/event-leads/{id}/unarchive`; `PUT /api/admin/event-leads/{id}/contact` `{ name, email, linkedin_url }` (re-runs `initial_status` when the lead is `new`/`unreachable`); `PUT /api/admin/event-leads/{id}/score-override` `{ score: int }` stored beside `score`, never over it. `serialize_lead(doc) -> dict` adds `days_until`.
 
-- [ ] **Step 1: Tests**: non-admin 403; C hidden by default and shown with `show_c=true`; archive sets `archived_at` and status; contact edit on an `unreachable` lead with an email makes it `new`; score override keeps `score.score`.
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(leads): admin list, detail, archive and edits"`.
+- [x] **Step 1: Tests**: non-admin 403; C hidden by default and shown with `show_c=true`; archive sets `archived_at` and status; contact edit on an `unreachable` lead with an email makes it `new`; score override keeps `score.score`.
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(leads): admin list, detail, archive and edits"`.
 
 ---
 
@@ -109,9 +109,9 @@ created_at, updated_at, archived_at?
 - Modify: `backend/sales_templates.py` seeds: add `ic-event-step-1` (the mirror of Signal Scout's step 1 copy, for the preview) and `ic-linkedin-note`, `ic-linkedin-followup`
 - Test: `backend/tests/test_event_leads_copy.py`
 
-- [ ] **Step 1: Tests**: note length ≤ 300 with a long event name (truncate the name, never the link); series line present only with two events; no dash or emoji characters in any output (`re.search(r"[—–\U0001F300-\U0001FAFF]", s) is None`).
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(leads): email and LinkedIn previews for event leads"`.
+- [x] **Step 1: Tests**: note length ≤ 300 with a long event name (truncate the name, never the link); series line present only with two events; no dash or emoji characters in any output (`re.search(r"[—–\U0001F300-\U0001FAFF]", s) is None`).
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(leads): email and LinkedIn previews for event leads"`.
 
 ---
 
@@ -127,9 +127,9 @@ created_at, updated_at, archived_at?
 - Produces: `approve` returns `{ status, event_id, host_user_id, claim_url, signal_scout: { prospect_id, outcome } }`. Steps: (1) user by email, else insert `{ email, password_hash: hash_password(random), profile: { name }, plan: "free", nurture_enabled: False, host_origin: "event_lead", email_verified: True }`; for a LinkedIn-only lead skip the user and set `pending_host: True` on the event provenance with `created_by: None`; (2) `create_event_for` with name = anchor.title, date = anchor.start, location = f"{venue}, {city}", description = anchor.description[:5000], industry_tags = [score.vertical], provenance `{ source, source_url, event_lead_id, pending_host }`; (3) token: `_new_reset_token()`, store `_hash_token(token)` and `claim_expires_at = anchor.start + 30 days`, `claim_url = f"{APP_URL}/claim/{token}"`; (4) `push_event_lead` unless LinkedIn-only; failure stores `signal_scout.error` and leaves status `approved`; (5) `linkedin.status = "queued"` when `contact.linkedin_url`; (6) status `approved`, `funnel.approved_at`. `existing_customer` → 409 before any write. Second call → same response, no writes (assert via fake collection call counts).
 - Auto-approve: `app_flags` key `event_leads_auto_approve_min_score` (int or absent; absent means off, and it ships absent). When set, the ingest route (Task 1) calls `approve` for each inserted lead with `status == "new"`, a contact email, and `score.score >= min_score`, after the ingest response is computed; failures are recorded on the lead, never raised. Admin route `PUT /api/admin/event-leads/settings` `{ auto_approve_min_score: int|null }` edits it; `GET` returns it with the list.
 
-- [ ] **Step 1: Tests**: happy path creates user, event, token, pushes once; auto-approve absent → ingest approves nothing, set to 90 → approves the one lead at 94 with an email and skips the 94 without one; LinkedIn-only creates event with no user and no push; existing host → 409 and nothing written; Signal Scout 500 → status `approved`, `signal_scout.error` set, event exists; second approve → zero inserts; plan-limit 403 from `create_event_for` surfaces as 409 with the message and the lead unchanged.
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(leads): one-button Approve builds the host, the event and the drip"`.
+- [x] **Step 1: Tests**: happy path creates user, event, token, pushes once; auto-approve absent → ingest approves nothing, set to 90 → approves the one lead at 94 with an email and skips the 94 without one; LinkedIn-only creates event with no user and no push; existing host → 409 and nothing written; Signal Scout 500 → status `approved`, `signal_scout.error` set, event exists; second approve → zero inserts; plan-limit 403 from `create_event_for` surfaces as 409 with the message and the lead unchanged.
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(leads): one-button Approve builds the host, the event and the drip"`.
 
 ---
 
@@ -144,10 +144,10 @@ created_at, updated_at, archived_at?
 - Consumes: `_hash_token`, `create_access_token`, `set_auth_cookie`, `outreach.notify_claimed(lead) -> dict` (new: POST the Signal Scout claimed contract; never raises).
 - Produces: on first completion: `funnel.claimed_at`, status `claimed`, `notify_claimed` once; for `pending_host` events: create the user from the posted email (Task 4 step 1 rules), set `created_by`, clear `pending_host`. Response includes `redirect: f"/host/events/{event_id}?claimed=1"` (use the existing host event page route; confirm its path in `App.jsx`). Expired or unknown: no cookie, no writes.
 
-- [ ] **Step 1: Tests**: ok state for a valid token; `needs_email` for a pending-host lead; second completion from another device signs in and does not call Signal Scout again; expired → `expired`, no writes; unknown → `unknown`; rate limit after 10 calls.
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement** backend, then the page: banner "This event was set up for you. Add your attendee list to go live.", the attendee upload modal open (`AttendeeImportModal`), and the optional photo step (Task 6) after upload.
-- [ ] **Step 4: Run** backend and `cd frontend && npm test` → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(claim): one-tap claim of a pre-built event"`.
+- [x] **Step 1: Tests**: ok state for a valid token; `needs_email` for a pending-host lead; second completion from another device signs in and does not call Signal Scout again; expired → `expired`, no writes; unknown → `unknown`; rate limit after 10 calls.
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement** backend, then the page: banner "This event was set up for you. Add your attendee list to go live.", the attendee upload modal open (`AttendeeImportModal`), and the optional photo step (Task 6) after upload.
+- [x] **Step 4: Run** backend and `cd frontend && npm test` → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(claim): one-tap claim of a pre-built event"`.
 
 ---
 
@@ -158,9 +158,9 @@ created_at, updated_at, archived_at?
 - Modify: `frontend/src/pages/Claim.jsx` (photo step: "Add your photo so your guests see you, not us.", uses `POST /api/profile/photo`, skippable)
 - Test: `backend/tests/test_host_sender.py`
 
-- [ ] **Step 1: Tests**: `from` header format and reply-to for a host send; headshot `<img>` present only with `photo_url`; footer carries the lockup exactly once; an attendee send without `host` is unchanged (snapshot against the current output of one existing template).
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(email): attendee mail goes out in the host's name with their photo"`.
+- [x] **Step 1: Tests**: `from` header format and reply-to for a host send; headshot `<img>` present only with `photo_url`; footer carries the lockup exactly once; an attendee send without `host` is unchanged (snapshot against the current output of one existing template).
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(email): attendee mail goes out in the host's name with their photo"`.
 
 ---
 
@@ -171,9 +171,9 @@ created_at, updated_at, archived_at?
 - Frontend: the event directory card shows a quiet "not yet active" tag when `active` is false (find the attendee card component under `frontend/src/components/`)
 - Test: `backend/tests/test_inactive_attendees.py`
 
-- [ ] **Step 1: Tests**: import sets `activated False`; login sets `activated_at`; reminder not sent the day before or after the event; remove link deletes the membership and a re-import skips that email with reason `removed`; inactive member never in `/api/directory`.
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(attendees): inactive state, reminder cap and remove-me link"`.
+- [x] **Step 1: Tests**: import sets `activated False`; login sets `activated_at`; reminder not sent the day before or after the event; remove link deletes the membership and a re-import skips that email with reason `removed`; inactive member never in `/api/directory`.
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(attendees): inactive state, reminder cap and remove-me link"`.
 
 ---
 
@@ -187,9 +187,9 @@ created_at, updated_at, archived_at?
 **Interfaces:**
 - Produces: subject `f"{event.name}: {sender_first} from {sender_company} sent you a message"`; body: sender first name, company, role, headshot, event name and date, one button to a magic sign-in that opens the thread; sent in the host's name (Task 6 `host`). Nothing from the message text.
 
-- [ ] **Step 1: Tests**: active recipient → no email; inactive → one email with the subject format; second message same sender same day → none; sender B within the hour → one email naming both; body never contains the message text.
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(messages): a message to an inactive attendee is their activation email"`.
+- [x] **Step 1: Tests**: active recipient → no email; inactive → one email with the subject format; second message same sender same day → none; sender B within the hour → one email naming both; body never contains the message text.
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(messages): a message to an inactive attendee is their activation email"`.
 
 ---
 
@@ -199,9 +199,9 @@ created_at, updated_at, archived_at?
 - Modify: `backend/routers/event_leads.py` (`GET /api/admin/event-leads/linkedin-queue.csv` marks exported; `POST /api/admin/event-leads/linkedin-results` accepts a CSV upload with columns `linkedin_url, status, at` and the Linked Helper export columns the builder maps after checking the vendor's current export format; sets `linkedin.status` and timestamps; `POST /api/admin/event-leads/linkedin-webhook` with `?secret=` if Linked Helper Standard offers webhooks today, else omitted)
 - Test: `backend/tests/test_linkedin_queue.py`
 
-- [ ] **Step 1: Tests**: queue holds only `approved` leads with a LinkedIn URL and `linkedin.status == "queued"`; export sets `exported`; results import maps `connected`/`replied`/`failed`; unknown URL rows are reported, not fatal.
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(leads): Linked Helper queue export and results import"`.
+- [x] **Step 1: Tests**: queue holds only `approved` leads with a LinkedIn URL and `linkedin.status == "queued"`; export sets `exported`; results import maps `connected`/`replied`/`failed`; unknown URL rows are reported, not fatal.
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(leads): Linked Helper queue export and results import"`.
 
 ---
 
@@ -212,9 +212,9 @@ created_at, updated_at, archived_at?
 - Modify: `backend/routers/events.py` import route (`funnel.attendees_uploaded_at` on an event with `provenance.event_lead_id`), `backend/event_leads_rules.py` (`kpis(leads, runs, weeks=5) -> list[dict]` per spec section 2 KPI strip; `converted_at` when the host has a second event or a non-free plan)
 - Test: `backend/tests/test_event_leads_poll.py`
 
-- [ ] **Step 1: Tests**: funnel fields filled from a fake status response; anchor roll renames the event; attendee import stamps the funnel; `kpis` returns five weekly rows with `qualification_rate = (A+B)/ingested`.
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(leads): nightly status poll, funnel timestamps and KPI strip"`.
+- [x] **Step 1: Tests**: funnel fields filled from a fake status response; anchor roll renames the event; attendee import stamps the funnel; `kpis` returns five weekly rows with `qualification_rate = (A+B)/ingested`.
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `git commit -m "feat(leads): nightly status poll, funnel timestamps and KPI strip"`.
 
 ---
 
@@ -226,9 +226,9 @@ created_at, updated_at, archived_at?
 
 **Interfaces:** consumes every route from Tasks 2, 4, 9, 10.
 
-- [ ] **Step 1: Test** (node test runner, render with a fake api): rows sorted A then days-until; C hidden until the toggle; Approve button disabled for `existing_customer` and `archived`; drawer shows the reason block and the email preview; KPI strip renders five weeks.
-- [ ] **Step 2: Run** `cd frontend && npm test` → FAIL. **Step 3: Implement** following `AdminOutreach.jsx` conventions (`useToast`, `useConfirm`; Approve confirms once with the event name). **Step 4: Run** → PASS; `npm run build` → clean.
-- [ ] **Step 5: Commit** `git commit -m "feat(admin): Event Leads page with Approve, drawer and KPIs"`.
+- [x] **Step 1: Test** (node test runner, render with a fake api): rows sorted A then days-until; C hidden until the toggle; Approve button disabled for `existing_customer` and `archived`; drawer shows the reason block and the email preview; KPI strip renders five weeks.
+- [x] **Step 2: Run** `cd frontend && npm test` → FAIL. **Step 3: Implement** following `AdminOutreach.jsx` conventions (`useToast`, `useConfirm`; Approve confirms once with the event name). **Step 4: Run** → PASS; `npm run build` → clean.
+- [x] **Step 5: Commit** `git commit -m "feat(admin): Event Leads page with Approve, drawer and KPIs"`.
 
 ---
 
@@ -238,5 +238,5 @@ created_at, updated_at, archived_at?
 - Modify: `JIMBO_CONNECT_DOCS.md` (Event Leads section: the flow, the routes, the collections, env vars), `docs/RUNBOOK.md` (the daily tick, what to do when Approve shows an outreach error)
 - Create: `docs/EVENT-LEADS-OPERATOR.md`: Scott's steps in order (set the three env vars on Render, install Linked Helper Standard and log in, create the Linked Helper campaign with the caps 20 and 20, first supervised ingest, first Approve on one A-tier lead, watch the status poll the next morning).
 
-- [ ] **Step 1: Write them.** **Step 2: Run** `cd backend && python -m pytest -q` and `cd frontend && npm test && npm run build` → all PASS.
-- [ ] **Step 3: Commit** `git commit -m "docs(leads): event leads reference and operator checklist"`.
+- [x] **Step 1: Write them.** **Step 2: Run** `cd backend && python -m pytest -q` and `cd frontend && npm test && npm run build` → all PASS.
+- [x] **Step 3: Commit** `git commit -m "docs(leads): event leads reference and operator checklist"`.

@@ -70,6 +70,10 @@ which has its own MX/SPF/DKIM and is independent of the apex MX above.
 | `ANTHROPIC_API_KEY` | Render dashboard (API) | blog prose. Absent = the tick is a no-op reporting `{"skipped": "no_api_key"}` |
 | `OPENAI_API_KEY` | Render dashboard (API) | blog cover images. Absent = posts fall back to the stock pool in `blog/images.py` |
 | `BLOG_TICK_SECRET` | GitHub repo secret **and** Render (API) | must match byte for byte; gates every tick (header `X-Tick-Secret`). Unset on Render = a clean `401` on every tick, silently, because `_tick_authorized` fails closed |
+| `EVENT_LEADS_INGEST_KEY` | Render dashboard (API); same value in the weekly sourcing job's settings on Scott's PC | `sync: false`. Bearer key for `POST /api/admin/event-leads/ingest`. Unset = every ingest gets a `401` |
+| `SIGNAL_SCOUT_URL` | Render dashboard (API) | `sync: false`. Base URL of Signal Scout, no trailing slash needed. Approve pushes to `{url}/api/intro-connect/import` |
+| `SIGNAL_SCOUT_API_KEY` | Render dashboard (API) | `sync: false`. Signal Scout's `CRON_SECRET`. Either this or the URL blank = Approve still works but records an outreach error on the lead, and the nightly poll has nothing to ask |
+| `LINKED_HELPER_WEBHOOK_SECRET` | Render dashboard (API); also inside the Linked Helper webhook URL (`...linkedin-webhook?secret=...`) | `sync: false`. Optional: only needed if Linked Helper posts results to us. Unset = the webhook answers `401` to everyone; the CSV upload in the panel still works |
 
 Local scripts read `backend/.env`, which is git-ignored. `backend/.env.example`
 lists every key. ⚠️ Scripts in `scripts/` run from the repo ROOT and load that
@@ -83,6 +87,7 @@ nothing, which reads as "the key is unset" when it is sitting right there.
 | `blog-tick` | Mondays 15:00 | generate/store a blog post (was Mon/Wed/Fri until 2026-08-02) |
 | `nurture-tick` | daily 16:00 | advance free-signup nurture drip |
 | `invites-tick` | daily 16:30 | send guest-invite reminders |
+| `event-leads-tick` | daily 07:00 | ask Signal Scout how each approved, unclaimed event lead is doing and copy sent, opened, clicked, replied and bounced times onto the lead; roll pre-built events to a new anchor; stamp `event_passed_at` and `converted_at` |
 | `keep-warm` | every 10 min | ping `/api/health` to avoid free-tier cold starts |
 | `keepalive` | scheduled | second health ping (the only workflow that ever had the right host) |
 | `news-tick` | **PAUSED** | news section retired 2026-08-02; cron commented out, `news_autopublish` off |
@@ -96,6 +101,18 @@ curl output in the job log — the endpoints return JSON saying what they did.
 - `{"skipped": "no_api_key"}` → `ANTHROPIC_API_KEY` missing on Render.
 - Schedules stopped entirely → check Actions isn't disabled (GitHub auto-disables
   schedules after 60 days of repository inactivity).
+
+The `event-leads-tick` reply looks like
+`{"polled": 12, "updated": 3, "rolled": 0, "passed": 1, "converted": 0, "errors": []}`.
+`polled` is how many leads Signal Scout was asked about, `updated` how many got a
+new funnel time, `rolled` how many pre-built events moved to a new anchor date,
+`passed` how many leads were stamped event passed, `converted` how many hosts were
+stamped as converted (second event or paid plan). A non-empty `errors` list holds
+short reasons with no email addresses, for example `status chunk 1: Signal Scout is
+not configured` (set `SIGNAL_SCOUT_URL` and `SIGNAL_SCOUT_API_KEY`) or a failed
+request to Signal Scout. The run still returns 200, and the `passed` and `converted`
+passes still run, because they use our own data. A `401` here is the same
+`BLOG_TICK_SECRET` mismatch as every other tick.
 
 ## Health check / smoke test
 
@@ -140,3 +157,14 @@ redeploys automatically; no code change needed.
   upgrade the API off free tier.
 - **Blog empty** → posts live in MongoDB; generate via admin or `POST /api/admin/blog/run`;
   `ANTHROPIC_API_KEY` must be set.
+- **Approve shows an outreach error** → Approve succeeded as far as it could: the host
+  account and the event exist and the lead is approved, but the Signal Scout import
+  failed or Signal Scout is not configured. The drawer shows a red "Outreach failed" line with the reason.
+  Fix `SIGNAL_SCOUT_URL` and `SIGNAL_SCOUT_API_KEY` in the Render dashboard (API), wait for
+  the redeploy, then open the lead and press Retry outreach. The email drip starts only
+  after a push succeeds, so nothing reaches the host until then. Do not Approve again to
+  fix it; a second Approve changes nothing.
+- **Claim link says it is no longer active** → the link expired (30 days after the
+  anchor event's date) or the lead was archived. Approve again is a no-op and does not
+  mint a new link, and nothing should be minted by hand. If the host should still get in,
+  unarchive the lead when it was archived; for an expired link, contact the host directly.
