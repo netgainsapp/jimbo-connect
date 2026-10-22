@@ -27,7 +27,7 @@ reference for how everything works is the Event Leads section of
    queue in the LinkedIn queue card to get the file of approved leads, and load
    it into the campaign. To get results back, point the campaign's outgoing
    webhook at
-   `POST {API_PUBLIC_URL}/api/admin/event-leads/linkedin-webhook?secret=...`
+   `{API_PUBLIC_URL}/api/admin/event-leads/linkedin-webhook?secret=...`
    where `{API_PUBLIC_URL}` is `https://jimbo-connect-api-rdkp.onrender.com` and
    the secret is your `LINKED_HELPER_WEBHOOK_SECRET`. If you would rather not
    use the webhook, plan to export the campaign results from Linked Helper and
@@ -68,5 +68,5 @@ reference for how everything works is the Event Leads section of
 - Auto approve ships off. Nothing is approved until you approve it or you set a
   minimum score.
 - An imported guest gets no mail from the platform beyond the host's invite, the
-  two reminders (the last one lands the day before the event) and the one email
+  two reminders (they go out no later than the day before the event) and the one email
   that tells them a message is waiting.

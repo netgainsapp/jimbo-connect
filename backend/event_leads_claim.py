@@ -2,9 +2,13 @@
 
 GET previews (writes nothing, signs nobody in). POST completes:
 
-1. A hosted lead (Approve found or made the host account) signs that host in.
-   The link was sent to that host's own address, so holding it is the proof,
-   exactly like a magic login link.
+1. A hosted lead whose account Approve made signs that host in. The link was
+   sent to that host's own address, so holding it is the proof, exactly like
+   a magic login link. When Approve reused an account that already existed
+   (`host_user_preexisting`), the link may also have travelled through
+   LinkedIn and that account holds a real person's data, so the claim
+   completes only for that account's own session; anyone else gets the
+   account_exists 409 with nothing written and no cookie.
 2. A pending-host lead (LinkedIn only, no account yet) needs an email. A new
    email gets a new host account built by event_leads_approve.create_lead_host.
    An email that already has an account is attached only when that account is
@@ -206,6 +210,14 @@ async def _after_lost_attach(lead, event, user):
     return user
 
 
+# ---------- a host account that existed before Approve ----------
+
+def _require_session_of(host, session_user):
+    """Holding the link is not proof for an account Approve did not make."""
+    if not session_user or session_user["_id"] != host["_id"]:
+        raise _conflict(ACCOUNT_EXISTS, SIGN_IN_FIRST)
+
+
 # ---------- every completion ----------
 
 async def _mark_event_claimed(event, now):
@@ -228,6 +240,8 @@ async def complete(token, payload, session_user, now):
     """POST: attach the host if pending, mark everything claimed, and return
     who to sign in. Raises DeadLink (nothing written) for a dead link."""
     lead, event, host = await _load(token, now)
+    if host is not None and lead.get("host_user_preexisting"):
+        _require_session_of(host, session_user)
     if host is None:
         host = await _attach_pending_host(lead, event, payload, session_user, now)
     elif not lead.get("host_user_id"):

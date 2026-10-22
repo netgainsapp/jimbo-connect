@@ -13,7 +13,8 @@ at the top, Mongo and sleep plumbing below. Writes are version compare-and-set;
 a delivery claims its window by window_id, never by datetime equality (Mongo
 keeps milliseconds). The button token goes on users.magic_tokens (hashed,
 newest MAGIC_TOKENS_KEPT), consumed once by routers/auth.magic_login; it never
-touches users.reset_token.
+touches users.reset_token. The button opens the /magic/:token page, which
+signs in only when the guest presses its button (link scanners never do).
 """
 from __future__ import annotations
 
@@ -200,7 +201,7 @@ def button_for(senders: list, token: str) -> tuple:
         label = ONE_SENDER_BUTTON
     else:
         target, label = "/messages", MANY_SENDERS_BUTTON
-    return label, f"{core.APP_URL}/reset-password/{token}?next={target}"
+    return label, f"{core.APP_URL}/magic/{token}?next={target}"
 
 
 # ---------------------------------------------------------------------------

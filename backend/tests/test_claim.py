@@ -526,3 +526,70 @@ def test_a_lost_attach_race_records_the_winner_and_answers_just_claimed(db, monk
     assert auth.COOKIE_NAME not in _set_cookie(resp)
     assert db.leads.rows[lead_id]["host_user_id"] == str(winner_id)
     assert db.notify.calls == []
+
+
+# ---------- a host account that existed before Approve ----------
+
+def _preexisting(d):
+    """Approve reused a real attendee's account: the link must not open it."""
+    host_id, event_id, lead_id = _hosted(d)
+    d.users.rows[host_id]["host_origin"] = "attendee"
+    d.leads.rows[lead_id]["host_user_preexisting"] = True
+    return host_id, event_id, lead_id
+
+
+def test_a_preexisting_host_without_a_session_is_asked_to_log_in(db):
+    _preexisting(db)
+
+    resp = client.post(f"/api/claim/{TOKEN}", json={})
+
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["code"] == "account_exists"
+    assert resp.json()["detail"]["message"]
+    assert auth.COOKIE_NAME not in _set_cookie(resp)
+    assert db.writes() == (0, 0, 0, 0, 0) and db.notify.calls == []
+
+
+def test_a_preexisting_host_signed_in_as_someone_else_is_refused(db):
+    _preexisting(db)
+    other = db.users.add(email="other@host.org", profile={"name": "Other"})
+    client.cookies.set(auth.COOKIE_NAME, auth.create_access_token(str(other)))
+
+    resp = client.post(f"/api/claim/{TOKEN}", json={})
+
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["code"] == "account_exists"
+    assert db.writes() == (0, 0, 0, 0, 0) and db.notify.calls == []
+
+
+def test_a_preexisting_host_with_their_own_session_completes_the_claim(db):
+    host_id, event_id, lead_id = _preexisting(db)
+    client.cookies.set(auth.COOKIE_NAME, auth.create_access_token(str(host_id)))
+
+    resp = client.post(f"/api/claim/{TOKEN}", json={})
+
+    assert resp.status_code == 200
+    assert auth.decode_token(resp.json()["token"]) == str(host_id)
+    assert db.leads.rows[lead_id]["funnel"]["claimed_at"] is not None
+    assert db.events.rows[event_id]["provenance"]["claimed_at"] is not None
+    assert [call["_id"] for call in db.notify.calls] == [lead_id]
+
+
+def test_a_preexisting_host_link_still_previews_without_a_session(db):
+    _preexisting(db)
+
+    body = client.get(f"/api/claim/{TOKEN}").json()
+
+    assert body["state"] == "ok"
+    assert db.writes() == (0, 0, 0, 0, 0)
+
+
+def test_an_approve_created_host_still_signs_in_by_the_link_alone(db):
+    host_id, _, lead_id = _hosted(db)
+    assert "host_user_preexisting" not in db.leads.rows[lead_id]
+
+    resp = client.post(f"/api/claim/{TOKEN}", json={})
+
+    assert resp.status_code == 200
+    assert auth.decode_token(resp.json()["token"]) == str(host_id)
+    assert auth.COOKIE_NAME in _set_cookie(resp)

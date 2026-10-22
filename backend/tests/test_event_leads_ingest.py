@@ -225,3 +225,43 @@ def test_lead_without_organizer_key_is_rejected_after_auth(db):
 
     assert client.post(URL, json=_payload(bad), headers=AUTH).status_code == 422
     assert db[1].rows == []
+
+
+def test_an_admin_contact_edit_survives_the_next_weekly_ingest(db, monkeypatch):
+    """The scraper found no contact; the admin typed one in. The next run
+    re-sends the same empty contact and must not wipe the edit."""
+    leads, _ = db
+    bare = _lead(email="")
+    client.post(URL, json=_payload(bare), headers=AUTH)
+    row = leads.rows["meetup:denver-devs"]
+    assert row["status"] == "unreachable"
+    row["contact"] = {**row["contact"], "email": "jane@host.org"}
+    row["status"] = "new"
+    row["contact_edited_at"] = "2026-10-20T10:00:00+00:00"
+
+    resp = client.post(URL, json=_payload(bare), headers=AUTH)
+
+    assert resp.status_code == 200
+    row = leads.rows["meetup:denver-devs"]
+    assert row["contact"]["email"] == "jane@host.org"
+    assert row["status"] == "new"
+
+
+def test_an_edited_contact_is_matched_against_users_by_the_kept_email(db, monkeypatch):
+    leads, _ = db
+    monkeypatch.setattr(
+        route, "users",
+        _Users({"jane@host.org": {"_id": "uid1", "plan": "free"}}),
+    )
+    monkeypatch.setattr(route, "events", _Events(hosts={"uid1"}))
+    client.post(URL, json=_payload(_lead(email="other@host.org")), headers=AUTH)
+    row = leads.rows["meetup:denver-devs"]
+    row["contact"] = {**row["contact"], "email": "jane@host.org"}
+    row["contact_edited_at"] = "2026-10-20T10:00:00+00:00"
+
+    client.post(URL, json=_payload(_lead(email="other@host.org")), headers=AUTH)
+
+    row = leads.rows["meetup:denver-devs"]
+    assert row["contact"]["email"] == "jane@host.org"
+    assert row["status"] == "existing_customer"
+    assert row["existing_user_id"] == "uid1"

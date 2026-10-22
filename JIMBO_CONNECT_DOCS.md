@@ -169,10 +169,15 @@ secret route fails closed: with its env var unset it answers 401 to everyone.
 | POST | `/api/admin/event-leads/linkedin-webhook` | webhook secret | Linked Helper outgoing webhook; one object or a list; returns `updated`, `unchanged`, `unknown` |
 | POST | `/api/event-leads/tick` | tick secret | Nightly Signal Scout status poll (daily 07:00 UTC) |
 | GET | `/api/claim/{token}` | public | Preview the claim link; writes nothing, signs nobody in |
-| POST | `/api/claim/{token}` | public | Complete the claim: sign the host in, mark the event claimed |
+| POST | `/api/claim/{token}` | public | Complete the claim: sign the host in, mark the event claimed. Runs only when the host presses "Set up my event"; if the host account existed before Approve, only that account's signed-in session can claim (else 409 `account_exists`) |
 | GET | `/api/invites/remove/{token}` | public | Remove-me confirm page for an imported guest; writes nothing |
 | POST | `/api/invites/remove/{token}` | public | The confirm button; removes that guest from that event only |
 | GET | `/api/public/host-photo/{user_id}` | public | Host headshot bytes for email clients; 404 unless the user hosts an event |
+
+The claim page completes only when the host presses the button, and a host whose
+account existed before Approve must be signed in to claim. The message waiting
+email buttons open `/magic/:token`, which signs the guest in only when they press
+the button. An admin edit to a lead's contact survives later ingests.
 
 The claim routes share one rate limit bucket (10 per IP per 5 minutes). The
 remove-me routes allow 30 per IP per hour. Static `/event-leads/...` routes are

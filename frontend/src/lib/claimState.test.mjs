@@ -31,12 +31,12 @@ test("a pending host is asked for an email", () => {
   });
 });
 
-test("a hosted link is ready to claim straight away", () => {
-  assert.deepEqual(viewFor({ state: "ok", event: EVENT, host: HOST }), {
-    view: "ready",
-    event: EVENT,
-    host: HOST,
-  });
+test("a hosted link asks the host to confirm, it never claims on load", () => {
+  // Link scanners that run JavaScript (Safe Links and the like) open the page
+  // on delivery; only a human pressing the button may complete the claim.
+  const out = viewFor({ state: "ok", event: EVENT, host: HOST });
+  assert.deepEqual(out, { view: "confirm", event: EVENT, host: HOST });
+  assert.notEqual(out.view, "ready");
 });
 
 test("a 404 or 410 from the claim post is a dead link, anything else is a message", () => {
@@ -69,7 +69,7 @@ test("the form post trims and lowercases the email and drops an empty name", () 
   });
 });
 
-test("a ready claim posts an empty body", () => {
+test("a confirmed claim posts an empty body", () => {
   assert.deepEqual(claimBody(null), {});
   assert.deepEqual(claimBody({}), {});
 });

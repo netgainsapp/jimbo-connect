@@ -15,7 +15,10 @@ const ACCOUNT_EXISTS = "account_exists";
 // spaces. The server's EmailStr is the real check.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Map GET /api/claim/:token to the view the page shows. */
+/** Map GET /api/claim/:token to the view the page shows. A hosted link
+ *  ("ok") is a confirm view: the page posts only when the host presses the
+ *  button, never on load, because link scanners that run JavaScript open the
+ *  page on delivery and would otherwise claim it for nobody. */
 export function viewFor(response) {
   const state = response?.state;
   if (!response?.event) return { view: "dead" };
@@ -23,7 +26,7 @@ export function viewFor(response) {
     return { view: "form", event: response.event, host: response.host };
   }
   if (state === "ok") {
-    return { view: "ready", event: response.event, host: response.host };
+    return { view: "confirm", event: response.event, host: response.host };
   }
   return { view: "dead" };
 }
@@ -47,7 +50,7 @@ export function isValidEmail(value) {
   return typeof value === "string" && EMAIL_PATTERN.test(value.trim());
 }
 
-/** The POST body: nothing for a ready claim, the email (and a name when one
+/** The POST body: nothing for a confirmed claim, the email (and a name when one
  *  was typed) for a pending host. */
 export function claimBody(form) {
   const email = (form?.email || "").trim().toLowerCase();

@@ -117,15 +117,37 @@ def _event_payload(lead):
 
 # ---------- step 1: host account ----------
 
-async def _refuse_existing_host(user, lead_id):
-    """409 for a real customer. The event this same lead's Approve made does
-    not count, so a resume after a crash is not refused by its own work."""
+async def _is_existing_host(user, lead_id):
+    """A real customer. The event this same lead's Approve made does not
+    count, so a resume after a crash is not refused by its own work."""
     hosts = await events.count_documents({
         "created_by": user["_id"],
         "provenance.event_lead_id": {"$ne": lead_id},
     }) > 0
-    if hosts or billing.plan_of(user) != "free" or user.get("is_admin"):
-        raise _conflict(EXISTING_HOST)
+    return bool(hosts or billing.plan_of(user) != "free" or user.get("is_admin"))
+
+
+async def _refuse_existing_host(user, lead):
+    """409 for a real customer, after marking the lead existing_customer so
+    its badge shows and Approve disables (plan Review Focus 2). That status
+    write is the only one: no user, event, claim token or push."""
+    if not await _is_existing_host(user, str(lead["_id"])):
+        return
+    await store.update_lead(lead["_id"], {
+        "status": "existing_customer",
+        "existing_user_id": str(user["_id"]),
+    })
+    raise _conflict(EXISTING_HOST)
+
+
+def _preexisting(user):
+    """Did this account exist before Approve? One Approve made (host_origin
+    event_lead, never activated) is empty until claimed, so its claim link
+    may sign in. Anything else belongs to a real person, and the claim then
+    needs that person's own session (event_leads_claim)."""
+    return bool(user) and (
+        user.get("host_origin") != "event_lead" or bool(user.get("activated_at"))
+    )
 
 
 async def create_lead_host(email, name, now, email_verified=True):
@@ -156,7 +178,7 @@ async def _resolve_host(lead, now):
         return None
     user = await users.find_one({"email": email})
     if user:
-        await _refuse_existing_host(user, str(lead["_id"]))
+        await _refuse_existing_host(user, lead)
         return user
     # Never an empty name: other users would otherwise see nothing (or, in
     # older code paths, the email) where the host's name belongs.
@@ -171,12 +193,18 @@ async def _adopt_existing_event(lead):
     if event is None:
         return None
     host_id = event.get("created_by")
+    host = await users.find_one({"_id": host_id}) if host_id else None
     fields = {
         "event_id": str(event["_id"]),
         "host_user_id": str(host_id) if host_id else None,
+        **_preexisting_fields(host),
     }
     await store.update_lead(lead["_id"], fields)
     return _with(lead, fields)
+
+
+def _preexisting_fields(host):
+    return {"host_user_preexisting": True} if _preexisting(host) else {}
 
 
 async def _create_event(lead, host, payload):
@@ -196,6 +224,7 @@ async def _create_event(lead, host, payload):
     fields = {
         "event_id": event["id"],
         "host_user_id": str(host["_id"]) if host else None,
+        **_preexisting_fields(host),
     }
     await store.update_lead(lead["_id"], fields)
     return _with(lead, fields)

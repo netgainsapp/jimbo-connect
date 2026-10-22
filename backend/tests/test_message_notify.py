@@ -249,7 +249,7 @@ async def _notify(world, sender_id, now):
 
 
 def _button_url(mail):
-    return next(w for w in mail["text"].split() if "/reset-password/" in w)
+    return next(w for w in mail["text"].split() if "/magic/" in w)
 
 
 # ---------------------------------------------------------------------------
@@ -315,8 +315,13 @@ def test_both_message_templates_are_host_editable_and_never_dashed():
 
 def test_the_button_signs_them_in_and_opens_the_thread(world):
     _run(_notify(world, MARCUS, T0))
-    parts = urlsplit(_button_url(world["sent"][0]))
+    url = _button_url(world["sent"][0])
+    parts = urlsplit(url)
     token = parts.path.rsplit("/", 1)[1]
+    # The magic page, never the reset-password page (whose main button only
+    # takes a reset token and would call this link dead).
+    assert url.startswith(f"{core.APP_URL}/magic/{token}?")
+    assert "reset-password" not in url
     assert parse_qs(parts.query)["next"] == [f"/messages/{MARCUS}"]
     sent_at = T0.replace(microsecond=123000, tzinfo=None) + timedelta(
         seconds=message_notify.COALESCE_SECONDS)

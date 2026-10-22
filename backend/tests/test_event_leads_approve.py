@@ -94,6 +94,7 @@ class _Leads:
     def __init__(self):
         self.rows = {}
         self.writes = 0
+        self.updates = []  # every applied update document, in order
         # A predicate on the update document: that one write raises instead.
         self.fail_when = None
 
@@ -127,6 +128,7 @@ class _Leads:
             self.fail_when = None
             raise RuntimeError("injected crash")
         self.writes += 1
+        self.updates.append(update)
         _set_dotted(row, update.get("$set", {}))
         for key in update.get("$unset", {}):
             row.pop(key, None)
@@ -351,6 +353,39 @@ def test_free_user_without_events_is_reused_as_the_host(db):
 
     assert db.users.inserts == 0
     assert body["host_user_id"] == str(uid)
+    assert db.leads.rows[lead_id]["host_user_preexisting"] is True
+
+
+def test_a_host_approve_created_is_not_marked_preexisting(db):
+    lead_id = db.leads.add(**_lead_doc())
+
+    _approve(lead_id)
+
+    assert "host_user_preexisting" not in db.leads.rows[lead_id]
+
+
+def test_a_resumed_approve_does_not_mark_its_own_new_host_preexisting(db):
+    """A crash after the host insert but before the event: the next run finds
+    the account this Approve made, which is still not a pre-existing one."""
+    lead_id = db.leads.add(**_lead_doc())
+    asyncio.run(approve_mod.create_lead_host("jane@host.org", "Jane Doe", NOW))
+
+    _approve(lead_id)
+
+    assert "host_user_preexisting" not in db.leads.rows[lead_id]
+
+
+def test_an_adopted_event_of_a_reused_host_is_marked_preexisting(db):
+    uid = ObjectId()
+    db.users.rows[uid] = {"_id": uid, "email": "jane@host.org", "plan": "free"}
+    lead_id = db.leads.add(**_lead_doc())
+    _crash_on_event_write(db)
+    with pytest.raises(RuntimeError):
+        _approve(lead_id)
+
+    _approve(lead_id)
+
+    assert db.leads.rows[lead_id]["host_user_preexisting"] is True
 
 
 def test_contact_with_linkedin_and_email_is_also_queued_for_linkedin(db):
@@ -390,20 +425,48 @@ def test_linkedin_only_lead_gets_a_pending_event_and_no_push(db):
     {"plan": "free", "hosts": True},
     {"plan": "pro", "hosts": False},
 ])
-def test_existing_host_is_409_and_nothing_is_written(db, user):
+def test_existing_host_is_409_and_only_marks_the_lead_existing_customer(db, user):
+    """Plan Review Focus 2: the lead becomes existing_customer, so the badge
+    shows and Approve disables. That one status write is all that happens."""
     uid = ObjectId()
     db.users.rows[uid] = {"_id": uid, "email": "jane@host.org", "plan": user["plan"]}
     if user["hosts"]:
         db.events.rows[ObjectId()] = {"created_by": uid, "join_code": "X"}
     lead_id = db.leads.add(**_lead_doc())
-    before = _snapshot(db)
+    before = dict(db.leads.rows[lead_id])
 
     resp = client.post(f"{BASE}/{lead_id}/approve")
 
     assert resp.status_code == 409
     assert "already" in resp.json()["detail"]
-    assert _snapshot(db) == before
-    assert db.leads.rows[lead_id]["status"] == "new"
+    assert db.users.inserts == 0 and db.events.inserts == 0
+    assert db.push.calls == []
+    row = db.leads.rows[lead_id]
+    # The Approve lease is taken and released around it; nothing else is set.
+    lead_writes = [u for u in db.leads.updates
+                   if set(u.get("$set", {})) - {"approving_at"}]
+    assert [set(u["$set"]) for u in lead_writes] == [
+        {"status", "existing_user_id", "updated_at"}]
+    assert "approving_at" not in row
+    assert row["status"] == "existing_customer"
+    assert row["existing_user_id"] == str(uid)
+    assert row["updated_at"] is not None
+    changed = {k for k in set(row) | set(before) if row.get(k) != before.get(k)}
+    assert changed == {"status", "existing_user_id", "updated_at"}
+    assert "claim_token_hash" not in row and "event_id" not in row
+
+
+def test_an_existing_host_lead_is_then_refused_before_any_write(db):
+    uid = ObjectId()
+    db.users.rows[uid] = {"_id": uid, "email": "jane@host.org", "plan": "pro"}
+    lead_id = db.leads.add(**_lead_doc())
+    client.post(f"{BASE}/{lead_id}/approve")
+    writes = db.leads.writes
+
+    resp = client.post(f"{BASE}/{lead_id}/approve")
+
+    assert resp.status_code == 409
+    assert db.leads.writes == writes
 
 
 @pytest.mark.parametrize("status", ["existing_customer", "archived"])
@@ -617,11 +680,8 @@ def test_only_events_from_other_leads_make_a_user_an_existing_host(db):
     own = {"created_by": uid, "provenance": {"event_lead_id": "lead-1"}}
     db.events.rows[ObjectId()] = own
 
-    asyncio.run(approve_mod._refuse_existing_host(user, "lead-1"))
-
-    with pytest.raises(HTTPException) as err:
-        asyncio.run(approve_mod._refuse_existing_host(user, "lead-2"))
-    assert err.value.status_code == 409
+    assert asyncio.run(approve_mod._is_existing_host(user, "lead-1")) is False
+    assert asyncio.run(approve_mod._is_existing_host(user, "lead-2")) is True
 
 
 def test_second_approve_after_a_failed_push_does_not_push_again(db):

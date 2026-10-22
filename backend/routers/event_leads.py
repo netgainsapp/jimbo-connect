@@ -66,9 +66,12 @@ async def _matching_user(email):
 
 
 async def _ingest_one(incoming, now):
-    """Merge and store one lead. Returns (outcome, the stored document)."""
-    email = ((incoming.get("contact") or {}).get("email") or "").strip().lower()
+    """Merge and store one lead. Returns (outcome, the stored document).
+    The user match follows the contact the merge keeps: an admin edited
+    contact outlives the re-send, so it is the one looked up."""
     existing = await store.get_by_organizer_key(incoming["organizer_key"])
+    kept = existing if rules.contact_edited(existing) else incoming
+    email = ((kept.get("contact") or {}).get("email") or "").strip().lower()
     user = await _matching_user(email)
     merged = rules.merge_ingest(existing, incoming, now, existing_user=user)
     if existing is None:
@@ -191,7 +194,7 @@ def serialize_lead(doc, now=None):
         out["days_until"] = (
             rules.days_until(start, now or datetime.now(timezone.utc)) if start else None
         )
-    except ValueError:
+    except (ValueError, TypeError):  # anchor is an untyped dict from sourcing
         out["days_until"] = None
     return out
 
@@ -287,7 +290,8 @@ async def edit_event_lead_contact(
     }
     if email != (old.get("email") or ""):
         contact["email_status"] = ""
-    fields, unset = {"contact": contact}, ()
+    # Stamped for every status: the weekly ingest keeps this contact from now on.
+    fields, unset = {"contact": contact, "contact_edited_at": datetime.now(timezone.utc)}, ()
     if doc.get("status") in rules.REFRESHABLE_STATUSES:
         user = await _matching_user(email)
         fields["status"] = rules.initial_status({"contact": contact}, user)

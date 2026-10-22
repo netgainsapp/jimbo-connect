@@ -391,3 +391,26 @@ def test_every_write_keys_on_id_and_bumps_updated_at(db):
     for query, update in db.updates:
         assert query == {"_id": lead_id}
         assert "updated_at" in update["$set"]
+
+
+def test_a_contact_edit_stamps_contact_edited_at_for_every_status(db):
+    fresh = _lead(db, status="new", contact={"email": "a@host.org"})
+    approved = _lead(db, status="approved", contact={"email": "a@host.org"})
+
+    for lead_id in (fresh, approved):
+        client.put(f"{BASE}/{lead_id}/contact",
+                   json={"name": "", "email": "b@host.org", "linkedin_url": ""})
+        assert db.rows[lead_id]["contact_edited_at"] is not None
+
+
+def test_a_non_string_anchor_start_does_not_break_the_list_or_the_detail(db):
+    lead_id = _lead(db, start=123)
+    _lead(db, organizer_name="fine")
+
+    resp = client.get(BASE)
+
+    assert resp.status_code == 200
+    rows = resp.json()["leads"]
+    assert len(rows) == 2
+    assert next(r for r in rows if r["id"] == str(lead_id))["days_until"] is None
+    assert route.serialize_lead(db.rows[lead_id])["days_until"] is None

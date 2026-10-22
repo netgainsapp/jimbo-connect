@@ -176,3 +176,77 @@ def test_sort_puts_a_in_twenty_days_before_b_in_three():
     assert ordered == [a_near, a_far, b_near]
     assert rules.tier_sort_key(a_far, NOW) == (0, 20)
     assert rules.tier_sort_key(b_near, NOW) == (1, 3)
+
+
+# ---------- admin contact edits survive the weekly re-send ----------
+
+def _edited(existing, **contact):
+    """`existing` as the contact route leaves it after an admin edit."""
+    doc = dict(existing)
+    doc["contact"] = {**existing["contact"], **contact}
+    doc["contact_edited_at"] = NOW
+    return doc
+
+
+def test_an_admin_edited_email_survives_a_rerun_and_the_lead_stays_new():
+    bare = _incoming(contact={"name": "", "email": "", "linkedin_url": ""})
+    existing = _edited(rules.merge_ingest(None, bare, NOW),
+                       name="Jane", email="jane@host.org")
+    existing["status"] = "new"
+    later = datetime(2026, 10, 29, 10, 0, tzinfo=DENVER)
+    rerun = _incoming(
+        contact={"name": "", "email": "", "linkedin_url": ""},
+        score={"tier": "B", "score": 70, "reason": "rescored"},
+        anchor=_event("e9", "2026-12-01T18:00:00-07:00"),
+        events=[_event("e9", "2026-12-01T18:00:00-07:00")],
+    )
+
+    merged = rules.merge_ingest(existing, rerun, later)
+
+    assert merged["contact"]["email"] == "jane@host.org"
+    assert merged["contact"]["name"] == "Jane"
+    assert merged["status"] == "new"
+    assert merged["contact_edited_at"] == NOW
+    assert merged["score"]["tier"] == "B"
+    assert merged["anchor"]["source_event_id"] == "e9"
+    assert [e["source_event_id"] for e in merged["events"]] == ["e9"]
+
+
+def test_an_edited_lead_keeps_its_existing_user_id_through_a_rerun():
+    existing = _edited(rules.merge_ingest(None, _incoming(), NOW), email="a@host.org")
+    existing["existing_user_id"] = "u-edited"
+
+    merged = rules.merge_ingest(existing, _incoming(), NOW)
+
+    assert merged["existing_user_id"] == "u-edited"
+    assert merged["contact"]["email"] == "a@host.org"
+
+
+def test_an_edited_lead_cleared_by_the_admin_stays_unreachable():
+    existing = _edited(rules.merge_ingest(None, _incoming(), NOW),
+                       email="", linkedin_url="")
+    existing["status"] = "unreachable"
+
+    merged = rules.merge_ingest(existing, _incoming(), NOW)
+
+    assert merged["contact"]["email"] == ""
+    assert merged["status"] == "unreachable"
+
+
+def test_an_unedited_lead_still_takes_the_incoming_contact():
+    existing = rules.merge_ingest(None, _incoming(), NOW)
+    rerun = _incoming(contact={"name": "New Person", "email": "New@Host.org"})
+
+    merged = rules.merge_ingest(existing, rerun, NOW)
+
+    assert merged["contact"]["email"] == "new@host.org"
+    assert merged["contact"]["name"] == "New Person"
+    assert "contact_edited_at" not in merged
+
+
+# ---------- a malformed anchor start never breaks the sort ----------
+
+def test_a_non_string_anchor_start_sorts_as_undated():
+    doc = {"score": {"tier": "A"}, "anchor": {"start": 123}}
+
+    assert rules.tier_sort_key(doc, NOW) == (0, rules.NO_DATE_DAYS)

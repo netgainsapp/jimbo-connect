@@ -118,6 +118,30 @@ function EmailForm({ event, host, onSubmit, submitting, error }) {
   );
 }
 
+function ConfirmClaim({ event, onConfirm, submitting, error }) {
+  return (
+    <Shell>
+      <h1 className="text-xl font-bold text-text-primary mb-1">{event.name}</h1>
+      <p className="text-sm text-text-secondary mb-6">
+        Your event page is ready. Set it up to add your attendee list.
+      </p>
+      {error && (
+        <div className="mb-4">
+          <ErrorNote message={error.message} loginNext={error.loginNext} />
+        </div>
+      )}
+      <button
+        type="button"
+        className="btn-primary w-full"
+        onClick={() => onConfirm({})}
+        disabled={submitting}
+      >
+        {submitting ? "Setting things up…" : "Set up my event"}
+      </button>
+    </Shell>
+  );
+}
+
 function PhotoStep({ onDone }) {
   const toast = useToast();
   const { refresh } = useAuth();
@@ -190,7 +214,8 @@ export default function Claim() {
         } else {
           const loginNext = failed.login ? `/claim/${token}` : null;
           setFormError({ message: failed.message, loginNext });
-          setView((v) => (v.view === "form" ? v : failed));
+          // The form and the confirm view show the error in place.
+          setView((v) => (v.view === "form" || v.view === "confirm" ? v : failed));
         }
       } finally {
         setSubmitting(false);
@@ -204,13 +229,10 @@ export default function Claim() {
     ran.current = true;
     claimApi
       .get(token)
-      .then((res) => {
-        const next = viewFor(res);
-        setView(next);
-        if (next.view === "ready") complete({});
-      })
+      // Never posts here: the confirm view waits for the host's click.
+      .then((res) => setView(viewFor(res)))
       .catch((err) => setView(failureView(err)));
-  }, [token, complete]);
+  }, [token]);
 
   const finish = () => navigate(safeNext(claimed?.redirect), { replace: true });
 
@@ -252,6 +274,16 @@ export default function Claim() {
       />
     );
   }
+  if (view.view === "confirm") {
+    return (
+      <ConfirmClaim
+        event={view.event}
+        onConfirm={complete}
+        submitting={submitting}
+        error={formError}
+      />
+    );
+  }
   if (view.view === "error") {
     return (
       <Shell>
@@ -269,7 +301,7 @@ export default function Claim() {
   return (
     <Shell>
       <p className="text-sm text-text-secondary text-center">
-        {view.event ? `Setting up ${view.event.name}…` : "Loading…"}
+        Loading…
       </p>
     </Shell>
   );

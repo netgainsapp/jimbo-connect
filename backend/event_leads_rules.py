@@ -6,7 +6,8 @@ question here is what a re-send may change. Once an admin has acted on a lead
 (approved, claimed, archived) the email they approved is built from its anchor,
 score and contact, so those are frozen and a re-send can only add to the
 event history. A lead nobody has acted on is still a draft and takes the
-newest data wholesale.
+newest data wholesale, except a contact an admin edited by hand
+(`contact_edited_at`), which every re-send keeps.
 """
 import copy
 from datetime import datetime, timedelta, timezone
@@ -76,8 +77,17 @@ def _new_doc(incoming, now, existing_user):
     return doc
 
 
+def contact_edited(doc):
+    """Has an admin edited this lead's contact? Then the stored contact wins
+    over every re-send, because the usual reason for the edit is that the
+    scraper found nothing (and will keep finding nothing)."""
+    return bool((doc or {}).get("contact_edited_at"))
+
+
 def _refresh(doc, incoming, existing_user):
-    """Draft lead: take the newest anchor, events, score and contact."""
+    """Draft lead: take the newest anchor, events and score, and the newest
+    contact unless an admin edited it. `existing_user` matches whichever
+    contact is kept (the caller looks it up by that email)."""
     events = copy.deepcopy(incoming.get("events") or [])
     doc["organizer_name"] = incoming.get("organizer_name") or doc["organizer_name"]
     doc["organizer_url"] = incoming.get("organizer_url") or doc["organizer_url"]
@@ -86,6 +96,12 @@ def _refresh(doc, incoming, existing_user):
     doc["events"] = events
     doc["events_listed"] = incoming.get("events_listed", len(events))
     doc["score"] = copy.deepcopy(incoming.get("score") or {})
+    if contact_edited(doc):
+        doc["status"] = initial_status({"contact": doc.get("contact")}, existing_user)
+        # Never cleared here: only the contact route may drop the match.
+        if existing_user:
+            doc["existing_user_id"] = str(existing_user["_id"])
+        return
     doc["contact"] = _contact(incoming.get("contact"))
     doc["status"] = initial_status(incoming, existing_user)
     if existing_user:
@@ -157,7 +173,7 @@ def tier_sort_key(doc, now=None):
     start = (doc.get("anchor") or {}).get("start")
     try:
         days = days_until(start, now or datetime.now(DENVER)) if start else NO_DATE_DAYS
-    except ValueError:
+    except (ValueError, TypeError):  # anchor is an untyped dict from sourcing
         days = NO_DATE_DAYS
     return (rank, days)
 
