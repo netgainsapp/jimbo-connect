@@ -368,7 +368,7 @@ def test_a_data_photo_without_an_id_is_dropped_rather_than_sent_inline():
     assert core.host_block(user)["photo_url"] == ""
 
 
-def _photo_client(monkeypatch, photo):
+def _photo_client(monkeypatch, photo, hosts=True):
     from bson import ObjectId
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
@@ -380,7 +380,12 @@ def _photo_client(monkeypatch, photo):
         async def find_one(self, q):
             return {"_id": oid, "profile": {"photo_url": photo}} if q["_id"] == oid else None
 
+    class _Events:
+        async def find_one(self, q):
+            return {"_id": "e1"} if hosts and q["created_by"] == oid else None
+
     monkeypatch.setattr(branding_router, "users", _Users())
+    monkeypatch.setattr(branding_router, "events", _Events())
     app = FastAPI()
     app.include_router(branding_router.router)
     return TestClient(app), oid
@@ -494,3 +499,30 @@ def test_an_admin_import_into_a_hosts_event_sends_as_that_host(monkeypatch):
     assert sent[0]["host"]["name"] == "Jane Doe"
     assert sent[0]["host"]["email"] == "jane@acme.co"
     assert rendered_for == [("host-9", "Jane Doe")]
+
+
+def test_the_photo_route_will_not_serve_someone_who_hosts_nothing(monkeypatch):
+    client, oid = _photo_client(monkeypatch, _DATA_URL, hosts=False)
+    assert client.get(f"/api/public/host-photo/{oid}").status_code == 404
+
+
+def test_every_accepted_image_type_is_served_with_its_content_type(monkeypatch):
+    from models import PHOTO_DATA_SUBTYPES
+
+    for subtype in PHOTO_DATA_SUBTYPES:
+        photo = f"data:image/{subtype};base64," + base64.b64encode(_PNG).decode()
+        user = {"_id": "64b000000000000000000001", "email": "j@x.co",
+                "profile": {"name": "Jane", "photo_url": photo}}
+        assert core.host_block(user)["photo_url"].endswith("/64b000000000000000000001")
+        client, oid = _photo_client(monkeypatch, photo)
+        r = client.get(f"/api/public/host-photo/{oid}")
+        assert r.status_code == 200, subtype
+        assert r.headers["content-type"] == "image/" + ("jpeg" if subtype == "jpg" else subtype)
+
+
+def test_a_webp_headshot_is_served(monkeypatch):
+    photo = "data:image/webp;base64," + base64.b64encode(_PNG).decode()
+    client, oid = _photo_client(monkeypatch, photo)
+    r = client.get(f"/api/public/host-photo/{oid}")
+    assert r.status_code == 200 and r.content == _PNG
+    assert r.headers["content-type"] == "image/webp"

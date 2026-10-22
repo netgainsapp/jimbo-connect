@@ -19,7 +19,8 @@ import billing
 import branding
 import rate_limit
 from auth import get_current_admin, get_current_user
-from database import users
+from database import events, users
+from models import PHOTO_DATA_SUBTYPES
 
 router = APIRouter()
 
@@ -135,15 +136,18 @@ async def serve_logo(user_id: str):
     )
 
 
-_PHOTO_DATA_RE = re.compile(r"^data:(image/(?:png|jpe?g));base64,(.+)$", re.DOTALL)
+_PHOTO_DATA_RE = re.compile(
+    r"^data:image/(" + "|".join(PHOTO_DATA_SUBTYPES) + r");base64,(.+)$", re.DOTALL
+)
 
 
 @router.get("/api/public/host-photo/{user_id}")
 async def serve_host_photo(user_id: str):
     """Public by design: email clients load host headshots anonymously. Uploads
     live on the profile as base64 data URLs, which Gmail and Outlook will not
-    render, so this decodes one and serves the bytes. 404 when the user has no
-    data URL photo (an https photo is linked directly and never lands here)."""
+    render, so this decodes one and serves the bytes. Only people who host an
+    event are served: an attendee's photo is not public just because their id
+    is guessable. Every refusal is the same 404, so ids cannot be enumerated."""
     try:
         oid = ObjectId(user_id)
     except Exception:
@@ -151,7 +155,7 @@ async def serve_host_photo(user_id: str):
     host = await users.find_one({"_id": oid})
     photo = ((host or {}).get("profile") or {}).get("photo_url") or ""
     match = _PHOTO_DATA_RE.match(photo)
-    if not match:
+    if not match or await events.find_one({"created_by": oid}) is None:
         raise HTTPException(status_code=404, detail="Not found")
     try:
         content = base64.b64decode(match.group(2), validate=True)
@@ -159,7 +163,7 @@ async def serve_host_photo(user_id: str):
         raise HTTPException(status_code=404, detail="Not found")
     return Response(
         content=content,
-        media_type=match.group(1).replace("jpg", "jpeg"),
+        media_type="image/" + ("jpeg" if match.group(1) == "jpg" else match.group(1)),
         headers={"Cache-Control": "public, max-age=3600"},
     )
 

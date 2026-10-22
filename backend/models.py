@@ -51,19 +51,16 @@ class ResetPasswordRequest(BaseModel):
 # A photo may be an https URL or an inline base64 data URL of a real image
 # type. Anything else (javascript:, http:, file:, plain text) is rejected at
 # the boundary; stored legacy values are not re-validated on read.
-_PHOTO_DATA_PREFIXES = (
-    "data:image/png;base64,",
-    "data:image/jpeg;base64,",
-    "data:image/jpg;base64,",
-    "data:image/webp;base64,",
-    "data:image/gif;base64,",
-)
+# The one list of accepted image subtypes: the upload validator, the email
+# headshot URL and the public photo route all derive from it.
+PHOTO_DATA_SUBTYPES = ("png", "jpeg", "jpg", "webp", "gif")
+PHOTO_DATA_PREFIXES = tuple(f"data:image/{t};base64," for t in PHOTO_DATA_SUBTYPES)
 
 
 def _check_photo_value(v):
     if v is None or v == "":
         return v
-    if v.startswith("https://") or v.startswith(_PHOTO_DATA_PREFIXES):
+    if v.startswith("https://") or v.startswith(PHOTO_DATA_PREFIXES):
         return v
     raise ValueError("photo must be an https URL or an image data URL")
 
@@ -122,7 +119,7 @@ class PhotoUploadRequest(BaseModel):
     @field_validator("photo_data")
     @classmethod
     def _photo_data_is_image(cls, v):
-        if not v or not v.startswith(_PHOTO_DATA_PREFIXES):
+        if not v or not v.startswith(PHOTO_DATA_PREFIXES):
             raise ValueError("photo_data must be an image data URL")
         return v
 

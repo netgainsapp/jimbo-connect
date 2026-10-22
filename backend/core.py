@@ -29,7 +29,7 @@ import nurture
 import suppression
 from template_seeds import DEFAULT_TEMPLATES
 from auth import hash_password, COOKIE_NAME
-from models import Profile
+from models import Profile, PHOTO_DATA_PREFIXES
 
 load_dotenv()
 
@@ -148,7 +148,7 @@ def _email_photo_url(user: dict, photo: str) -> str:
     from a public route instead. An https URL passes through unchanged."""
     if photo.startswith("https://"):
         return photo
-    if photo.startswith("data:image/") and user.get("_id") is not None:
+    if photo.startswith(PHOTO_DATA_PREFIXES) and user.get("_id") is not None:
         return f"{suppression.API_PUBLIC_URL}{HOST_PHOTO_PATH}/{user['_id']}"
     return ""
 
