@@ -8,6 +8,7 @@ Run from backend/: python -m pytest tests/test_linkedin_queue.py
 """
 import csv
 import io
+import json
 import os
 
 os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
@@ -20,6 +21,7 @@ from fastapi.testclient import TestClient
 
 import auth
 import event_leads_store
+import linkedin_queue as queue
 import sales_templates
 import server
 
@@ -263,6 +265,87 @@ def test_lead_taken_by_another_export_is_not_listed_twice(db, monkeypatch):
     assert _rows(client.get(QUEUE)) == []
 
 
+def test_a_lead_whose_row_fails_stays_queued_and_the_rest_are_marked(db, monkeypatch, capsys):
+    good = _lead(db, "good")
+    bad = _lead(db, "bad", organizer_name="Boom")
+    real = queue.queue_row
+
+    def explode_for_boom(lead, *args):
+        if lead["organizer_name"] == "Boom":
+            raise ValueError("bad date")
+        return real(lead, *args)
+
+    monkeypatch.setattr(queue, "queue_row", explode_for_boom)
+
+    response = client.get(QUEUE)
+
+    assert response.status_code == 200
+    assert [r["profile_url"] for r in _rows(response)] == ["https://www.linkedin.com/in/good/"]
+    assert response.headers["x-linkedin-skipped"] == "1"
+    assert _linkedin(db, good)["status"] == "exported"
+    assert _linkedin(db, bad) == {"status": "queued"}
+    logged = capsys.readouterr().err
+    assert "ValueError" in logged and str(bad) in logged and EMAIL not in logged
+
+
+def test_a_lead_that_cannot_be_marked_is_left_out_and_stays_queued(db, monkeypatch):
+    good = _lead(db, "good")
+    stuck = _lead(db, "stuck", organizer_name="Stuck")
+    real = event_leads_store.update_lead_if
+
+    async def fail_for_stuck(oid, condition, fields):
+        if oid == stuck:
+            raise RuntimeError("write failed")
+        return await real(oid, condition, fields)
+
+    monkeypatch.setattr(event_leads_store, "update_lead_if", fail_for_stuck)
+
+    response = client.get(QUEUE)
+
+    assert [r["company"] for r in _rows(response)] == ["Denver Devs"]
+    assert response.headers["x-linkedin-skipped"] == "1"
+    assert _linkedin(db, good)["status"] == "exported"
+    assert _linkedin(db, stuck) == {"status": "queued"}
+
+
+def test_nothing_is_marked_before_every_row_is_built(db, monkeypatch):
+    _lead(db, "a")
+    _lead(db, "b", organizer_name="Boom")
+    marks_when_building = []
+    real = queue.queue_row
+
+    def spy(lead, *args):
+        marks_when_building.append(len(db.updates))
+        return real(lead, *args)
+
+    monkeypatch.setattr(queue, "queue_row", spy)
+    client.get(QUEUE)
+
+    assert marks_when_building == [0, 0]
+
+
+def test_include_exported_lists_exported_leads_without_re_marking(db):
+    queued = _lead(db, "queued")
+    exported = _lead(db, "exported", linkedin="exported")
+    _lead(db, "invited", linkedin="invited")
+    db.rows[exported]["linkedin"]["exported_at"] = "first"
+
+    response = client.get(QUEUE, params={"include_exported": "true"})
+
+    urls = sorted(r["profile_url"] for r in _rows(response))
+    assert urls == ["https://www.linkedin.com/in/exported/",
+                    "https://www.linkedin.com/in/queued/"]
+    assert _linkedin(db, exported)["exported_at"] == "first"
+    assert _linkedin(db, queued)["status"] == "exported"
+    assert [q["_id"] for q, _ in db.updates] == [queued]
+
+
+def test_exported_leads_are_not_listed_without_include_exported(db):
+    _lead(db, "exported", linkedin="exported")
+
+    assert _rows(client.get(QUEUE)) == []
+
+
 def test_linkedin_routes_need_an_admin(db):
     client.cookies.clear()
     assert client.get(QUEUE).status_code == 401
@@ -391,6 +474,44 @@ def test_csv_upload_in_the_linked_helper_format(db):
 
     assert body["updated"] == 3
     assert [_linkedin(db, x)["status"] for x in (a, b, c)] == ["invited", "connected", "replied"]
+
+
+def test_json_content_type_is_matched_case_insensitively(db):
+    oid = _lead(db, "a", linkedin="exported")
+    body = json.dumps({"rows": [{"linkedin_url": "linkedin.com/in/a", "status": "invited"}]})
+
+    response = client.post(RESULTS, content=body,
+                           headers={"Content-Type": "Application/JSON; charset=utf-8"})
+
+    assert response.status_code == 200 and response.json()["updated"] == 1
+    assert _linkedin(db, oid)["status"] == "invited"
+
+
+def test_a_profile_subpage_url_in_a_result_matches_the_lead(db):
+    oid = _lead(db, "a", linkedin="exported")
+
+    body = _post_rows([{"linkedin_url": "https://www.linkedin.com/in/a/details/experience/",
+                        "status": "invited"}]).json()
+
+    assert body["updated"] == 1 and body["unknown"] == []
+    assert _linkedin(db, oid)["status"] == "invited"
+
+
+def test_failed_does_not_overwrite_a_connected_or_replied_lead(db):
+    connected = _lead(db, "c", linkedin="connected")
+    replied = _lead(db, "r", linkedin="replied")
+    invited = _lead(db, "i", linkedin="invited")
+
+    body = _post_rows([
+        {"linkedin_url": "linkedin.com/in/c", "status": "failed"},
+        {"linkedin_url": "linkedin.com/in/r", "status": "failed"},
+        {"linkedin_url": "linkedin.com/in/i", "status": "failed"},
+    ]).json()
+
+    assert (body["updated"], body["unchanged"]) == (1, 2)
+    assert _linkedin(db, connected)["status"] == "connected"
+    assert _linkedin(db, replied)["status"] == "replied"
+    assert _linkedin(db, invited)["status"] == "failed"
 
 
 def test_results_need_a_file_or_rows(db):

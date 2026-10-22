@@ -9,6 +9,7 @@ import csv
 import hmac
 import io
 import os
+import sys
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -27,6 +28,7 @@ router = APIRouter()
 MAX_UPLOAD_BYTES = 2 * 1024 * 1024
 MAX_ROWS = 5000
 WEBHOOK_SECRET_ENV = "LINKED_HELPER_WEBHOOK_SECRET"
+SKIPPED_HEADER = "X-Linkedin-Skipped"
 
 
 def require_webhook_secret(secret: Optional[str] = Query(None)):
@@ -38,6 +40,12 @@ def require_webhook_secret(secret: Optional[str] = Query(None)):
         secret.encode(), configured.encode()
     ):
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def _log_skip(lead, exc):
+    """Name the lead by id and the failure by type only: no contact data."""
+    print(f"[event_leads] linkedin export skipped lead {lead['_id']}: "
+          f"{type(exc).__name__}", file=sys.stderr)
 
 
 async def _mark_exported(lead, now):
@@ -54,26 +62,58 @@ async def _mark_exported(lead, now):
     )
 
 
+def _build_rows(leads, note, followup, now):
+    """(lead, row) for every lead whose row could be built, and how many
+    failed. A failing lead is skipped and stays queued."""
+    built, skipped = [], 0
+    for lead in leads:
+        if not queue.has_url(lead):
+            continue
+        try:
+            built.append((lead, queue.queue_row(lead, note["body"], followup["body"], now)))
+        except Exception as exc:  # one bad lead must not lose the whole export
+            _log_skip(lead, exc)
+            skipped += 1
+    return built, skipped
+
+
+async def _claim_rows(built, now, mark):
+    """Rows to return, with each queued lead marked exported first. A lead
+    that cannot be marked (lost race, write error) is left out and stays
+    queued; an already exported lead is listed without re-marking."""
+    rows, skipped = [], 0
+    for lead, row in built:
+        needs_mark = mark and (lead.get("linkedin") or {}).get("status") == "queued"
+        try:
+            if needs_mark and not await _mark_exported(lead, now):
+                continue
+        except Exception as exc:  # leave it queued, keep the other leads
+            _log_skip(lead, exc)
+            skipped += 1
+            continue
+        rows.append(row)
+    return rows, skipped
+
+
 @router.get("/api/admin/event-leads/linkedin-queue.csv")
 async def linkedin_queue_csv(
-    dry_run: bool = False, admin: dict = Depends(get_current_admin)
+    dry_run: bool = False,
+    include_exported: bool = False,
+    admin: dict = Depends(get_current_admin),
 ):
+    """Build every row first, then mark only the leads whose rows were built,
+    so a failure can never leave a lead exported without being in a file."""
     now = datetime.now(timezone.utc)
     note = await stored_or_seed(copy.NOTE_KEY)
     followup = await stored_or_seed(copy.FOLLOWUP_KEY)
-    rows = []
-    for lead in await store.list_linkedin_queue():
-        if not queue.has_url(lead):
-            continue
-        row = queue.queue_row(lead, note["body"], followup["body"], now)
-        if dry_run or await _mark_exported(lead, now):
-            rows.append(row)
-    disposition = f'attachment; filename="{queue.export_filename(now)}"'
-    return Response(
-        content=queue.to_csv(rows),
-        media_type="text/csv",
-        headers={"Content-Disposition": disposition},
-    )
+    leads = await store.list_linkedin_queue(include_exported)
+    built, failed = _build_rows(leads, note, followup, now)
+    rows, unmarked = await _claim_rows(built, now, mark=not dry_run)
+    headers = {
+        "Content-Disposition": f'attachment; filename="{queue.export_filename(now)}"',
+        SKIPPED_HEADER: str(failed + unmarked),
+    }
+    return Response(content=queue.to_csv(rows), media_type="text/csv", headers=headers)
 
 
 def _bad_request(detail):
@@ -105,7 +145,8 @@ async def _csv_rows(request):
 
 
 async def _read_rows(request):
-    is_json = request.headers.get("content-type", "").startswith("application/json")
+    content_type = request.headers.get("content-type", "").lower()
+    is_json = content_type.startswith("application/json")
     rows = await (_json_rows(request) if is_json else _csv_rows(request))
     if len(rows) > MAX_ROWS:
         raise _bad_request(f"At most {MAX_ROWS} rows per import")

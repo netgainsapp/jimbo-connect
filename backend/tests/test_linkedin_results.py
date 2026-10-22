@@ -108,12 +108,30 @@ def test_next_status_only_moves_forward():
     assert lr.next_status("connected", "connected") is None
 
 
-def test_failed_needs_exported_or_later_and_can_be_retried():
-    assert lr.next_status("queued", "failed") is None
+def test_failed_is_only_set_from_exported_or_invited():
     assert lr.next_status("exported", "failed") == "failed"
     assert lr.next_status("invited", "failed") == "failed"
-    assert lr.next_status("failed", "failed") is None
+    for current in ("none", "queued", "failed"):
+        assert lr.next_status(current, "failed") is None
+
+
+def test_failed_never_overwrites_connected_or_replied():
+    assert lr.next_status("connected", "failed") is None
+    assert lr.next_status("replied", "failed") is None
+
+
+def test_a_failed_lead_can_still_be_invited_again():
     assert lr.next_status("failed", "invited") == "invited"
+
+
+def test_profile_subpages_match_the_profile():
+    base = lr.normalize_linkedin_url("https://www.linkedin.com/in/jane-doe")
+    for extra in ("/details/experience/", "/recent-activity/all", "/overlay/contact-info/"):
+        assert lr.normalize_linkedin_url(f"https://www.linkedin.com/in/jane-doe{extra}") == base
+
+
+def test_non_profile_paths_keep_their_full_path():
+    assert lr.normalize_linkedin_url("https://linkedin.com/company/acme/about/") ==         "linkedin.com/company/acme/about"
 
 
 def test_build_update_sets_status_its_timestamp_and_updated_at():

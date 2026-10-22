@@ -22,6 +22,7 @@ STATUS_RANK = {
     "none": 0, "queued": 1, "exported": 2, "invited": 3, "connected": 4, "replied": 5,
 }
 RESULT_STATUSES = frozenset({"invited", "connected", "replied", "failed"})
+FAILABLE_FROM = frozenset({"exported", "invited"})
 LINKEDIN_HOST = "linkedin.com"
 WWW_PREFIX = "www."
 URL_KEYS = ("linkedinurl", "profileurl")
@@ -50,10 +51,16 @@ def normalize_linkedin_url(url):
     host = host[len(WWW_PREFIX):] if host.startswith(WWW_PREFIX) else host
     if host.endswith("." + LINKEDIN_HOST):
         host = LINKEDIN_HOST
-    path = unquote(parts.path).rstrip("/").lower()
+    path = _profile_path(unquote(parts.path).rstrip("/").lower())
     if "." not in host or not path:
         return ""
     return host + path
+
+
+def _profile_path(path):
+    """`/in/<id>` for a profile path with extra segments such as /details/."""
+    segments = path.split("/")
+    return "/".join(segments[:3]) if path.startswith("/in/") else path
 
 
 def parse_at(value):
@@ -169,12 +176,12 @@ def _rank(status):
 
 def next_status(current, incoming):
     """`incoming` when it is a step forward from `current`, else None.
-    Failed can be set from exported or later, once."""
+    Failed can be set only from exported or invited: it never overwrites a
+    lead that has connected or replied, and it is set once."""
     if incoming not in RESULT_STATUSES:
         return None
     if incoming == "failed":
-        reachable = _rank(current) >= STATUS_RANK["exported"] and current != "failed"
-        return "failed" if reachable else None
+        return "failed" if current in FAILABLE_FROM else None
     return incoming if STATUS_RANK[incoming] > _rank(current) else None
 
 

@@ -51,11 +51,13 @@ async def list_leads(show_c):
     return await event_leads.find(query).to_list(None)
 
 
-async def list_linkedin_queue():
-    """Approved leads whose LinkedIn step is still `queued`. The caller drops
+async def list_linkedin_queue(include_exported=False):
+    """Approved leads whose LinkedIn step is still `queued`, plus the already
+    `exported` ones when asked (to recover a lost download). The caller drops
     the ones without a profile URL."""
+    wanted = ["queued", "exported"] if include_exported else ["queued"]
     return await event_leads.find(
-        {"status": "approved", "linkedin.status": "queued"}
+        {"status": "approved", "linkedin.status": {"$in": wanted}}
     ).to_list(None)
 
 
