@@ -561,6 +561,22 @@ def test_a_lost_attach_race_records_the_winner_and_answers_just_claimed(db, monk
     assert db.notify.calls == []
 
 
+def test_a_half_attach_onto_an_existing_account_repairs_but_needs_that_session(db):
+    """The repair must not turn the link into a login for a real account."""
+    host_id, _, lead_id = _half_attached(db)
+    db.users.rows[host_id]["activated_at"] = datetime(2026, 9, 1, tzinfo=timezone.utc)
+
+    resp = client.post(f"/api/claim/{TOKEN}", json={})
+
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["code"] == "account_exists"
+    assert auth.COOKIE_NAME not in _set_cookie(resp)
+    lead = db.leads.rows[lead_id]
+    assert lead["host_user_id"] == str(host_id)
+    assert lead["host_user_preexisting"] is True
+    assert db.writes() == (1, 0, 0, 0, 0) and db.notify.calls == []
+
+
 # ---------- a host account that existed before Approve ----------
 
 def _preexisting(d):

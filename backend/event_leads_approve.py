@@ -140,7 +140,7 @@ async def _refuse_existing_host(user, lead):
     raise _conflict(EXISTING_HOST)
 
 
-def _preexisting(user):
+def is_preexisting_host(user):
     """Did this account exist before Approve? One Approve made (host_origin
     event_lead, never activated) is empty until claimed, so its claim link
     may sign in. Anything else belongs to a real person, and the claim then
@@ -204,7 +204,7 @@ async def _adopt_existing_event(lead):
 
 
 def _preexisting_fields(host):
-    return {"host_user_preexisting": True} if _preexisting(host) else {}
+    return {"host_user_preexisting": True} if is_preexisting_host(host) else {}
 
 
 async def _create_event(lead, host, payload):

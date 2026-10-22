@@ -41,7 +41,7 @@ import billing
 import core
 import event_leads_store as store
 from database import events, users
-from event_leads_approve import create_lead_host
+from event_leads_approve import create_lead_host, is_preexisting_host
 from routers.events import plan_limit_detail
 
 # The HTTP status a dead link answers a POST with. GET always answers 200.
@@ -249,7 +249,12 @@ async def complete(token, payload, session_user, now):
     if host is None:
         host = await _attach_pending_host(lead, event, payload, session_user, now)
     elif not lead.get("host_user_id"):
-        await _record_host(lead, host["_id"])  # repair a half finished attach
+        # Repair a half finished attach. A host this claim did not make still
+        # needs its own session, exactly as if Approve had flagged it.
+        preexisting = is_preexisting_host(host)
+        await _record_host(lead, host["_id"], preexisting=preexisting)
+        if preexisting:
+            _require_session_of(host, session_user)
     await _mark_event_claimed(event, now)
     await core.mark_activated(host["_id"], now)
     first = await _mark_first_claim(lead, now)
