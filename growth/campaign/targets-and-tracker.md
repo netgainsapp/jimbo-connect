@@ -1322,3 +1322,17 @@ drop call from Oct 5; (3) Command Center push skipped, GET /api/snapshot with
 the secret header still returns 307 to /unlock (checked 3:25 PM). Fix needed
 before the next run is useful: reconnect the Chrome extension on the machine
 whose Chrome holds the introconnectme /u/3 session.
+
+**2026-10-22 (Thu, 5:20 PM MDT), scheduled run BLIND a third time, nothing
+measured or loaded.** Claude in Chrome not connected (three attempts). The
+Gmail connector now authenticates as momentpickleball@gmail.com (checked:
+in:sent shows only that account's mail), so it cannot read /u/3 either. Last
+measured state (Oct 5) still stands: 10 sent since Sep 5 (all Sep 8), 150
+drafts sitting, every drip clock held, Gabriel's Sep 9 note unanswered in this
+mailbox. Anything sent Oct 5 to Oct 22 is UNKNOWN; no clock advances. Runner
+decisions unchanged from Oct 13: no sourcing (148 vetted drafts unsent), no
+drip drafts (the ~87 overdue touches, now 5 to 6 weeks late, still await
+Scott's restart/reword/drop call). Command Center push skipped: GET
+/api/snapshot with the secret header still returns 307 to /unlock (5:21 PM).
+Two fixes unblock this runner: reconnect Chrome on the machine holding /u/3,
+and exempt /api/snapshot from the passcode middleware.
