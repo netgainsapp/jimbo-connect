@@ -29,7 +29,7 @@ import nurture
 import suppression
 from template_seeds import DEFAULT_TEMPLATES
 from auth import hash_password, COOKIE_NAME
-from models import Profile
+from models import Profile, PHOTO_DATA_PREFIXES
 
 load_dotenv()
 
@@ -138,7 +138,62 @@ def serialize_user(user: dict) -> dict:
     }
 
 
-def serialize_attendee(user: dict, *, include_email: bool = False) -> dict:
+HOST_NAME_FALLBACK = "Your host"
+HOST_PHOTO_PATH = "/api/public/host-photo"
+
+
+def _email_photo_url(user: dict, photo: str) -> str:
+    """A headshot URL an email client can load. Uploads are stored as base64
+    data URLs, which Gmail and Outlook refuse to render, so those are served
+    from a public route instead. An https URL passes through unchanged."""
+    if photo.startswith("https://"):
+        return photo
+    if photo.startswith(PHOTO_DATA_PREFIXES) and user.get("_id") is not None:
+        return f"{suppression.API_PUBLIC_URL}{HOST_PHOTO_PATH}/{user['_id']}"
+    return ""
+
+
+def host_block(user: dict | None) -> dict | None:
+    """The host as an attendee email sees them: { name, email, photo_url }.
+
+    Feeds the sender display name, reply-to and the email header. The name never
+    falls back to the email address, so an unnamed host cannot leak their own
+    address into every guest's inbox header. None for no user, which sends
+    through the platform layout instead.
+    """
+    if not user:
+        return None
+    profile = user.get("profile") or {}
+    return {
+        "name": (profile.get("name") or "").strip() or HOST_NAME_FALLBACK,
+        "email": user.get("email", ""),
+        "photo_url": _email_photo_url(user, (profile.get("photo_url") or "").strip()),
+    }
+
+
+async def mark_activated(user_id, now: datetime | None = None) -> None:
+    """Stamp the first time this person signed in, claimed or joined an event.
+    Set once: the filter skips anyone already stamped, so the date never moves.
+    Lives on the user, not the membership, because an account someone has used
+    is theirs in every event, including ones a host imports them into later."""
+    await users.update_one(
+        {"_id": user_id, "activated_at": {"$exists": False}},
+        {"$set": {"activated_at": now or datetime.now(timezone.utc)}},
+    )
+
+
+def is_active(user: dict, membership: dict | None = None) -> bool:
+    """A person is active once they have used their account. Before that, a
+    membership an import created says `activated: False`; every other
+    membership (a join, or one that predates the flag) reads as active."""
+    return bool(user.get("activated_at")) or bool(
+        (membership or {}).get("activated", True)
+    )
+
+
+def serialize_attendee(
+    user: dict, *, membership: dict | None = None, include_email: bool = False
+) -> dict:
     """A person as seen by someone else.
 
     The email address is opt IN rather than opt out. It used to be included
@@ -156,6 +211,9 @@ def serialize_attendee(user: dict, *, include_email: bool = False) -> dict:
     out = {
         "id": str(user["_id"]),
         "profile": Profile(**profile).model_dump(),
+        # "Not yet active" tells other guests a message reaches this person by
+        # email. Pass the event membership where the caller has it.
+        "active": is_active(user, membership),
     }
     if include_email:
         # Door guests have no email; hosts see an empty cell, not a crash.

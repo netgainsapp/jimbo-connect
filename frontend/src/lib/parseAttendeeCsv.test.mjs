@@ -8,7 +8,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parsePaste, isLikelyEmail } from "./parseAttendeeCsv.js";
+import { parsePaste, isLikelyEmail, parseCsvObjects } from "./parseAttendeeCsv.js";
 
 // ---------------------------------------------------------------------------
 // Quoted fields (RFC 4180). Eventbrite, Meetup and Excel all quote any field
@@ -262,4 +262,26 @@ test("explains a Meetup export once instead of erroring on every line", () => {
   assert.equal(errors.length, 1);
   assert.match(errors[0].reason, /no email column/i);
   assert.match(errors[0].reason, /Meetup/);
+});
+
+// ---------------------------------------------------------------------------
+// parseCsvObjects: header-keyed rows for files that are not guest lists (the
+// Linked Helper results export). Same quoting rules, no field mapping.
+// ---------------------------------------------------------------------------
+
+test("reads any CSV into rows keyed by its own headers, quotes intact", () => {
+  const rows = parseCsvObjects(
+    'profile_url,replied_message_1_text\r\nhttps://linkedin.com/in/jane,"Sure, send it"\n\n',
+  );
+  assert.deepEqual(rows, [
+    {
+      profile_url: "https://linkedin.com/in/jane",
+      replied_message_1_text: "Sure, send it",
+    },
+  ]);
+});
+
+test("a header-only or empty file reads as no rows", () => {
+  assert.deepEqual(parseCsvObjects("profile_url,status\n"), []);
+  assert.deepEqual(parseCsvObjects(""), []);
 });

@@ -8,6 +8,7 @@ from bson import ObjectId
 from database import users, saved_contacts, messages
 import directory
 import host_templates
+import message_notify
 import rate_limit
 from auth import get_current_user, COOKIE_NAME
 from models import (
@@ -356,6 +357,9 @@ async def send_message(
     }
     result = await messages.insert_one(doc)
     doc["_id"] = result.inserted_id
+    # A guest who has never signed in learns of it by email, in the host's
+    # name. Never raises and never sees the text, so the reply is unaffected.
+    await message_notify.notify_for_message(user, target, doc["sent_at"])
     return _serialize_message(doc)
 
 

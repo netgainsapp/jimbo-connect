@@ -85,6 +85,12 @@ class _FakeInvites:
 
     def find(self, query, _projection=None):
         wanted = set(query.get("email", {}).get("$in", []))
+        if "removed_at" in query:
+            # The remove-link lookup: only rows a guest marked removed.
+            return _FakeCursor([
+                d for d in self.docs
+                if d["email"] in wanted and d.get("removed_at") is not None
+            ])
         gte = (query.get("invited_at") or {}).get("$gte")
         return _FakeCursor([
             d

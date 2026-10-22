@@ -44,6 +44,14 @@ survey_responses = db["survey_responses"]
 # A host's rewrites of the emails sent in their name. One row per (host,
 # template); absence means the default applies, so reset is a delete.
 host_email_templates = db["host_email_templates"]
+# Event lead engine: one lead per organizer (organizer_key), and one run record
+# per weekly sourcing job. Rules live in event_leads_rules.py.
+event_leads = db["event_leads"]
+event_lead_runs = db["event_lead_runs"]
+# One row per inactive recipient per event: who messaged them, when their
+# activation email went out, and when each sender last triggered one. Rules
+# live in message_notify.py.
+message_notify_state = db["message_notify_state"]
 
 
 async def ensure_indexes():
@@ -80,6 +88,14 @@ async def ensure_indexes():
             partialFilterExpression=email_index["partialFilterExpression"],
         )
     await events.create_index("join_code", unique=True)
+    # One event per event lead: a crashed or doubled Approve can never make a
+    # second one. Partial, because ordinary events carry no provenance.
+    await events.create_index(
+        "provenance.event_lead_id",
+        unique=True,
+        name="event_lead_id_unique_when_present",
+        partialFilterExpression={"provenance.event_lead_id": {"$exists": True}},
+    )
     # created_by is queried on nearly every host action (create/list/nurture).
     await events.create_index("created_by")
     await event_attendees.create_index([("event_id", 1), ("user_id", 1)], unique=True)
@@ -87,6 +103,9 @@ async def ensure_indexes():
     await event_sponsors.create_index("event_id")
     await messages.create_index([("thread_id", 1), ("sent_at", 1)])
     await messages.create_index([("to_user_id", 1), ("read_at", 1)])
+    await message_notify_state.create_index(
+        [("recipient_id", 1), ("event_id", 1)], unique=True
+    )
     await email_templates.create_index("template_id", unique=True)
     await blog_post.create_index("slug")
     # Every agenda read is "mine", newest first.
@@ -114,3 +133,7 @@ async def ensure_indexes():
     await suppressed_emails.create_index("email", unique=True)
     await news_article.create_index("slug", unique=True)
     await news_article.create_index([("status", 1), ("published_at", -1)])
+    await event_leads.create_index("organizer_key", unique=True)
+    await event_leads.create_index([("status", 1), ("updated_at", -1)])
+    # The claim page looks a lead up by its token hash on every visit.
+    await event_leads.create_index("claim_token_hash", sparse=True)

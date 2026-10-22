@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { authApi } from "../lib/api.js";
+import { safeNext } from "../lib/nextPath.js";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 
 export default function ResetPassword() {
   const { token } = useParams();
+  const [searchParams] = useSearchParams();
+  // A "message waiting" email links here with ?next=/messages/<id> so the
+  // sign in lands on the thread. Only a same site path is honoured.
+  const destination = safeNext(searchParams.get("next"), "/");
   const navigate = useNavigate();
   const toast = useToast();
   const { refresh } = useAuth();
@@ -26,7 +31,7 @@ export default function ResetPassword() {
       await authApi.resetPassword(token, password);
       await refresh();
       toast.show("Password updated");
-      navigate("/", { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,7 +46,7 @@ export default function ResetPassword() {
       await authApi.magicLogin(token);
       await refresh();
       toast.show("Logged in");
-      navigate("/", { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -56,7 +61,7 @@ export default function ResetPassword() {
           Set a new password
         </h1>
         <p className="text-sm text-text-secondary mb-6">
-          Or skip it — just log me in with this link.
+          Or skip it and just log me in with this link.
         </p>
 
         <form onSubmit={submit} className="flex flex-col gap-4">

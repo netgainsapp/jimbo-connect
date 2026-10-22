@@ -38,6 +38,7 @@ from core import (
     render_email_template,
     _VERIFY_OK_HTML,
     _VERIFY_BAD_HTML,
+    mark_activated,
 )
 
 router = APIRouter()
@@ -67,6 +68,8 @@ async def register(payload: RegisterRequest, response: Response, request: Reques
         "nurture_enabled": True,
         "nurture_step": 0,
         "email_verified": False,
+        # Signed up themselves, so active from the start (see core.is_active).
+        "activated_at": now,
     }
     result = await users.insert_one(doc)
     doc["_id"] = result.inserted_id
@@ -98,6 +101,7 @@ async def login(payload: LoginRequest, response: Response, request: Request):
         verify_password, payload.password, user["password_hash"]
     ):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    await mark_activated(user["_id"])
     token = create_access_token(str(user["_id"]))
     set_auth_cookie(response, token)
     return {"user": serialize_user(user), "token": token}
@@ -115,13 +119,24 @@ async def logout(response: Response):
     return {"ok": True}
 
 
+async def _activate_session_user(user: dict) -> None:
+    """Accounts from before activation existed only ever come back through a
+    long lived cookie, never a fresh login. Stamping them on a session load
+    keeps them from reading as "not yet active" when a host imports them.
+    Skipped once stamped, so this is one write per account, not per request."""
+    if not user.get("activated_at"):
+        await mark_activated(user["_id"])
+
+
 @router.get("/api/auth/me")
 async def me(user: dict = Depends(get_current_user)):
+    await _activate_session_user(user)
     return serialize_user(user)
 
 
 @router.post("/api/auth/refresh")
 async def refresh(response: Response, user: dict = Depends(get_current_user)):
+    await _activate_session_user(user)
     token = create_access_token(str(user["_id"]))
     set_auth_cookie(response, token)
     return {"token": token}
@@ -213,20 +228,51 @@ async def reset_password(payload: ResetPasswordRequest, response: Response, requ
             "$unset": {"reset_token": "", "reset_token_expires": ""},
         },
     )
+    # Setting a password from the emailed link is signing in.
+    await mark_activated(user["_id"])
     token = create_access_token(str(user["_id"]))
     set_auth_cookie(response, token)
     user["password_hash"] = ""  # don't leak
     return {"ok": True, "user": serialize_user(user), "token": token}
 
 
+async def _consume_magic_token(hashed: str) -> dict | None:
+    """The user holding this unexpired message-email token, which is pulled
+    so it works once. The pull is filtered on the hash, so of two racing
+    requests only the one whose pull lands signs in. reset_token is never
+    touched (see message_notify)."""
+    now = datetime.now(timezone.utc)
+    user = await users.find_one({"magic_tokens": {"$elemMatch": {
+        "hash": hashed, "expires_at": {"$gt": now}}}})
+    if not user:
+        return None
+    pulled = await users.update_one(
+        {"_id": user["_id"], "magic_tokens.hash": hashed},
+        {"$pull": {"magic_tokens": {"hash": hashed}}},
+    )
+    return user if pulled.modified_count == 1 else None
+
+
+async def _sign_in(user: dict, response: Response) -> dict:
+    await mark_activated(user["_id"])
+    access = create_access_token(str(user["_id"]))
+    set_auth_cookie(response, access)
+    return {"ok": True, "user": serialize_user(user), "token": access}
+
+
 @router.get("/api/auth/magic/{token}")
 async def magic_login(token: str, response: Response, request: Request):
-    """One-tap login via a reset token. Single-use: the token is cleared
-    after a successful login so the link cannot be replayed if it leaks
-    (e.g. via referrer headers, logs, or shared history)."""
+    """One-tap login via a reset token, or a message email's magic token.
+    Single-use: the token is cleared after a successful login so the link
+    cannot be replayed if it leaks (e.g. via referrer headers, logs, or
+    shared history)."""
     rate_limit.guard(request, "magic", limit=10, window_seconds=300)
-    user = await users.find_one({"reset_token": _hash_token(token)})
+    hashed = _hash_token(token)
+    user = await users.find_one({"reset_token": hashed})
     if not user:
+        user = await _consume_magic_token(hashed)
+        if user:
+            return await _sign_in(user, response)
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     expires = user.get("reset_token_expires")
     if not expires or (
@@ -238,6 +284,4 @@ async def magic_login(token: str, response: Response, request: Request):
         {"_id": user["_id"]},
         {"$unset": {"reset_token": "", "reset_token_expires": ""}},
     )
-    access = create_access_token(str(user["_id"]))
-    set_auth_cookie(response, access)
-    return {"ok": True, "user": serialize_user(user), "token": access}
+    return await _sign_in(user, response)

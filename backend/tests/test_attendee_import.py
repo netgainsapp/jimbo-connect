@@ -35,6 +35,10 @@ class _Row:
         self.bio = self.looking_for = self.phone = self.linkedin = ""
 
 
+async def _none_removed(*_args):
+    return set()
+
+
 def _patch(monkeypatch, *, existing_emails=(), attendee_count=0, host=None,
            email_configured=False):
     inserted_users = []
@@ -69,6 +73,8 @@ def _patch(monkeypatch, *, existing_emails=(), attendee_count=0, host=None,
     monkeypatch.setattr(attendee_import, "event_attendees", _Attendees())
     monkeypatch.setattr(core, "users", _Users())
     monkeypatch.setattr(core, "event_attendees", _Attendees())
+    # Nobody on these lists used the remove link; see test_inactive_attendees.
+    monkeypatch.setattr(attendee_import.invites, "removed_emails", _none_removed)
     monkeypatch.setattr(
         attendee_import.email_send, "is_configured", lambda: email_configured
     )

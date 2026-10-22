@@ -120,6 +120,52 @@ STARTERS = [
             "Scott"
         ),
     },
+    # Event lead engine previews. Mirrors Signal Scout's step 1 copy so the admin
+    # sees what a host will get. Variables are listed in
+    # event_leads_copy.TEMPLATE_VARS. {series_line} is empty unless the lead has
+    # two or more future events.
+    {
+        "key": "ic-event-step-1",
+        "category": "cold",
+        "title": "Event lead: step 1 email",
+        "subject": "{event_name} on {event_date}: your attendee directory is ready",
+        "body": (
+            "Hi {first_name},\n\n"
+            "We already built the Intro Connect page for {event_name}, which "
+            "takes place on {event_date}, {time_until_event}. The claim link "
+            "below opens it.\n\n"
+            "After the night ends, your guests keep the relationships they made "
+            "in the room in one directory, where LinkedIn and the rest are one "
+            "click away.\n\n"
+            "{series_line}\n\n"
+            "The first event is on us. Claim the page for {company} here:\n\n"
+            "{claim_url}\n\n"
+            "Scott"
+        ),
+    },
+    {
+        "key": "ic-linkedin-note",
+        "category": "cold",
+        "title": "Event lead: LinkedIn note",
+        "subject": "LinkedIn connection note",
+        "body": (
+            "Hi {first_name}, we built an attendee directory for "
+            "\"{event_name}\" on Intro Connect. It is free for your first "
+            "event. Claim it here: {claim_url}"
+        ),
+    },
+    {
+        "key": "ic-linkedin-followup",
+        "category": "cold",
+        "title": "Event lead: LinkedIn follow up",
+        "subject": "LinkedIn follow up after accept",
+        "body": (
+            "Thanks for connecting, {first_name}. The page for {event_name} on "
+            "{event_date} is ready. Guests keep the connections they made in the "
+            "room after the night ends, all in one directory. The first event "
+            "is on us. You can claim it here: {claim_url}"
+        ),
+    },
 ]
 
 

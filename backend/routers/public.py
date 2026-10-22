@@ -1,6 +1,7 @@
 """Public and shared-secret routes: /api/health, the server-rendered blog,
-cron ticks, CAN-SPAM unsubscribe, and the Resend webhook. Moved verbatim from
-server.py (M13)."""
+cron ticks, CAN-SPAM unsubscribe, the invite remove-me link, and the Resend
+webhook. Moved verbatim from server.py (M13)."""
+import html
 import json
 import os
 import re
@@ -12,6 +13,7 @@ from pydantic import BaseModel
 
 import database
 import email_send
+import event_leads_poll
 import invites
 import nurture
 import rate_limit
@@ -203,6 +205,14 @@ async def invites_tick(request: Request):
     return await invites.run_invite_reminder_tick()
 
 
+@router.post("/api/event-leads/tick")
+async def event_leads_tick(request: Request):
+    """Nightly Signal Scout status poll for event leads. Secret-gated for the cron."""
+    if not _tick_authorized(request.headers.get("x-tick-secret")):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return await event_leads_poll.poll_status(datetime.now(timezone.utc))
+
+
 # ---------- CAN-SPAM: unsubscribe + Resend bounce/complaint webhook ----------
 
 _UNSUB_OK_HTML = """<!doctype html>
@@ -311,6 +321,68 @@ async def unsubscribe_post(token: str, request: Request):
         raise HTTPException(status_code=400, detail="Invalid unsubscribe token")
     await suppression.apply_unsubscribe(email)
     return {"ok": True}
+
+
+_REMOVED_PAGE = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Removed</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222">
+<h1 style="font-size:22px">You are off the list</h1>
+<p style="color:#555">You have been removed from {name}'s guest list.
+You will not get any more invitations or reminders for it.</p>
+</body></html>"""
+
+_REMOVE_CONFIRM_PAGE = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Remove yourself</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222">
+<h1 style="font-size:22px">Remove yourself from {name}'s guest list?</h1>
+<p style="color:#555">You will not get any more invitations or reminders for it.</p>
+<form method="post" action="{action}">
+<button type="submit" style="font-size:16px;padding:12px 24px;border:0;border-radius:8px;background:#222;color:#fff;cursor:pointer">Remove me</button>
+</form>
+</body></html>"""
+
+_REMOVE_BAD_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Invalid link</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222">
+<h1 style="font-size:22px">This link is not valid</h1>
+<p style="color:#555">The link looks incomplete or altered.
+Reply to the invitation and the host can take you off the list.</p>
+</body></html>"""
+
+
+def _event_label(event) -> str:
+    # Event names are host supplied, so escaped before they reach markup.
+    return html.escape(event["name"]) if event else "the event"
+
+
+@router.get("/api/invites/remove/{token}", response_class=HTMLResponse)
+async def invite_remove_confirm(token: str, request: Request):
+    """The remove-me link at the foot of a host's invite and reminders. Opening
+    it only asks: mail scanners (Outlook Safe Links and the like) open every
+    link, so a GET that removed would wipe guests nobody asked to remove. The
+    button POSTs back to this URL. Writes nothing."""
+    rate_limit.guard(request, "invite_remove", limit=30, window_seconds=3600)
+    verified = invites.verify_remove_token(token)
+    if not verified:
+        return HTMLResponse(_REMOVE_BAD_HTML, status_code=400)
+    event = await invites.removal_event(verified[0])
+    action = html.escape(f"/api/invites/remove/{token}")
+    return HTMLResponse(
+        _REMOVE_CONFIRM_PAGE.format(name=_event_label(event), action=action)
+    )
+
+
+@router.post("/api/invites/remove/{token}", response_class=HTMLResponse)
+async def invite_remove(token: str, request: Request):
+    """The confirm button. The token is signed over one event and one address,
+    so no login is needed and it removes that guest from that event only. See
+    invites.apply_removal."""
+    rate_limit.guard(request, "invite_remove", limit=30, window_seconds=3600)
+    verified = invites.verify_remove_token(token)
+    if not verified:
+        return HTMLResponse(_REMOVE_BAD_HTML, status_code=400)
+    event = await invites.apply_removal(*verified)
+    return HTMLResponse(_REMOVED_PAGE.format(name=_event_label(event)))
 
 
 @router.post("/api/webhooks/resend")

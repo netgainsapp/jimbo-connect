@@ -53,6 +53,9 @@ PUBLIC = {
     # Public by design: guests and email clients load host logos anonymously.
     # Not called here (touches the DB); served only while branding is active.
     ("GET", "/api/branding/{user_id}/logo.png"),
+    # Public by design: email clients load host headshots anonymously. Serves
+    # only a photo the host uploaded; 404 for anyone without one.
+    ("GET", "/api/public/host-photo/{user_id}"),
     # Public by design: the Agenda Builder is a free acquisition tool that has
     # to produce a document before the visitor has an account. Stateless and
     # rate limited per IP; see routers/agenda.py.
@@ -65,6 +68,19 @@ PUBLIC = {
     # Public by design: the marketing site's one pager lead form. Rate limited
     # per IP and per email, honeypot gated; see routers/public.py.
     ("POST", "/api/one-pager"),
+    # Public by design: the claim link a prospect host opens before they have
+    # a session. The token is the credential (hash stored, expires); GET only
+    # previews and never names an email. Rate limited per IP; see
+    # routers/claim.py and event_leads_claim.py.
+    ("GET", "/api/claim/{token}"),
+    ("POST", "/api/claim/{token}"),
+    # Public by design: the remove-me link in a host's invite and reminders.
+    # The token is HMAC signed over one event and one address, so it removes
+    # that guest from that event only. GET only shows a confirm page; the
+    # button POSTs and removes. Rate limited per IP; see routers/public.py
+    # invite_remove and invites.apply_removal.
+    ("GET", "/api/invites/remove/{token}"),
+    ("POST", "/api/invites/remove/{token}"),
 }
 
 # Shared-secret gated (cron ticks, webhook): callable without a session but
@@ -74,8 +90,15 @@ SECRET_GATED = {
     ("POST", "/api/news/tick"),
     ("POST", "/api/nurture/tick"),
     ("POST", "/api/invites/tick"),
+    ("POST", "/api/event-leads/tick"),
     ("POST", "/api/webhooks/resend"),
     ("POST", "/api/webhooks/stripe"),
+    # Bearer EVENT_LEADS_INGEST_KEY, not the admin cookie: the weekly sourcing
+    # job posts its leads here. Fails closed when the key is unset.
+    ("POST", "/api/admin/event-leads/ingest"),
+    # ?secret=LINKED_HELPER_WEBHOOK_SECRET, not the admin cookie: Linked Helper
+    # posts campaign results here. Fails closed when the secret is unset.
+    ("POST", "/api/admin/event-leads/linkedin-webhook"),
 }
 
 _PARAM_RE = re.compile(r"\{[^}]+\}")
@@ -101,6 +124,8 @@ def test_all_routes_are_classified():
 def test_protected_routes_reject_unauthenticated(monkeypatch):
     monkeypatch.delenv("BLOG_TICK_SECRET", raising=False)
     monkeypatch.delenv("RESEND_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("EVENT_LEADS_INGEST_KEY", raising=False)
+    monkeypatch.delenv("LINKED_HELPER_WEBHOOK_SECRET", raising=False)
     failures = []
     for method, path in _api_routes():
         if (method, path) in PUBLIC:

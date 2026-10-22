@@ -44,14 +44,29 @@ async function request(path, options = {}) {
       }
     }
     let detail = "Request failed";
+    let code;
     try {
       const data = await res.json();
-      detail = data.detail || JSON.stringify(data);
+      // detail is a string from most routes, {code, message} from routes
+      // whose page must tell refusals apart (the claim flow), or a Pydantic
+      // error list. new Error() on the last two would read "[object Object]".
+      const raw = data.detail;
+      if (typeof raw === "string" && raw) {
+        detail = raw;
+      } else if (raw && typeof raw.message === "string") {
+        detail = raw.message;
+        code = raw.code;
+      } else if (Array.isArray(raw)) {
+        detail = "Please check the form and try again.";
+      } else {
+        detail = JSON.stringify(data);
+      }
     } catch {
       detail = res.statusText;
     }
     const err = new Error(detail);
     err.status = res.status;
+    err.code = code;
     throw err;
   }
   if (res.status === 204) return null;
@@ -79,6 +94,15 @@ export const authApi = {
     api.post("/api/auth/reset-password", { token, new_password }),
   magicLogin: (token) => api.get(`/api/auth/magic/${token}`),
   resendVerification: () => api.post("/api/auth/resend-verification"),
+};
+
+// The public claim link. GET answers 200 with a state for every link; the
+// POST answers 404 (unknown) or 410 (expired) for a dead one. Neither ever
+// answers 401, so request() never fires auth:expired here.
+export const claimApi = {
+  get: (token) => api.get(`/api/claim/${encodeURIComponent(token)}`),
+  complete: (token, body) =>
+    api.post(`/api/claim/${encodeURIComponent(token)}`, body),
 };
 
 export const profileApi = {
@@ -224,6 +248,31 @@ export const outreachApi = {
   remove: (id) => api.del(`/api/admin/outreach/leads/${id}`),
   push: () => api.post("/api/admin/outreach/push"),
   exportCsv: () => api.get("/api/admin/outreach/leads.csv"),
+};
+
+// The event lead engine: leads found and scored upstream, approved here.
+// Approve creates the host and the event and hands the lead to Signal Scout.
+export const eventLeadsApi = {
+  list: (showC = false) => api.get(`/api/admin/event-leads?show_c=${showC ? "true" : "false"}`),
+  get: (id) => api.get(`/api/admin/event-leads/${id}`),
+  approve: (id) => api.post(`/api/admin/event-leads/${id}/approve`),
+  retryOutreach: (id) => api.post(`/api/admin/event-leads/${id}/retry-outreach`),
+  archive: (id) => api.post(`/api/admin/event-leads/${id}/archive`),
+  unarchive: (id) => api.post(`/api/admin/event-leads/${id}/unarchive`),
+  saveContact: (id, { name, email, linkedin_url }) =>
+    api.put(`/api/admin/event-leads/${id}/contact`, { name, email, linkedin_url }),
+  overrideScore: (id, score) =>
+    api.put(`/api/admin/event-leads/${id}/score-override`, { score }),
+  // An absolute URL for a top-level download, so the browser keeps the
+  // server's filename. Without dry_run the server marks every row exported.
+  linkedinQueueUrl: ({ dryRun = false, includeExported = false } = {}) =>
+    `${BACKEND_URL}/api/admin/event-leads/linkedin-queue.csv` +
+    `?dry_run=${dryRun ? "true" : "false"}&include_exported=${includeExported ? "true" : "false"}`,
+  uploadLinkedinResults: (rows) =>
+    api.post("/api/admin/event-leads/linkedin-results", { rows }),
+  getSettings: () => api.get("/api/admin/event-leads/settings"),
+  saveSettings: ({ auto_approve_min_score }) =>
+    api.put("/api/admin/event-leads/settings", { auto_approve_min_score }),
 };
 
 export const blogApi = {

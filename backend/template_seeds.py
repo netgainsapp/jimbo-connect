@@ -15,6 +15,10 @@ Available merge variables (always-on for both client & server):
   host_name, site_url, event_name, event_date, event_time,
   event_location, join_code, attendee_name, attendee_email,
   temp_password, sponsor_name, audience_description, reset_url
+
+Message waiting only (message_notify.email_context):
+  sender_first, sender_company, sender_role, sender_line, sender2_first,
+  senders_line
 """
 
 DEFAULT_TEMPLATES = [
@@ -40,7 +44,7 @@ DEFAULT_TEMPLATES = [
         "title": "Invitation (with login)",
         "blurb": "Sent automatically when Jim imports an attendee.",
         "system": True,
-        "subject": "You're invited to {event_name}",
+        "subject": "{event_name}: you're invited",
         "body": (
             "Hi {attendee_name},\n\n"
             "You're invited to {event_name} on {event_date} at {event_location}.\n\n"
@@ -61,7 +65,7 @@ DEFAULT_TEMPLATES = [
         "title": "Save the date",
         "blurb": "Pre-event invite that gets them to commit.",
         "system": False,
-        "subject": "You're invited: {event_name}",
+        "subject": "{event_name}: save the date",
         "body": (
             "Hi,\n\n"
             "I'm hosting {event_name} on {event_date} at {event_location}, and I'd "
@@ -138,6 +142,42 @@ DEFAULT_TEMPLATES = [
             "A few of your fellow attendees have moved companies, launched things, "
             "raised rounds since: {site_url}\n\n"
             "If there's someone you want a warm intro to, just reply.\n\n"
+            "{host_name}"
+        ),
+    },
+
+    # ----- Message waiting (sent by message_notify, in the host's name) -----
+    # A message to a guest who has never signed in. Nothing from the message
+    # itself is ever merged in; the senders are described, never quoted.
+    {
+        "template_id": "message-waiting",
+        "category": "system",
+        "title": "Message waiting (one person)",
+        "blurb": "Sent when someone messages a guest who has not signed in yet.",
+        "system": False,
+        "subject": "{event_name}: {sender_first} from {sender_company} sent you a message",
+        "body": (
+            "Hi {attendee_name},\n\n"
+            "{sender_line} sent you a message. You are both on the guest list "
+            "for {event_name} on {event_date}.\n\n"
+            "The button below signs you in and opens the conversation, so you "
+            "can read it and reply. No password needed.\n\n"
+            "{host_name}"
+        ),
+    },
+    {
+        "template_id": "messages-waiting",
+        "category": "system",
+        "title": "Messages waiting (two or more people)",
+        "blurb": "Sent when several people message a guest within the hour.",
+        "system": False,
+        "subject": "{event_name}: {sender_first} and {sender2_first} sent you messages",
+        "body": (
+            "Hi {attendee_name},\n\n"
+            "{senders_line} sent you messages. You are all on the guest list "
+            "for {event_name} on {event_date}.\n\n"
+            "The button below signs you in to your messages, so you can read "
+            "them and reply. No password needed.\n\n"
             "{host_name}"
         ),
     },

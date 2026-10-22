@@ -34,6 +34,8 @@ HOST_EDITABLE = (
     "day-of",
     "post-event",
     "reconnect",
+    "message-waiting",
+    "messages-waiting",
 )
 
 # Mirrors the admin caps in models.TemplateUpdateRequest.

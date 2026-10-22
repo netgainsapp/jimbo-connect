@@ -39,6 +39,21 @@ services:
       # behaviour and it is also completely silent, so it went unnoticed.
       - key: BLOG_TICK_SECRET
         sync: false  # must match the GitHub Actions repo secret exactly
+      # Bearer key the weekly lead sourcing job sends to
+      # POST /api/admin/event-leads/ingest. Unset = every call gets a 401.
+      - key: EVENT_LEADS_INGEST_KEY
+        sync: false
+      # Secret in the URL Linked Helper posts campaign results to:
+      # POST /api/admin/event-leads/linkedin-webhook?secret=... Unset = every call gets a 401.
+      - key: LINKED_HELPER_WEBHOOK_SECRET
+        sync: false
+      # Signal Scout outreach engine. Approve pushes each event lead to
+      # {SIGNAL_SCOUT_URL}/api/intro-connect/import. Either unset = the push
+      # is skipped and recorded as an error on the lead.
+      - key: SIGNAL_SCOUT_URL
+        sync: false  # e.g. https://<signal-scout host>
+      - key: SIGNAL_SCOUT_API_KEY
+        sync: false  # Signal Scout's CRON_SECRET
       # Blog and news generation. Absent means both ticks are harmless no-ops
       # that report {"skipped": "no_api_key"} rather than failing.
       - key: ANTHROPIC_API_KEY

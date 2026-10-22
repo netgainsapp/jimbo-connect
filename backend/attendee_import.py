@@ -18,6 +18,11 @@ use password reset. See `disclose_credentials` / `default_password` below.
 
 The capacity check lives here too, so both paths fill to the cap and report the
 overflow per row rather than failing the whole import.
+
+An event membership made here is `activated: False`: the host put this person
+on the list, and until they sign in once they are shown as not yet active. A
+guest who used the remove-me link for this event is skipped entirely (no
+account, no seat, no mail) and counted under `removed`.
 """
 import asyncio
 import secrets
@@ -26,15 +31,26 @@ from datetime import datetime, timezone
 
 import branding
 import email_send
+import event_leads_store
 from auth import hash_password
-from core import APP_URL, attendee_room
+from core import APP_URL, attendee_room, host_block
 import host_templates
+import invites
 from database import event_attendees, users
 from send_report import tally_failure
 
 
 def _random_password() -> str:
     return "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
+
+
+async def _has_joined_before(user_id) -> bool:
+    """True when this account holds a membership no import made, i.e. they
+    joined an event themselves. Covers people who predate `activated_at`."""
+    joined = await event_attendees.find_one(
+        {"user_id": user_id, "imported_at": {"$exists": False}}
+    )
+    return joined is not None
 
 
 async def import_rows(
@@ -66,6 +82,15 @@ async def import_rows(
     email_failures: dict = {}
     accounts: list = []
     errors: list = []
+    removed = 0
+
+    # Guests who took themselves off this event stay off. One query up front
+    # rather than one per row.
+    removed_set = set()
+    if event_oid is not None:
+        removed_set = await invites.removed_emails(
+            event_oid, [row.email.lower().strip() for row in rows]
+        )
 
     # Cap read once and tracked locally rather than re-counted per row. An
     # import that would overflow fills to the cap and reports the rest instead
@@ -75,13 +100,30 @@ async def import_rows(
     if event_oid is not None and event_doc:
         attendee_limit, attendee_count = await attendee_room(event_doc)
 
+    # The invitation goes out as the event's host, not as whoever ran the
+    # import: an admin importing into a host's event must not send in the
+    # admin's name with replies to the admin. Override, brand and sender all
+    # come from this one user so they cannot disagree.
+    sender, sender_id = actor, actor["_id"]
+    if event_doc and event_doc.get("created_by"):
+        creator = await users.find_one({"_id": event_doc["created_by"]})
+        if creator:
+            sender, sender_id = creator, event_doc["created_by"]
+
     for row in rows:
         email = row.email.lower().strip()
+        if email in removed_set:
+            removed += 1
+            continue
         try:
             existing = await users.find_one({"email": email})
+            # An imported seat starts inactive unless this person already came
+            # in on their own somewhere (see _has_joined_before).
+            seat_active = False
             if existing:
                 skipped += 1
                 user_id = existing["_id"]
+                seat_active = await _has_joined_before(user_id)
             else:
                 temp_password = default_password or _random_password()
                 profile = {
@@ -118,10 +160,7 @@ async def import_rows(
                     accounts.append({"email": email, "password": temp_password})
 
                 if email_send.is_configured():
-                    actor_profile = actor.get("profile") or {}
-                    # Host aware: the invitation goes out in the acting
-                    # host's name, so their override applies. Admin imports
-                    # send the admin's own wording by the same rule.
+                    sender_profile = sender.get("profile") or {}
                     rendered = await host_templates.render_for_host(
                         "invitation",
                         {
@@ -135,22 +174,33 @@ async def import_rows(
                             "event_location": event_doc.get("location", "")
                             if event_doc
                             else "",
-                            "host_name": actor_profile.get("name") or "Jim",
+                            "host_name": sender_profile.get("name") or "Jim",
                             "site_url": APP_URL,
                         },
-                        host_id=actor["_id"],
+                        host_id=sender_id,
                     )
                     # The account exists whether or not the invitation lands,
                     # so the two outcomes are counted separately. Reporting
                     # only "created" is how an import that emailed nobody read
                     # exactly like one that worked.
+                    if rendered and event_oid is not None:
+                        # The host put them here, so the invitation says how
+                        # to get off the list. Same last paragraph as invites.
+                        link = invites.remove_paragraph(
+                            invites.remove_url(event_oid, email)
+                        )
+                        rendered = {
+                            **rendered,
+                            "body": f"{rendered['body'].rstrip()}\n\n{link}",
+                        }
                     if rendered:
                         send_result = await email_send.send_template_branded(
                             to=email,
                             rendered=rendered,
                             button_label="Open your directory",
                             button_url=APP_URL,
-                            brand=branding.email_brand(actor),
+                            brand=branding.email_brand(sender),
+                            host=host_block(sender),
                         )
                         if send_result.get("sent"):
                             emailed += 1
@@ -185,6 +235,9 @@ async def import_rows(
                                 "joined_at": now,
                                 "source": source,
                                 "imported_at": now,
+                                # Not yet active until they sign in once; see
+                                # core.is_active.
+                                "activated": seat_active,
                             }
                         )
                         added_to_event += 1
@@ -192,10 +245,16 @@ async def import_rows(
         except Exception as e:
             errors.append({"email": email, "error": str(e)})
 
+    if added_to_event:
+        # Funnel bookkeeping for an event Approve built; never fails the import.
+        await event_leads_store.stamp_attendees_uploaded(event_doc, now)
+
     return {
         "created": created,
         "skipped": skipped,
         "added_to_event": added_to_event,
+        # Rows skipped because that guest removed themselves from this event.
+        "removed": removed,
         # Only new accounts are emailed, so `emailed` is never the row count.
         "emailed": emailed,
         "email_failures": email_failures,

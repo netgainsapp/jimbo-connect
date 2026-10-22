@@ -25,7 +25,10 @@ import AdminSalesTemplates from "./pages/AdminSalesTemplates.jsx";
 import AdminAnalytics from "./pages/AdminAnalytics.jsx";
 import AdminSuppressions from "./pages/AdminSuppressions.jsx";
 import AdminOutreach from "./pages/AdminOutreach.jsx";
+import AdminEventLeads from "./pages/AdminEventLeads.jsx";
 import JoinEvent from "./pages/JoinEvent.jsx";
+import Claim from "./pages/Claim.jsx";
+import MagicLogin from "./pages/MagicLogin.jsx";
 import AgendaLandingRedirect from "./pages/AgendaLandingRedirect.jsx";
 import AgendaBuilder from "./pages/AgendaBuilder.jsx";
 import AgendaConvert from "./pages/AgendaConvert.jsx";
@@ -84,6 +87,12 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/join/:code" element={<JoinEvent />} />
+          {/* Public by design: a prospect host opens their claim link before
+              they have a session; the page signs them in. */}
+          <Route path="/claim/:token" element={<Claim />} />
+          {/* Public by design: the message email's one tap sign in. It signs
+              in only when the guest presses its button. */}
+          <Route path="/magic/:token" element={<MagicLogin />} />
 
           {/* Public by design: the Agenda Builder is a free acquisition tool,
               so it must work before the visitor has an account. Deliberately
@@ -290,6 +299,14 @@ export default function App() {
             element={
               <RequireAuth adminOnly allowIncompleteProfile>
                 <AdminOutreach />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/event-leads"
+            element={
+              <RequireAuth adminOnly allowIncompleteProfile>
+                <AdminEventLeads />
               </RequireAuth>
             }
           />

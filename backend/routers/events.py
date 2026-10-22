@@ -2,6 +2,7 @@
 routes. Moved verbatim from server.py (M13). Route registration order is
 preserved from the original file."""
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from bson import ObjectId
@@ -41,6 +42,8 @@ from core import (
     serialize_event,
     serialize_attendee,
     serialize_user,
+    host_block,
+    mark_activated,
     set_auth_cookie,
     FREE_EVENT_LIMIT,
     _can_manage_event,
@@ -52,28 +55,44 @@ router = APIRouter()
 
 # ---------- Events ----------
 
-async def create_event_for(user: dict, payload: EventCreateRequest) -> dict:
+def plan_limit_detail(user: dict, limit: int) -> str:
+    """The message a host at their event limit sees. The claim flow attaches
+    an existing event to a host and refuses with the same words."""
+    import billing
+
+    plan = billing.plan_of(user)
+    return (
+        f"Your {plan} plan includes {limit} "
+        f"event{'s' if limit != 1 else ''}. Upgrade to host more."
+    )
+
+
+async def create_event_for(
+    user: Optional[dict], payload: EventCreateRequest, provenance: Optional[dict] = None
+) -> dict:
     """Create an event on behalf of `user`.
 
-    Shared by POST /api/events and the Agenda Builder handoff so that the plan
-    limit and join-code generation live in exactly one place. A second creation
-    path that forgot the limit check would be a silent way to hand out free
-    events.
+    Shared by POST /api/events, the Agenda Builder handoff and event lead
+    Approve so that the plan limit and join-code generation live in exactly one
+    place. A second creation path that forgot the limit check would be a silent
+    way to hand out free events.
+
+    `provenance`, when given, is stored on the event as `provenance`. `user`
+    may be None only for a pending host (`provenance["pending_host"]` true):
+    an Approved LinkedIn-only lead has no account yet, so there is nobody to
+    apply a limit to and `created_by` is None. The limit applies when the host
+    is attached at claim.
     """
     import billing
 
-    limit = billing.event_limit_for(user)
+    pending_host = bool((provenance or {}).get("pending_host"))
+    if user is None and not pending_host:
+        raise ValueError("create_event_for needs a user unless the host is pending")
+    limit = billing.event_limit_for(user) if user is not None else None
     if limit is not None:
         hosted = await events.count_documents({"created_by": user["_id"]})
         if hosted >= limit:
-            plan = billing.plan_of(user)
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    f"Your {plan} plan includes {limit} "
-                    f"event{'s' if limit != 1 else ''}. Upgrade to host more."
-                ),
-            )
+            raise HTTPException(status_code=403, detail=plan_limit_detail(user, limit))
     code = generate_join_code()
     while await events.find_one({"join_code": code}):
         code = generate_join_code()
@@ -84,14 +103,38 @@ async def create_event_for(user: dict, payload: EventCreateRequest) -> dict:
         "location": payload.location or "",
         "industry_tags": payload.industry_tags or [],
         "join_code": code,
-        "created_by": user["_id"],
+        "created_by": user["_id"] if user is not None else None,
         "created_at": now,
         "description": payload.description or "",
         "end_date": payload.end_date,
     }
+    if provenance is not None:
+        doc["provenance"] = dict(provenance)
     result = await events.insert_one(doc)
     doc["_id"] = result.inserted_id
     return serialize_event(doc, 0)
+
+
+def is_unclaimed_lead_event(event: dict) -> bool:
+    """True for an event Approve built for an event lead whose host has not
+    claimed it yet. Such an event belongs to a prospect who never signed up,
+    so it must stay out of every cross-user listing (discover today). The
+    claim flow (Task 5) sets provenance.claimed_at, which makes it public."""
+    provenance = event.get("provenance") or {}
+    return bool(provenance.get("event_lead_id")) and not provenance.get("claimed_at")
+
+
+def _host_display_name(host) -> str:
+    """The host's name for other users. Falls back to the email only for a
+    host who signed up themselves; an event lead host never agreed to have
+    their address shown, so they get no fallback."""
+    host = host or {}
+    name = (host.get("profile") or {}).get("name")
+    if name:
+        return name
+    if host.get("host_origin") == "event_lead":
+        return ""
+    return host.get("email", "") or ""
 
 
 @router.post("/api/events")
@@ -145,7 +188,7 @@ async def discoverable_events(user: dict = Depends(get_current_user)):
     candidates = [
         e
         for e in await events.find({"date": {"$gte": now}}).sort("date", 1).to_list(None)
-        if e["_id"] not in joined_ids
+        if e["_id"] not in joined_ids and not is_unclaimed_lead_event(e)
     ]
     event_ids = [e["_id"] for e in candidates]
     counts: dict = {}
@@ -165,7 +208,6 @@ async def discoverable_events(user: dict = Depends(get_current_user)):
     out = []
     for e in candidates:
         host = hosts.get(e.get("created_by"))
-        host_profile = (host or {}).get("profile") or {}
         out.append(
             {
                 "id": str(e["_id"]),
@@ -174,9 +216,7 @@ async def discoverable_events(user: dict = Depends(get_current_user)):
                 "location": e.get("location", ""),
                 "industry_tags": e.get("industry_tags", []),
                 "attendee_count": counts.get(e["_id"], 0),
-                "host_name": host_profile.get("name")
-                or (host or {}).get("email", "")
-                or "",
+                "host_name": _host_display_name(host),
             }
         )
     return out
@@ -573,8 +613,13 @@ async def _join_user_to_event(e: dict, user: dict) -> None:
                 "event_id": e["_id"],
                 "user_id": user["_id"],
                 "joined_at": datetime.now(timezone.utc),
+                # They came in themselves, so this seat is active.
+                "activated": True,
             }
         )
+    # Joining by code (signed in or at the door) is using the account, which
+    # activates the person in every event, imported ones included.
+    await mark_activated(user["_id"])
     # Stop any pending invite reminders for this guest on this event. Door
     # guests have no email, so there is nothing to mark for them.
     if user.get("email"):
@@ -660,7 +705,11 @@ async def invite_guests(
         raise HTTPException(status_code=403, detail="Not your event")
     host_name = (user.get("profile") or {}).get("name") or ""
     return await invites.send_event_invites(
-        e, payload.emails, host_name, host_brand=branding.email_brand(user)
+        e,
+        payload.emails,
+        host_name,
+        host_brand=branding.email_brand(user),
+        host=host_block(user),
     )
 
 
@@ -696,7 +745,9 @@ async def get_event_attendees(event_id: str, user: dict = Depends(get_current_us
         for link in links:
             attendee = by_id.get(link["user_id"])
             if attendee and not attendee.get("is_admin"):
-                out.append(serialize_attendee(attendee, include_email=include_email))
+                out.append(serialize_attendee(
+                    attendee, membership=link, include_email=include_email
+                ))
     return out
 
 
@@ -774,6 +825,9 @@ async def my_attendees(user: dict = Depends(get_current_user)):
         return []
     seen: set = set()
     uids = []
+    # The first membership seen per person, so the card can say "not yet
+    # active" here too (core.is_active).
+    first_link: dict = {}
     async for link in event_attendees.find({"event_id": {"$in": my_event_ids}}):
         uid = link["user_id"]
         if uid == user["_id"]:
@@ -783,6 +837,7 @@ async def my_attendees(user: dict = Depends(get_current_user)):
             continue
         seen.add(key)
         uids.append(uid)
+        first_link[key] = link
     out = []
     if uids:
         docs = {
@@ -792,7 +847,7 @@ async def my_attendees(user: dict = Depends(get_current_user)):
         for uid in uids:
             u = docs.get(uid)
             if u and not u.get("is_admin"):
-                out.append(serialize_attendee(u))
+                out.append(serialize_attendee(u, membership=first_link.get(str(uid))))
     return out
 
 

@@ -40,6 +40,14 @@ export default function AttendeeCard({
               {(p.role || p.company) && p.industry && " · "}
               {p.industry}
             </div>
+            {/* Imported by the host and has not signed in yet, so a message
+                reaches them by email. Undefined (the cross-event directory) shows
+                nothing. */}
+            {attendee.active === false && (
+              <div className="text-xs text-text-muted leading-tight mt-0.5">
+                not yet active
+              </div>
+            )}
           </div>
         </div>
         {!hideActions && (
