@@ -330,6 +330,20 @@ def test_contact_edit_to_an_unmatched_email_clears_existing_user_id(db):
     assert "existing_user_id" not in db.rows[lead_id]
 
 
+def test_fixing_the_email_of_an_existing_customer_lead_frees_it(db):
+    # A wrong email can flag a lead existing_customer; correcting it must clear
+    # the flag, or the lead can never be approved.
+    lead_id = _lead(db, status="existing_customer", existing_user_id="u1",
+                    contact={"email": "host@already.org"})
+
+    client.put(f"{BASE}/{lead_id}/contact",
+               json={"name": "", "email": "new@host.org", "linkedin_url": ""})
+
+    row = db.rows[lead_id]
+    assert row["status"] == "new"
+    assert "existing_user_id" not in row
+
+
 def test_contact_edit_on_an_approved_lead_keeps_its_status(db):
     lead_id = _lead(db, status="approved", contact={"email": "a@host.org"})
 

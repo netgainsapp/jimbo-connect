@@ -292,7 +292,7 @@ async def edit_event_lead_contact(
         contact["email_status"] = ""
     # Stamped for every status: the weekly ingest keeps this contact from now on.
     fields, unset = {"contact": contact, "contact_edited_at": datetime.now(timezone.utc)}, ()
-    if doc.get("status") in rules.REFRESHABLE_STATUSES:
+    if doc.get("status") in rules.CONTACT_REFRESHABLE_STATUSES:
         user = await _matching_user(email)
         fields["status"] = rules.initial_status({"contact": contact}, user)
         if user:
