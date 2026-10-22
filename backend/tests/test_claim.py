@@ -385,6 +385,39 @@ def test_a_signed_in_existing_account_can_claim_a_pending_event(db):
     assert db.users.inserts == 0
 
 
+def test_a_pending_claim_by_an_existing_account_needs_that_session_next_time(db):
+    """The attach records a real account, so the link alone must not open it."""
+    host_id = _host(db)
+    _, lead_id = _pending(db)
+    client.cookies.set(auth.COOKIE_NAME, auth.create_access_token(str(host_id)))
+
+    first = client.post(f"/api/claim/{TOKEN}", json={"email": HOST_EMAIL})
+
+    assert first.status_code == 200
+    assert db.leads.rows[lead_id]["host_user_preexisting"] is True
+    client.cookies.clear()
+    written = db.writes()
+
+    again = client.post(f"/api/claim/{TOKEN}", json={})
+
+    assert again.status_code == 409
+    assert again.json()["detail"]["code"] == "account_exists"
+    assert auth.COOKIE_NAME not in _set_cookie(again)
+    assert db.writes() == written
+
+
+def test_a_pending_claim_that_makes_the_account_still_signs_in_by_the_link(db):
+    _, lead_id = _pending(db)
+    client.post(f"/api/claim/{TOKEN}", json={"email": HOST_EMAIL})
+    assert "host_user_preexisting" not in db.leads.rows[lead_id]
+    client.cookies.clear()
+
+    again = client.post(f"/api/claim/{TOKEN}", json={})
+
+    assert again.status_code == 200
+    assert auth.COOKIE_NAME in _set_cookie(again)
+
+
 def test_an_existing_account_at_its_plan_limit_is_refused(db, monkeypatch):
     monkeypatch.setenv("BILLING_ENFORCED", "true")
     host_id = _host(db)

@@ -115,11 +115,14 @@ async def _load(token, now):
     return lead, event, host
 
 
-async def _record_host(lead, host_id):
-    """Write host_user_id onto a lead that does not have one yet."""
-    await store.update_lead_if(
-        lead["_id"], {"host_user_id": None}, {"host_user_id": str(host_id)}
-    )
+async def _record_host(lead, host_id, preexisting=False):
+    """Write host_user_id onto a lead that does not have one yet. An account
+    this claim did not create is flagged in the same write, so the link alone
+    never signs anyone into it later."""
+    fields = {"host_user_id": str(host_id)}
+    if preexisting:
+        fields["host_user_preexisting"] = True
+    await store.update_lead_if(lead["_id"], {"host_user_id": None}, fields)
 
 
 def _event_view(event):
@@ -193,18 +196,19 @@ async def _attach_pending_host(lead, event, payload, session_user, now):
         {"$set": {"created_by": user["_id"], "provenance.pending_host": False}},
     )
     if attached.matched_count == 0:
-        return await _after_lost_attach(lead, event, user)
-    await _record_host(lead, user["_id"])
+        return await _after_lost_attach(lead, event, user, created)
+    await _record_host(lead, user["_id"], preexisting=not created)
     return user
 
 
-async def _after_lost_attach(lead, event, user):
+async def _after_lost_attach(lead, event, user, created):
     """Someone attached the event first. Make sure the lead knows who, so the
     next visit signs straight in, then carry on only if it was this user."""
     current = await events.find_one({"_id": event["_id"]}) or {}
     owner = current.get("created_by")
     if owner:
-        await _record_host(lead, owner)
+        ours = created and owner == user["_id"]
+        await _record_host(lead, owner, preexisting=not ours)
     if owner != user["_id"]:
         raise _conflict(JUST_CLAIMED, CLAIM_RACE)
     return user
