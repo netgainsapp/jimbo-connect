@@ -1,0 +1,162 @@
+"""Pure rules for the event lead engine. No database, no FastAPI.
+
+A lead is one organizer (`organizer_key`) with the events found for them. The
+weekly sourcing job re-sends the same organizers every run, so the central
+question here is what a re-send may change. Once an admin has acted on a lead
+(approved, claimed, archived) the email they approved is built from its anchor,
+score and contact, so those are frozen and a re-send can only add to the
+event history. A lead nobody has acted on is still a draft and takes the
+newest data wholesale.
+"""
+import copy
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+DENVER = ZoneInfo("America/Denver")
+
+# Statuses a re-send may overwrite. Everything else is frozen except `events`.
+REFRESHABLE_STATUSES = ("new", "unreachable")
+
+TIER_RANK = {"A": 0, "B": 1, "C": 2}
+UNKNOWN_TIER_RANK = 3
+# Sorts a lead with no usable anchor date after every dated lead of its tier.
+NO_DATE_DAYS = 10**6
+
+CONTACT_FIELDS = ("name", "email", "linkedin_url", "website", "email_status")
+
+
+def _contact(raw):
+    raw = raw or {}
+    contact = {field: (raw.get(field) or "") for field in CONTACT_FIELDS}
+    contact["email"] = contact["email"].strip().lower()
+    return contact
+
+
+def initial_status(incoming, existing_user):
+    """First status for a lead.
+
+    `existing_user` is the `users` row matching the contact email, enriched by
+    the caller with `hosts_events` (does it own any event). Someone who already
+    hosts, or pays, is a customer and must never be cold emailed as a prospect.
+    """
+    if existing_user and (
+        existing_user.get("hosts_events")
+        or existing_user.get("plan", "free") != "free"
+    ):
+        return "existing_customer"
+    contact = incoming.get("contact") or {}
+    if not (contact.get("email") or "").strip() and not (
+        contact.get("linkedin_url") or ""
+    ).strip():
+        return "unreachable"
+    return "new"
+
+
+def _new_doc(incoming, now, existing_user):
+    events = copy.deepcopy(incoming.get("events") or [])
+    doc = {
+        "organizer_key": incoming["organizer_key"],
+        "organizer_name": incoming.get("organizer_name") or "",
+        "organizer_url": incoming.get("organizer_url") or "",
+        "city": incoming.get("city") or "",
+        "events_listed": incoming.get("events_listed", len(events)),
+        "anchor": copy.deepcopy(incoming.get("anchor") or {}),
+        "events": events,
+        "score": copy.deepcopy(incoming.get("score") or {}),
+        "contact": _contact(incoming.get("contact")),
+        "status": initial_status(incoming, existing_user),
+        "signal_scout": {},
+        "linkedin": {"status": "none"},
+        "funnel": {"found_at": now, "scored_at": now},
+        "created_at": now,
+        "updated_at": now,
+    }
+    if existing_user:
+        doc["existing_user_id"] = str(existing_user["_id"])
+    return doc
+
+
+def _refresh(doc, incoming, existing_user):
+    """Draft lead: take the newest anchor, events, score and contact."""
+    events = copy.deepcopy(incoming.get("events") or [])
+    doc["organizer_name"] = incoming.get("organizer_name") or doc["organizer_name"]
+    doc["organizer_url"] = incoming.get("organizer_url") or doc["organizer_url"]
+    doc["city"] = incoming.get("city") or doc["city"]
+    doc["anchor"] = copy.deepcopy(incoming.get("anchor") or {})
+    doc["events"] = events
+    doc["events_listed"] = incoming.get("events_listed", len(events))
+    doc["score"] = copy.deepcopy(incoming.get("score") or {})
+    doc["contact"] = _contact(incoming.get("contact"))
+    doc["status"] = initial_status(incoming, existing_user)
+    if existing_user:
+        doc["existing_user_id"] = str(existing_user["_id"])
+    else:
+        doc.pop("existing_user_id", None)
+
+
+def _union_events(current, incoming_events):
+    """Append incoming events whose source_event_id is not already listed."""
+    merged = list(current)
+    seen = {e.get("source_event_id") for e in merged if e.get("source_event_id")}
+    for event in incoming_events:
+        event_id = event.get("source_event_id")
+        if event_id:
+            if event_id in seen:
+                continue
+            seen.add(event_id)
+        elif event in merged:
+            continue
+        merged.append(copy.deepcopy(event))
+    return merged
+
+
+def _without_updated_at(doc):
+    return {k: v for k, v in doc.items() if k != "updated_at"}
+
+
+def merge_ingest(existing, incoming, now, existing_user=None):
+    """Return the document to store for one incoming lead.
+
+    Never mutates `existing`. When the merge changes nothing it returns a copy
+    of `existing` untouched (same `updated_at`), so `merged == existing` is the
+    caller's "unchanged" test.
+    """
+    if existing is None:
+        return _new_doc(incoming, now, existing_user)
+
+    doc = copy.deepcopy(existing)
+    if doc.get("status") in REFRESHABLE_STATUSES:
+        _refresh(doc, incoming, existing_user)
+    else:
+        doc["events"] = _union_events(
+            doc.get("events") or [], incoming.get("events") or []
+        )
+
+    if _without_updated_at(doc) == _without_updated_at(existing):
+        return copy.deepcopy(existing)
+    doc["updated_at"] = now
+    return doc
+
+
+def _as_denver(moment):
+    if moment.tzinfo is None:
+        return moment.replace(tzinfo=DENVER)
+    return moment.astimezone(DENVER)
+
+
+def days_until(iso, now):
+    """Whole Denver calendar days from `now` to the ISO instant `iso`."""
+    target = _as_denver(datetime.fromisoformat(iso))
+    return (target.date() - _as_denver(now).date()).days
+
+
+def tier_sort_key(doc, now=None):
+    """Sort key: tier A first, then soonest anchor first."""
+    tier = (doc.get("score") or {}).get("tier")
+    rank = TIER_RANK.get(tier, UNKNOWN_TIER_RANK)
+    start = (doc.get("anchor") or {}).get("start")
+    try:
+        days = days_until(start, now or datetime.now(DENVER)) if start else NO_DATE_DAYS
+    except ValueError:
+        days = NO_DATE_DAYS
+    return (rank, days)

@@ -83,6 +83,7 @@ from routers.public import router as public_router
 from routers.billing import router as billing_router
 from routers.branding import router as branding_router
 from routers.agenda import router as agenda_router
+from routers.event_leads import router as event_leads_router
 
 
 @asynccontextmanager
@@ -193,3 +194,4 @@ app.include_router(public_router)
 app.include_router(billing_router)
 app.include_router(branding_router)
 app.include_router(agenda_router)
+app.include_router(event_leads_router)

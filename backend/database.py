@@ -44,6 +44,10 @@ survey_responses = db["survey_responses"]
 # A host's rewrites of the emails sent in their name. One row per (host,
 # template); absence means the default applies, so reset is a delete.
 host_email_templates = db["host_email_templates"]
+# Event lead engine: one lead per organizer (organizer_key), and one run record
+# per weekly sourcing job. Rules live in event_leads_rules.py.
+event_leads = db["event_leads"]
+event_lead_runs = db["event_lead_runs"]
 
 
 async def ensure_indexes():
@@ -114,3 +118,5 @@ async def ensure_indexes():
     await suppressed_emails.create_index("email", unique=True)
     await news_article.create_index("slug", unique=True)
     await news_article.create_index([("status", 1), ("published_at", -1)])
+    await event_leads.create_index("organizer_key", unique=True)
+    await event_leads.create_index([("status", 1), ("updated_at", -1)])

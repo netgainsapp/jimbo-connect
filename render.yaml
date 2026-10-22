@@ -39,6 +39,10 @@ services:
       # behaviour and it is also completely silent, so it went unnoticed.
       - key: BLOG_TICK_SECRET
         sync: false  # must match the GitHub Actions repo secret exactly
+      # Bearer key the weekly lead sourcing job sends to
+      # POST /api/admin/event-leads/ingest. Unset = every call gets a 401.
+      - key: EVENT_LEADS_INGEST_KEY
+        sync: false
       # Blog and news generation. Absent means both ticks are harmless no-ops
       # that report {"skipped": "no_api_key"} rather than failing.
       - key: ANTHROPIC_API_KEY

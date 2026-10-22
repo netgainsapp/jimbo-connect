@@ -76,6 +76,9 @@ SECRET_GATED = {
     ("POST", "/api/invites/tick"),
     ("POST", "/api/webhooks/resend"),
     ("POST", "/api/webhooks/stripe"),
+    # Bearer EVENT_LEADS_INGEST_KEY, not the admin cookie: the weekly sourcing
+    # job posts its leads here. Fails closed when the key is unset.
+    ("POST", "/api/admin/event-leads/ingest"),
 }
 
 _PARAM_RE = re.compile(r"\{[^}]+\}")
@@ -101,6 +104,7 @@ def test_all_routes_are_classified():
 def test_protected_routes_reject_unauthenticated(monkeypatch):
     monkeypatch.delenv("BLOG_TICK_SECRET", raising=False)
     monkeypatch.delenv("RESEND_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("EVENT_LEADS_INGEST_KEY", raising=False)
     failures = []
     for method, path in _api_routes():
         if (method, path) in PUBLIC:

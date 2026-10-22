@@ -73,6 +73,7 @@
  "POST /api/admin/blog/posts/{post_id}/publish",
  "POST /api/admin/blog/posts/{post_id}/unpublish",
  "POST /api/admin/blog/run",
+ "POST /api/admin/event-leads/ingest",
  "POST /api/admin/news",
  "POST /api/admin/news/{article_id}/publish",
  "POST /api/admin/news/{article_id}/unpublish",
