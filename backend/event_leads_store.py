@@ -12,6 +12,8 @@ from database import app_flags, event_leads, event_lead_runs
 
 # app_flags row holding the auto-approve threshold. Absent means off.
 AUTO_APPROVE_FLAG_ID = "event_leads_auto_approve_min_score"
+# Every linkedin.status a lead can hold once Approve has queued it.
+LINKEDIN_TRACKED = ["queued", "exported", "invited", "connected", "replied", "failed"]
 
 
 async def get_by_organizer_key(organizer_key):
@@ -47,6 +49,21 @@ async def list_leads(show_c):
     """All leads, tier C only when asked. Archived leads are not filtered here."""
     query = {} if show_c else {"score.tier": {"$ne": "C"}}
     return await event_leads.find(query).to_list(None)
+
+
+async def list_linkedin_queue():
+    """Approved leads whose LinkedIn step is still `queued`. The caller drops
+    the ones without a profile URL."""
+    return await event_leads.find(
+        {"status": "approved", "linkedin.status": "queued"}
+    ).to_list(None)
+
+
+async def list_linkedin_tracked():
+    """Every lead that has entered the LinkedIn queue, for matching results."""
+    return await event_leads.find(
+        {"linkedin.status": {"$in": LINKEDIN_TRACKED}}
+    ).to_list(None)
 
 
 async def update_lead(oid, fields, unset=()):

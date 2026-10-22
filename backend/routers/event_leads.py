@@ -163,8 +163,10 @@ async def put_event_leads_settings(
     return await _settings()
 
 
-# Declare static routes (ingest, linkedin-queue.csv, settings) above this line:
-# the `/{lead_id}` routes below would otherwise swallow them.
+# Declare static routes (ingest, settings) above this line: the `/{lead_id}`
+# routes below would otherwise swallow them. The LinkedIn routes live in
+# event_leads_linkedin, which server.py includes BEFORE this router for the same
+# reason (GET /linkedin-queue.csv would otherwise match `/{lead_id}`).
 
 class ContactBody(BaseModel):
     name: str = ""
@@ -205,7 +207,7 @@ async def _reload(doc):
     return serialize_lead(await _load_or_404(str(doc["_id"])))
 
 
-async def _stored_or_seed(key):
+async def stored_or_seed(key):
     """The template row an admin may have edited, else the seeded copy."""
     row = await sales_templates.sales_templates.find_one({"seed_key": key})
     return row or copy.seed_template(key)
@@ -213,9 +215,9 @@ async def _stored_or_seed(key):
 
 async def _previews(doc):
     """Step 1 email and both LinkedIn messages as the admin would send them."""
-    email = await _stored_or_seed(copy.EMAIL_KEY)
-    note = await _stored_or_seed(copy.NOTE_KEY)
-    followup = await _stored_or_seed(copy.FOLLOWUP_KEY)
+    email = await stored_or_seed(copy.EMAIL_KEY)
+    note = await stored_or_seed(copy.NOTE_KEY)
+    followup = await stored_or_seed(copy.FOLLOWUP_KEY)
     return {
         "email_preview": copy.email_preview(doc, email),
         "linkedin_preview": {
