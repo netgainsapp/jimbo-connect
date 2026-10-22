@@ -8,7 +8,9 @@ through send_marketing_email(), which enforces the suppression list and adds
 the CAN-SPAM unsubscribe footer + List-Unsubscribe headers."""
 
 import os
+import re
 import httpx
+from email.utils import parseaddr
 from typing import Optional
 
 import email_layout
@@ -23,6 +25,25 @@ def is_configured() -> bool:
     return bool(RESEND_API_KEY)
 
 
+_MAX_DISPLAY_NAME = 80
+_UNSAFE_NAME_CHARS = re.compile(r'[\x00-\x1f\x7f<>"]')
+
+
+def _from_address() -> str:
+    """The bare sending address inside EMAIL_FROM, without its display name."""
+    return parseaddr(EMAIL_FROM)[1] or EMAIL_FROM
+
+
+def host_from_header(host: dict) -> str:
+    """'Jane Doe via Intro Connect <hello@...>'. The host cannot sign our mail,
+    so their name rides as the display name on our address. The name is typed
+    by the host, so control characters and the characters that frame an address
+    are removed rather than trusted into a header."""
+    name = _UNSAFE_NAME_CHARS.sub(" ", host.get("name") or "")
+    name = " ".join(name.split())[:_MAX_DISPLAY_NAME] or "Your host"
+    return f"{name} via Intro Connect <{_from_address()}>"
+
+
 async def send_email(
     to: str,
     subject: str,
@@ -30,6 +51,7 @@ async def send_email(
     text: Optional[str] = None,
     reply_to: Optional[str] = None,
     headers: Optional[dict] = None,
+    from_header: Optional[str] = None,
 ) -> dict:
     if not RESEND_API_KEY:
         return {"sent": False, "reason": "RESEND_API_KEY not set"}
@@ -39,7 +61,7 @@ async def send_email(
     if await suppression.is_suppressed(to, marketing=False):
         return {"sent": False, "reason": "suppressed"}
     payload = {
-        "from": EMAIL_FROM,
+        "from": from_header or EMAIL_FROM,
         "to": [to],
         "subject": subject,
         "html": html,
@@ -75,6 +97,17 @@ _FOOTER_HTML = (
 _FOOTER_TEXT = "\n\nYou can stop these emails any time. Unsubscribe: {url}"
 
 
+def _host_sender(host: Optional[dict], reply_to: Optional[str]) -> dict:
+    """send_email keyword args for a host send: the From override, and the
+    host's address as reply-to unless the caller chose one."""
+    if not host:
+        return {"reply_to": reply_to}
+    return {
+        "reply_to": reply_to or host.get("email") or None,
+        "from_header": host_from_header(host),
+    }
+
+
 async def send_branded(
     to: str,
     subject: str,
@@ -85,13 +118,19 @@ async def send_branded(
     marketing: bool = True,
     reply_to: Optional[str] = None,
     brand: Optional[dict] = None,
+    host: Optional[dict] = None,
 ) -> dict:
     """Render structured content through the branded, email-client-safe layout
     and send it. Marketing mail is suppression-checked and carries the
     unsubscribe footer + List-Unsubscribe headers; transactional mail is not
-    (only a hard bounce blocks it, enforced in send_email)."""
+    (only a hard bounce blocks it, enforced in send_email).
+
+    `host` ({name,email,photo_url} from core.host_block) sends the mail as that
+    host: their name on the From line, replies routed to them, their name and
+    photo in the header. None keeps the platform sender and layout."""
     if not RESEND_API_KEY:
         return {"sent": False, "reason": "RESEND_API_KEY not set"}
+    sender = _host_sender(host, reply_to)
     if marketing:
         if await suppression.is_suppressed(to):
             return {"sent": False, "reason": "suppressed"}
@@ -102,6 +141,7 @@ async def send_branded(
             button=button,
             unsubscribe_url=unsub,
             brand=brand,
+            host=host,
         )
         text = email_layout.to_text(paragraphs, button, unsub)
         return await send_email(
@@ -109,17 +149,17 @@ async def send_branded(
             subject,
             html,
             text=text,
-            reply_to=reply_to,
             headers={
                 "List-Unsubscribe": f"<{unsub}>",
                 "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
             },
+            **sender,
         )
     html = email_layout.render(
-        heading=heading, paragraphs=paragraphs, button=button, brand=brand
+        heading=heading, paragraphs=paragraphs, button=button, brand=brand, host=host
     )
     text = email_layout.to_text(paragraphs, button)
-    return await send_email(to, subject, html, text=text, reply_to=reply_to)
+    return await send_email(to, subject, html, text=text, **sender)
 
 
 async def send_template_branded(
@@ -130,12 +170,14 @@ async def send_template_branded(
     button_url: Optional[str] = None,
     reply_to: Optional[str] = None,
     brand: Optional[dict] = None,
+    host: Optional[dict] = None,
 ) -> dict:
     """Send an admin-editable template ({"subject","body"} from
     render_email_template) through the branded layout as transactional mail.
     The body splits on blank lines into paragraphs; a paragraph that is exactly
     the button URL becomes the bulletproof button instead of a raw link. The
-    plain-text alternative keeps the raw URL so every client has a usable copy."""
+    plain-text alternative keeps the raw URL so every client has a usable copy.
+    `host` sends it as that host, exactly as send_branded does."""
     body = rendered["body"]
     paragraphs = [p.strip("\n") for p in body.split("\n\n") if p.strip()]
     button = None
@@ -143,10 +185,16 @@ async def send_template_branded(
         paragraphs = [p for p in paragraphs if p.strip() != button_url]
         button = {"label": button_label, "url": button_url}
     html = email_layout.render(
-        heading=rendered["subject"], paragraphs=paragraphs, button=button, brand=brand
+        heading=rendered["subject"],
+        paragraphs=paragraphs,
+        button=button,
+        brand=brand,
+        host=host,
     )
     text = email_layout.to_text(paragraphs, button)
-    return await send_email(to, rendered["subject"], html, text=text, reply_to=reply_to)
+    return await send_email(
+        to, rendered["subject"], html, text=text, **_host_sender(host, reply_to)
+    )
 
 
 async def send_marketing_email(

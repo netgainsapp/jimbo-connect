@@ -138,6 +138,27 @@ def serialize_user(user: dict) -> dict:
     }
 
 
+HOST_NAME_FALLBACK = "Your host"
+
+
+def host_block(user: dict | None) -> dict | None:
+    """The host as an attendee email sees them: { name, email, photo_url }.
+
+    Feeds the sender display name, reply-to and the email header. The name never
+    falls back to the email address, so an unnamed host cannot leak their own
+    address into every guest's inbox header. None for no user, which sends
+    through the platform layout instead.
+    """
+    if not user:
+        return None
+    profile = user.get("profile") or {}
+    return {
+        "name": (profile.get("name") or "").strip() or HOST_NAME_FALLBACK,
+        "email": user.get("email", ""),
+        "photo_url": (profile.get("photo_url") or "").strip(),
+    }
+
+
 def serialize_attendee(user: dict, *, include_email: bool = False) -> dict:
     """A person as seen by someone else.
 

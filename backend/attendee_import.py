@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 import branding
 import email_send
 from auth import hash_password
-from core import APP_URL, attendee_room
+from core import APP_URL, attendee_room, host_block
 import host_templates
 from database import event_attendees, users
 from send_report import tally_failure
@@ -151,6 +151,7 @@ async def import_rows(
                             button_label="Open your directory",
                             button_url=APP_URL,
                             brand=branding.email_brand(actor),
+                            host=host_block(actor),
                         )
                         if send_result.get("sent"):
                             emailed += 1

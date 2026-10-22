@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 from database import event_invites, events, users
 import branding
+import core
 import email_send
 
 from app_url import APP_URL
@@ -65,9 +66,9 @@ def invite_heading(event_name: str) -> str:
 def invite_paragraphs(event_name: str, host_name: str) -> list:
     host = host_name or "Your host"
     return [
-        f"{host} invited you to {event_name} on Intro Connect. After the event, "
-        "everyone who came is in one private, searchable directory, so you can "
-        "save the people you meet, keep a private note, and message them later.",
+        f"{host} invited you to {event_name}. After the event, everyone who came "
+        "is in one private, searchable directory, so you can save the people you "
+        "meet, keep a private note, and message them later.",
         "It takes a minute and it is free for guests. See you there.",
     ]
 
@@ -95,11 +96,16 @@ def _summary(attempted: int, sent: int, skipped_recent: int, failures: dict) -> 
 
 
 async def send_event_invites(
-    event: dict, raw_emails, host_name: str, host_brand: dict | None = None
+    event: dict,
+    raw_emails,
+    host_name: str,
+    host_brand: dict | None = None,
+    host: dict | None = None,
 ) -> dict:
     """Record and email invites for an event. Dormant when Resend is not
     configured (no records written either), so the invite + reminder state never
-    gets ahead of actually-sent mail."""
+    gets ahead of actually-sent mail. `host` (core.host_block) sends each invite
+    as the host: their name, photo and reply-to."""
     emails = normalize_emails(raw_emails)
     if not emails:
         return _summary(0, 0, 0, {})
@@ -130,6 +136,7 @@ async def send_event_invites(
             button={"label": "Join the event", "url": join_url},
             marketing=True,
             brand=host_brand,
+            host=host,
         )
         if not result.get("sent"):
             tally_failure(failures, result.get("reason"))
@@ -211,6 +218,8 @@ async def run_invite_reminder_tick() -> dict:
             button={"label": "Join the event", "url": join_url},
             marketing=True,
             brand=branding.email_brand(host) if host else None,
+            # A host who has since been deleted falls back to the platform layout.
+            host=core.host_block(host),
         )
         if result.get("sent"):
             sent += 1

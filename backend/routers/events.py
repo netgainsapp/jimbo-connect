@@ -42,6 +42,7 @@ from core import (
     serialize_event,
     serialize_attendee,
     serialize_user,
+    host_block,
     set_auth_cookie,
     FREE_EVENT_LIMIT,
     _can_manage_event,
@@ -698,7 +699,11 @@ async def invite_guests(
         raise HTTPException(status_code=403, detail="Not your event")
     host_name = (user.get("profile") or {}).get("name") or ""
     return await invites.send_event_invites(
-        e, payload.emails, host_name, host_brand=branding.email_brand(user)
+        e,
+        payload.emails,
+        host_name,
+        host_brand=branding.email_brand(user),
+        host=host_block(user),
     )
 
 
