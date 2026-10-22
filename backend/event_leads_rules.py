@@ -17,6 +17,9 @@ DENVER = ZoneInfo("America/Denver")
 
 # Statuses a re-send may overwrite. Everything else is frozen except `events`.
 REFRESHABLE_STATUSES = ("new", "unreachable")
+# An admin contact edit also re-checks existing_customer: a wrong email can
+# flag a lead, and the corrected email must be able to free it.
+CONTACT_REFRESHABLE_STATUSES = REFRESHABLE_STATUSES + ("existing_customer",)
 
 TIER_RANK = {"A": 0, "B": 1, "C": 2}
 UNKNOWN_TIER_RANK = 3
