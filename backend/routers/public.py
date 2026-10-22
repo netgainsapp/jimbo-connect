@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 import database
 import email_send
+import event_leads_poll
 import invites
 import nurture
 import rate_limit
@@ -202,6 +203,14 @@ async def invites_tick(request: Request):
     if not _tick_authorized(request.headers.get("x-tick-secret")):
         raise HTTPException(status_code=401, detail="Unauthorized")
     return await invites.run_invite_reminder_tick()
+
+
+@router.post("/api/event-leads/tick")
+async def event_leads_tick(request: Request):
+    """Nightly Signal Scout status poll for event leads. Secret-gated for the cron."""
+    if not _tick_authorized(request.headers.get("x-tick-secret")):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return await event_leads_poll.poll_status(datetime.now(timezone.utc))
 
 
 # ---------- CAN-SPAM: unsubscribe + Resend bounce/complaint webhook ----------

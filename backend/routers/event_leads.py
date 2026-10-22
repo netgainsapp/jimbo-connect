@@ -232,9 +232,12 @@ async def list_event_leads(show_c: bool = False, admin: dict = Depends(get_curre
     now = datetime.now(timezone.utc)
     docs = await store.list_leads(show_c)
     docs.sort(key=lambda d: (d.get("status") == "archived", rules.tier_sort_key(d, now)))
+    # The strip counts every lead, tier C and archived included.
+    everyone = await store.list_leads(show_c=True)
+    runs = await store.list_runs(weeks=rules.KPI_WEEKS, now=now)
     return {
         "leads": [serialize_lead(d, now) for d in docs],
-        "kpis": [],
+        "kpis": rules.kpis(everyone, runs, now, weeks=rules.KPI_WEEKS),
         "settings": await _settings(),
     }
 

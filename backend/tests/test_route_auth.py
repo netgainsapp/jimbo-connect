@@ -90,6 +90,7 @@ SECRET_GATED = {
     ("POST", "/api/news/tick"),
     ("POST", "/api/nurture/tick"),
     ("POST", "/api/invites/tick"),
+    ("POST", "/api/event-leads/tick"),
     ("POST", "/api/webhooks/resend"),
     ("POST", "/api/webhooks/stripe"),
     # Bearer EVENT_LEADS_INGEST_KEY, not the admin cookie: the weekly sourcing

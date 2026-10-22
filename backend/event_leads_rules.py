@@ -9,7 +9,7 @@ event history. A lead nobody has acted on is still a draft and takes the
 newest data wholesale.
 """
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 DENVER = ZoneInfo("America/Denver")
@@ -160,3 +160,104 @@ def tier_sort_key(doc, now=None):
     except ValueError:
         days = NO_DATE_DAYS
     return (rank, days)
+
+
+# ---------- KPI strip ----------
+
+KPI_WEEKS = 5
+DAYS_PER_WEEK = 7
+QUALIFYING_TIERS = ("A", "B")
+RATE_PLACES = 3
+# KPI field -> the lead's funnel timestamp it counts.
+KPI_FUNNEL_FIELDS = {
+    "approved": "approved_at",
+    "emailed": "emailed_at",
+    "opened": "opened_at",
+    "clicked": "clicked_at",
+    "claimed": "claimed_at",
+    "attendees_uploaded": "attendees_uploaded_at",
+    "converted": "converted_at",
+}
+
+
+def as_utc(value):
+    """A datetime or ISO string as an aware UTC datetime, else None. Mongo hands
+    datetimes back naive, and they are UTC."""
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if not isinstance(value, datetime):
+        return None
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
+def _week_monday(moment):
+    """The Denver Monday on or before `moment`, as a date."""
+    day = _as_denver(moment).date()
+    return day - timedelta(days=day.weekday())
+
+
+def _count(value):
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else 0
+
+
+def _tally(rows, key_of, weeks):
+    """Rows per week key, for the weeks asked about only."""
+    out = {week: [] for week in weeks}
+    for row in rows:
+        week = key_of(row)
+        if week in out:
+            out[week].append(row)
+    return out
+
+
+def _run_week(run):
+    received = as_utc(run.get("received_at"))
+    return _week_monday(received) if received else None
+
+
+def _ingest_totals(runs):
+    ingested = sum(_count(run.get("ingested")) for run in runs)
+    qualified = sum(
+        _count((run.get("by_tier") or {}).get(tier))
+        for run in runs for tier in QUALIFYING_TIERS
+    )
+    rate = round(qualified / ingested, RATE_PLACES) if ingested else 0.0
+    return ingested, rate
+
+
+def _funnel_counts(leads, weeks):
+    """For each KPI field, how many leads hit it in each of the weeks."""
+    counts = {name: {week: 0 for week in weeks} for name in KPI_FUNNEL_FIELDS}
+    for lead in leads:
+        funnel = lead.get("funnel") or {}
+        for name, stamp in KPI_FUNNEL_FIELDS.items():
+            moment = as_utc(funnel.get(stamp))
+            week = _week_monday(moment) if moment else None
+            if week in counts[name]:
+                counts[name][week] += 1
+    return counts
+
+
+def kpis(leads, runs, now, weeks=KPI_WEEKS):
+    """The KPI strip: one row per Denver week (Monday to Sunday), newest first.
+
+    Ingest numbers come from the runs received that week, the funnel counts
+    from the lead timestamps that fall in it. Pure; archived leads count too,
+    since a lead archived after it was emailed was still emailed."""
+    this_monday = _week_monday(now)
+    mondays = [this_monday - timedelta(days=DAYS_PER_WEEK * i) for i in range(weeks)]
+    runs_by_week = _tally(runs, _run_week, mondays)
+    counts = _funnel_counts(leads, mondays)
+    rows = []
+    for monday in mondays:
+        ingested, rate = _ingest_totals(runs_by_week[monday])
+        rows.append({
+            "week": monday.isoformat(),
+            "ingested": ingested,
+            "qualification_rate": rate,
+            **{name: counts[name][monday] for name in KPI_FUNNEL_FIELDS},
+        })
+    return rows

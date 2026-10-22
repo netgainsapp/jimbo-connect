@@ -1,0 +1,28 @@
+name: Event leads status poll
+
+# Asks Signal Scout how each approved, unclaimed event lead is doing (sent,
+# opened, clicked, replied), rolls pre-built events to a new anchor, and stamps
+# event_passed_at and converted_at. Secret-gated: set BLOG_TICK_SECRET as a
+# repo secret AND on the jimbo-connect-api Render service (same secret guards
+# all ticks). A no-op until SIGNAL_SCOUT_URL and SIGNAL_SCOUT_API_KEY are set.
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # daily at 07:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: event-leads-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Poll Signal Scout status for event leads
+        run: |
+          curl -fsS -X POST \
+            https://jimbo-connect-api-rdkp.onrender.com/api/event-leads/tick \
+            -H "X-Tick-Secret: ${{ secrets.BLOG_TICK_SECRET }}" \
+            --max-time 150 --retry 3 --retry-delay 15 --retry-all-errors

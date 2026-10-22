@@ -293,3 +293,38 @@ async def notify_claimed(lead: dict) -> dict:
               file=sys.stderr)
         return {"ok": False, "error": f"Signal Scout returned HTTP {resp.status_code}"}
     return {"ok": True}
+
+
+# ---------- Status poll (Signal Scout's send, open and reply times) ----------
+
+async def fetch_status(prospect_ids: list) -> dict:
+    """Ask Signal Scout how a batch of prospects is doing.
+
+    GET /api/intro-connect/status?prospect_ids=a,b. Returns {ok, prospects}
+    where prospects is the list from the reply, or {ok False, error} with a
+    short message. Never raises; bodies and emails never reach the log."""
+    if not is_configured():
+        return {"ok": False, "error": "Signal Scout is not configured"}
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=PUSH_TIMEOUT_SECONDS) as client:
+            resp = await client.get(
+                f"{SIGNAL_SCOUT_URL}/api/intro-connect/status",
+                headers={"Authorization": f"Bearer {SIGNAL_SCOUT_API_KEY}"},
+                params={"prospect_ids": ",".join(prospect_ids)},
+            )
+    except Exception as exc:  # network / DNS / timeout
+        print(f"[outreach] status poll failed: {type(exc).__name__}", file=sys.stderr)
+        return {"ok": False, "error": f"Signal Scout unreachable ({type(exc).__name__})"}
+    if resp.status_code >= 300:
+        print(f"[outreach] status poll {resp.status_code}", file=sys.stderr)
+        return {"ok": False, "error": f"Signal Scout returned HTTP {resp.status_code}"}
+    try:
+        prospects = resp.json().get("prospects")
+    except (ValueError, AttributeError):
+        prospects = None
+    if not isinstance(prospects, list):
+        print("[outreach] status poll unreadable body", file=sys.stderr)
+        return {"ok": False, "error": "Signal Scout returned an unreadable response"}
+    return {"ok": True, "prospects": [p for p in prospects if isinstance(p, dict)]}

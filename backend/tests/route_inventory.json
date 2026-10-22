@@ -113,6 +113,7 @@
  "POST /api/claim/{token}",
  "POST /api/contacts/save",
  "POST /api/email-templates/{template_id}/reset",
+ "POST /api/event-leads/tick",
  "POST /api/events",
  "POST /api/events/join/{code}",
  "POST /api/events/join/{code}/guest",

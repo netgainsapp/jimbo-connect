@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 
 import branding
 import email_send
+import event_leads_store
 from auth import hash_password
 from core import APP_URL, attendee_room, host_block
 import host_templates
@@ -243,6 +244,10 @@ async def import_rows(
                         attendee_count += 1
         except Exception as e:
             errors.append({"email": email, "error": str(e)})
+
+    if added_to_event:
+        # Funnel bookkeeping for an event Approve built; never fails the import.
+        await event_leads_store.stamp_attendees_uploaded(event_doc, now)
 
     return {
         "created": created,

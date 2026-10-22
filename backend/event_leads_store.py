@@ -3,6 +3,7 @@
 Collections are imported by name so tests can monkeypatch the module
 attributes. Rules live in event_leads_rules; nothing here decides anything.
 """
+import sys
 from datetime import datetime, timedelta, timezone
 
 from bson import ObjectId
@@ -68,6 +69,46 @@ async def list_linkedin_tracked():
     ).to_list(None)
 
 
+async def list_pollable_leads():
+    """Approved leads Signal Scout is still working: imported, not archived,
+    not yet claimed. These are the ones the nightly status poll asks about."""
+    return await event_leads.find({
+        "status": "approved",
+        "signal_scout.prospect_id": {"$nin": [None, ""]},
+        "archived_at": {"$exists": False},
+        "funnel.claimed_at": {"$exists": False},
+    }).to_list(None)
+
+
+async def list_claimed_unconverted():
+    """Claimed leads with a host that have not been marked converted yet."""
+    return await event_leads.find({
+        "status": "claimed",
+        "host_user_id": {"$nin": [None, ""]},
+        "funnel.converted_at": {"$exists": False},
+    }).to_list(None)
+
+
+async def stamp_attendees_uploaded(event_doc, now):
+    """First guest list on an event Approve built: set the lead's
+    `funnel.attendees_uploaded_at`, once. Returns whether it wrote. Never
+    raises, so the import that called it is never affected by a bookkeeping
+    failure."""
+    lead_id = ((event_doc or {}).get("provenance") or {}).get("event_lead_id")
+    if not lead_id:
+        return False
+    try:
+        return await update_lead_if(
+            ObjectId(lead_id),
+            {"funnel.attendees_uploaded_at": {"$exists": False}},
+            {"funnel.attendees_uploaded_at": now},
+        )
+    except Exception as exc:  # InvalidId, Mongo errors
+        print(f"[event_leads] attendee stamp failed: {type(exc).__name__}",
+              file=sys.stderr)
+        return False
+
+
 async def update_lead(oid, fields, unset=()):
     """Set `fields` and drop the `unset` keys on one lead, keyed on `_id`.
     Every write bumps `updated_at`."""
@@ -104,6 +145,15 @@ async def release_approve_lease(oid, held_at):
     await event_leads.update_one(
         {"_id": oid, "approving_at": held_at}, {"$unset": {"approving_at": ""}}
     )
+
+
+async def list_runs(weeks, now=None):
+    """Weekly run records received in the last `weeks` weeks, with one extra
+    week of margin so the Denver week boundary never cuts one off. The KPI
+    math does the exact bucketing."""
+    now = now or datetime.now(timezone.utc)
+    cutoff = now - timedelta(weeks=weeks + 1)
+    return await event_lead_runs.find({"received_at": {"$gte": cutoff}}).to_list(None)
 
 
 async def record_run(run):

@@ -137,6 +137,9 @@ class _Runs:
     async def insert_one(self, doc):
         return None
 
+    def find(self, q):
+        return _Cursor([])
+
 
 class _Users:
     def __init__(self, *rows):

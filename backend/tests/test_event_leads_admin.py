@@ -86,6 +86,11 @@ class _Events:
         return 1 if q.get("created_by") in self.hosts else 0
 
 
+class _NoRuns:
+    def find(self, q):
+        return _Cursor([])
+
+
 class _NoFlags:
     async def find_one(self, q):
         return None
@@ -100,6 +105,7 @@ def db(monkeypatch):
     })
     monkeypatch.setattr(event_leads_store, "event_leads", leads)
     monkeypatch.setattr(event_leads_store, "app_flags", _NoFlags())
+    monkeypatch.setattr(event_leads_store, "event_lead_runs", _NoRuns())
     monkeypatch.setattr(auth, "users", people)
     monkeypatch.setattr(route, "users", people)
     monkeypatch.setattr(route, "events", _Events())
@@ -148,7 +154,7 @@ def test_tier_c_is_hidden_by_default_and_shown_on_request(db):
 
     assert [x["score"]["tier"] for x in default["leads"]] == ["A"]
     assert sorted(x["score"]["tier"] for x in shown["leads"]) == ["A", "C"]
-    assert default["kpis"] == []
+    assert len(default["kpis"]) == 5  # the strip itself is covered in test_event_leads_poll
 
 
 def test_list_sorts_by_tier_then_date_and_archived_last(db):
