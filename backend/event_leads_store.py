@@ -80,6 +80,17 @@ async def list_pollable_leads():
     }).to_list(None)
 
 
+async def list_unpassed_leads():
+    """Approved, unclaimed, unarchived leads with no `event_passed_at` yet,
+    whether or not they were imported to Signal Scout."""
+    return await event_leads.find({
+        "status": "approved",
+        "archived_at": {"$exists": False},
+        "funnel.claimed_at": {"$exists": False},
+        "funnel.event_passed_at": {"$exists": False},
+    }).to_list(None)
+
+
 async def list_claimed_unconverted():
     """Claimed leads with a host that have not been marked converted yet."""
     return await event_leads.find({

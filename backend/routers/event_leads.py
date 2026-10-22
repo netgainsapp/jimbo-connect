@@ -230,10 +230,10 @@ async def _previews(doc):
 @router.get("/api/admin/event-leads")
 async def list_event_leads(show_c: bool = False, admin: dict = Depends(get_current_admin)):
     now = datetime.now(timezone.utc)
-    docs = await store.list_leads(show_c)
-    docs.sort(key=lambda d: (d.get("status") == "archived", rules.tier_sort_key(d, now)))
-    # The strip counts every lead, tier C and archived included.
+    # One scan: the strip counts every lead, tier C and archived included.
     everyone = await store.list_leads(show_c=True)
+    docs = [d for d in everyone if show_c or (d.get("score") or {}).get("tier") != "C"]
+    docs.sort(key=lambda d: (d.get("status") == "archived", rules.tier_sort_key(d, now)))
     runs = await store.list_runs(weeks=rules.KPI_WEEKS, now=now)
     return {
         "leads": [serialize_lead(d, now) for d in docs],

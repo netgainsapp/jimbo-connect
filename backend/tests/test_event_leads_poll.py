@@ -199,13 +199,40 @@ def test_funnel_updates_maps_every_signal_scout_field():
 
 def test_funnel_updates_first_occurrence_wins_and_nulls_are_skipped():
     first = datetime(2026, 10, 1, 9, 0, tzinfo=timezone.utc)
-    lead = {"funnel": {"emailed_at": first}, "signal_scout": {"next_step_at": first}}
+    lead = {"funnel": {"emailed_at": first}}
     prospect = _status(
         "p1", sent_at="2026-10-19T15:00:00Z", opened_at=None, clicked_at="",
-        next_step_at="2026-10-25T15:00:00Z",
     )
 
     assert poll.funnel_updates(lead, prospect) == {}
+
+
+def test_next_step_at_follows_signal_scout_to_the_latest_value():
+    old = datetime(2026, 10, 22, 15, 0, tzinfo=timezone.utc)
+    lead = {"signal_scout": {"next_step_at": old}}
+    moved = datetime(2026, 10, 29, 15, 0, tzinfo=timezone.utc)
+
+    got = poll.funnel_updates(lead, _status("p1", next_step_at="2026-10-29T15:00:00Z"))
+    assert got == {"signal_scout.next_step_at": moved}
+
+    # Naive stored datetime (how Mongo returns it) equal to the new value: no write.
+    same = {"signal_scout": {"next_step_at": datetime(2026, 10, 29, 15, 0)}}
+    assert poll.funnel_updates(same, _status("p1", next_step_at="2026-10-29T15:00:00Z")) == {}
+    # Null or unreadable leaves the stored value alone.
+    assert poll.funnel_updates(lead, _status("p1", next_step_at=None)) == {}
+    assert poll.funnel_updates(lead, _status("p1", next_step_at="soon")) == {}
+
+
+def test_poll_moves_next_step_at_forward_each_night(db, scout):
+    old = datetime(2026, 10, 22, 15, 0, tzinfo=timezone.utc)
+    oid = _lead(db, "p1", signal_scout={"prospect_id": "p1", "next_step_at": old})
+    scout.prospects["p1"] = _status("p1", next_step_at="2026-10-29T15:00:00Z")
+
+    result = _run(poll.poll_status(NOW))
+
+    stored = db.leads.rows[oid]["signal_scout"]["next_step_at"]
+    assert stored == datetime(2026, 10, 29, 15, 0, tzinfo=timezone.utc)
+    assert result["updated"] == 1
 
 
 def test_funnel_updates_skips_an_unreadable_timestamp():
@@ -363,6 +390,21 @@ def test_no_roll_when_the_flag_is_off_or_the_date_is_unchanged(db, scout):
     assert result["rolled"] == 0
 
 
+def test_the_same_instant_in_another_offset_does_not_roll(db, scout):
+    event_oid = _event(db)
+    oid = _lead(db, "p1", event_oid)
+    scout.prospects["p1"] = _status(
+        "p1", anchor_rolled_since_last_send=True,
+        anchor={"name": "Renamed", "date": "2026-11-05T01:00:00+00:00"},
+    )
+
+    result = _run(poll.poll_status(NOW))
+
+    assert result["rolled"] == 0
+    assert db.events.rows[event_oid]["name"] == "Denver Tech Mixer"
+    assert db.leads.rows[oid]["anchor"]["start"] == ANCHOR_START
+
+
 # ---------- event_passed_at ----------
 
 def test_event_passed_at_is_set_for_a_past_anchor_even_without_a_status(db, scout):
@@ -378,6 +420,38 @@ def test_event_passed_at_is_set_for_a_past_anchor_even_without_a_status(db, scou
     assert "event_passed_at" not in db.leads.rows[future]["funnel"]
     assert db.leads.rows[kept]["funnel"]["event_passed_at"] == done
     assert result["passed"] == 1
+
+
+def test_event_passed_at_covers_linkedin_only_leads_without_a_prospect(db, scout):
+    past = _lead(db, None, signal_scout={}, anchor={"title": "Old", "start": "2026-10-01T18:00:00-06:00"})
+    future = _lead(db, None, signal_scout={})
+    claimed = _lead(db, None, signal_scout={}, funnel={"claimed_at": NOW},
+                    anchor={"title": "Old", "start": "2026-10-01T18:00:00-06:00"})
+    archived = _lead(db, None, signal_scout={}, archived_at=NOW,
+                     anchor={"title": "Old", "start": "2026-10-01T18:00:00-06:00"})
+
+    result = _run(poll.poll_status(NOW))
+
+    assert scout.calls == []
+    assert db.leads.rows[past]["funnel"]["event_passed_at"] == NOW
+    for oid in (future, claimed, archived):
+        assert "event_passed_at" not in db.leads.rows[oid]["funnel"]
+    assert result["passed"] == 1
+
+
+def test_event_passed_at_uses_the_original_anchor_when_the_roll_is_refused(db, scout):
+    event_oid = db.events.add(
+        name="Mine now", date=datetime(2026, 10, 2, 0, 0), created_by=ObjectId(),
+        provenance={"event_lead_id": "x", "claimed_at": NOW},
+    )
+    oid = _lead(db, "p1", event_oid, anchor={"title": "Old", "start": "2026-10-01T18:00:00-06:00"})
+    scout.prospects["p1"] = _status("p1", **ROLLED)
+
+    result = _run(poll.poll_status(NOW))
+
+    assert result["rolled"] == 0
+    assert db.leads.rows[oid]["anchor"]["start"] == "2026-10-01T18:00:00-06:00"
+    assert db.leads.rows[oid]["funnel"]["event_passed_at"] == NOW
 
 
 def test_event_passed_at_uses_the_rolled_anchor(db, scout):

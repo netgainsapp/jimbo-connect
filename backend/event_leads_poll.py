@@ -10,7 +10,8 @@ The same pass does three things that come from our own data instead:
 
 * rolls the pre-built event to the new anchor when Signal Scout rolled it
   before a send, as long as the host has not claimed the event;
-* stamps `funnel.event_passed_at` once the anchor is in the past;
+* stamps `funnel.event_passed_at` once the anchor is in the past, for every
+  approved, unclaimed lead (LinkedIn-only ones have no prospect to poll);
 * stamps `funnel.converted_at` for claimed hosts with a second event or a paid
   plan. That runs even when Signal Scout is down.
 
@@ -38,8 +39,9 @@ STATUS_FIELDS = {
     "replied_at": "funnel.replied_at",
     "bounced_at": "funnel.bounced_at",
     "unsubscribed_at": "funnel.unsubscribed_at",
-    "next_step_at": "signal_scout.next_step_at",
 }
+# Signal Scout moves this forward after every step, so the latest value wins.
+NEXT_STEP_FIELD = "signal_scout.next_step_at"
 POLLED_AT = "signal_scout.polled_at"
 UNCLAIMED_EVENT = {"provenance.claimed_at": {"$exists": False}}
 FREE_PLAN = "free"
@@ -53,14 +55,19 @@ def _present(doc, dotted):
 
 
 def funnel_updates(lead, prospect):
-    """Dotted fields to `$set` from one Signal Scout prospect. A field is
-    written only when the lead has no value yet and Signal Scout sent a
-    readable, non-null one."""
+    """Dotted fields to `$set` from one Signal Scout prospect. A funnel field
+    is written only when the lead has no value yet (first occurrence wins);
+    `next_step_at` is written whenever the readable value differs from the
+    stored one. Null or unreadable values leave a field alone."""
     out = {}
     for source, dotted in STATUS_FIELDS.items():
         moment = rules.as_utc(prospect.get(source))
         if moment is not None and not _present(lead, dotted):
             out[dotted] = moment
+    next_step = rules.as_utc(prospect.get("next_step_at"))
+    stored = rules.as_utc((lead.get("signal_scout") or {}).get("next_step_at"))
+    if next_step is not None and next_step != stored:
+        out[NEXT_STEP_FIELD] = next_step
     return out
 
 
@@ -126,36 +133,24 @@ async def _roll_event(lead, target, now):
     }
 
 
-def _has_passed(lead, rolled_start, now):
-    if _present(lead, "funnel.event_passed_at"):
-        return False
-    start = rolled_start or _instant(
-        (lead.get("anchor") or {}).get("start"), _anchor_zone(lead)
-    )
+def _anchor_has_passed(lead, now):
+    start = _instant((lead.get("anchor") or {}).get("start"), _anchor_zone(lead))
     return start is not None and start < now
 
 
 async def _poll_lead(lead, prospect, now, result):
     """Work out and write everything this poll learns about one lead."""
-    fields, rolled_start = {}, None
-    if prospect is not None:
-        fields.update(funnel_updates(lead, prospect))
-        target = _roll_target(lead, prospect)
-        rolled = await _roll_event(lead, target, now) if target else None
-        if rolled:
-            fields.update(rolled)
-            rolled_start = target[2]
-            result["rolled"] += 1
-        result["polled"] += 1
-    if _has_passed(lead, rolled_start, now):
-        fields["funnel.event_passed_at"] = now
-        result["passed"] += 1
-    if prospect is not None:
-        fields[POLLED_AT] = now
-    if not fields:
+    if prospect is None:
         return
-    await store.update_lead(lead["_id"], fields)
-    if set(fields) - {POLLED_AT}:
+    fields = funnel_updates(lead, prospect)
+    target = _roll_target(lead, prospect)
+    rolled = await _roll_event(lead, target, now) if target else None
+    if rolled:
+        fields.update(rolled)
+        result["rolled"] += 1
+    result["polled"] += 1
+    await store.update_lead(lead["_id"], {**fields, POLLED_AT: now})
+    if fields:
         result["updated"] += 1
 
 
@@ -200,6 +195,25 @@ async def _poll_signal_scout(now, result):
         result["errors"].append(f"{failed} lead write(s) failed")
 
 
+async def _stamp_passed(now, errors):
+    """event_passed_at for every approved, unclaimed lead whose anchor is past,
+    LinkedIn-only leads included. Read after the Signal Scout pass, so an
+    anchor it just rolled forward counts as its new date."""
+    passed = 0
+    for lead in await store.list_unpassed_leads():
+        if not _anchor_has_passed(lead, now):
+            continue
+        try:
+            absent = {"funnel.event_passed_at": {"$exists": False}}
+            if await store.update_lead_if(
+                lead["_id"], absent, {"funnel.event_passed_at": now}
+            ):
+                passed += 1
+        except Exception as exc:  # the next lead still gets checked
+            errors.append(f"event passed check failed ({type(exc).__name__})")
+    return passed
+
+
 async def _has_converted(host_oid):
     """A second event, or any plan other than free."""
     host = await users.find_one({"_id": host_oid})
@@ -233,5 +247,6 @@ async def poll_status(now):
         await _poll_signal_scout(now, result)
     except Exception as exc:  # the conversion pass below still runs
         result["errors"].append(f"status poll failed ({type(exc).__name__})")
+    result["passed"] = await _stamp_passed(now, result["errors"])
     result["converted"] = await _stamp_conversions(now, result["errors"])
     return result
