@@ -86,10 +86,13 @@ async def _ingest_one(incoming, now):
 
 
 def _auto_approvable(outcome, doc, min_score):
-    """A lead this request inserted, still new, with an email, scoring high enough."""
+    """A lead this request inserted or changed, still new, with an email,
+    scoring high enough. Changed counts because most organizers return every
+    week: an email found on a later run lands on an existing lead, and the
+    status gate keeps approved, archived and customer leads out."""
     score = (doc.get("score") or {}).get("score")
     return (
-        outcome == "inserted"
+        outcome in ("inserted", "updated")
         and doc.get("status") == "new"
         and bool((doc.get("contact") or {}).get("email"))
         and isinstance(score, (int, float)) and not isinstance(score, bool)
