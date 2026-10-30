@@ -739,6 +739,51 @@ def test_auto_approve_at_90_takes_the_94_with_an_email_only(db):
     assert db.events.inserts == 1 and len(db.push.calls) == 1
 
 
+def test_auto_approve_takes_a_returning_lead_that_gained_an_email(db):
+    db.flags.rows["event_leads_auto_approve_min_score"] = {
+        "_id": "event_leads_auto_approve_min_score", "value": 30}
+    first = _incoming("a:later", 60, "")
+    first["contact"] = _contact(email="", linkedin_url="")
+    assert _ingest(first).json()["auto_approved"] == 0
+    assert _status_of(db, "a:later") == "unreachable"
+
+    resp = _ingest(_incoming("a:later", 60, "found@host.org"))
+
+    assert resp.json()["updated"] == 1 and resp.json()["auto_approved"] == 1
+    assert _status_of(db, "a:later") == "approved"
+    assert len(db.push.calls) == 1
+
+
+def test_auto_approve_leaves_a_returning_lead_below_the_threshold(db):
+    db.flags.rows["event_leads_auto_approve_min_score"] = {
+        "_id": "event_leads_auto_approve_min_score", "value": 30}
+    first = _incoming("a:weak", 20, "")
+    first["contact"] = _contact(email="", linkedin_url="")
+    _ingest(first)
+
+    resp = _ingest(_incoming("a:weak", 20, "found@host.org"))
+
+    assert resp.json()["auto_approved"] == 0
+    assert _status_of(db, "a:weak") == "new"
+    assert db.push.calls == []
+
+
+def test_auto_approve_never_reopens_an_archived_lead(db):
+    db.flags.rows["event_leads_auto_approve_min_score"] = {
+        "_id": "event_leads_auto_approve_min_score", "value": 30}
+    first = _incoming("a:gone", 80, "")
+    first["contact"] = _contact(email="", linkedin_url="")
+    _ingest(first)
+    row = next(r for r in db.leads.rows.values() if r["organizer_key"] == "a:gone")
+    row["status"] = "archived"
+
+    resp = _ingest(_incoming("a:gone", 80, "found@host.org"))
+
+    assert resp.json()["auto_approved"] == 0
+    assert _status_of(db, "a:gone") == "archived"
+    assert db.push.calls == []
+
+
 def test_auto_approve_failure_is_recorded_on_the_lead_and_never_raised(db):
     db.flags.rows["event_leads_auto_approve_min_score"] = {
         "_id": "event_leads_auto_approve_min_score", "value": 90}
