@@ -51,19 +51,27 @@ async def robots_txt():
     return PlainTextResponse(seo.render_robots(), headers={"Cache-Control": _SEO_CACHE})
 
 
+#: Every stable public page on intro-connect.com. The marketing static site
+#: serves "/", privacy and terms itself, but they are listed here too so this
+#: sitemap (live at /sitemap-content.xml) alone covers the whole public site.
+STATIC_SITEMAP_ENTRIES = (
+    {"path": "/", "changefreq": "weekly", "priority": "1.0"},
+    # The free Agenda Builder landing page: a linkable tool page is the
+    # strongest organic surface the site has, so it ranks just under home.
+    {"path": "/agenda", "changefreq": "monthly", "priority": "0.9"},
+    {"path": "/blog", "changefreq": "weekly", "priority": "0.7"},
+    {"path": "/privacy.html", "changefreq": "yearly", "priority": "0.2"},
+    {"path": "/terms.html", "changefreq": "yearly", "priority": "0.2"},
+    # /news is deliberately absent from 2026-08-02: the section is retired,
+    # so advertising it to crawlers would be inviting them to a page with
+    # nothing on it.
+)
+
+
 @router.get("/sitemap.xml")
 async def sitemap_xml():
-    # Stable marketing surfaces first, then every published blog + news URL.
-    entries = [
-        {"path": "/", "changefreq": "weekly", "priority": "1.0"},
-        # The free Agenda Builder landing page: a linkable tool page is the
-        # strongest organic surface the site has, so it ranks just under home.
-        {"path": "/agenda", "changefreq": "monthly", "priority": "0.9"},
-        {"path": "/blog", "changefreq": "weekly", "priority": "0.7"},
-        # /news is deliberately absent from 2026-08-02: the section is retired,
-        # so advertising it to crawlers would be inviting them to a page with
-        # nothing on it.
-    ]
+    # Stable public pages first, then every published blog URL.
+    entries = [dict(e) for e in STATIC_SITEMAP_ENTRIES]
     for p in await list_published(limit=1000):
         entries.append(
             {

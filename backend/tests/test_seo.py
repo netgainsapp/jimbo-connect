@@ -104,3 +104,16 @@ def test_seo_app_url_delegates_to_canonical_resolver():
     import app_url
 
     assert seo.app_url() == app_url.APP_URL
+
+
+def test_backend_sitemap_lists_every_static_public_page():
+    # sitemap-content.xml (this route, via the marketing rewrite) must cover
+    # every public page on intro-connect.com, not just the blog.
+    from routers import public
+
+    paths = [e["path"] for e in public.STATIC_SITEMAP_ENTRIES]
+    for p in ("/", "/agenda", "/blog", "/privacy.html", "/terms.html"):
+        assert p in paths, p
+    # Retired section and logged-in/app routes stay out.
+    assert "/news" not in paths
+    assert not any(p.startswith(("/api", "/admin", "/login")) for p in paths)

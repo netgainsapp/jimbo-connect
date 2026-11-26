@@ -7,6 +7,7 @@ escaped by the caller (headings/titles); this module escapes what it owns.
 """
 import html
 
+import analytics
 import seo
 
 _MARK = (
@@ -220,7 +221,7 @@ def page(
         '<meta name="viewport" content="width=device-width, initial-scale=1.0"/>'
         '<meta name="theme-color" content="#2563EB"/>'
         '<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>'
-        f"<title>{_esc(title)}</title>{desc}{seo_head}{_HEAD_FONT}{extra_head}"
+        f"<title>{_esc(title)}</title>{desc}{seo_head}{_HEAD_FONT}{analytics.beacon_tag()}{extra_head}"
         f"<style>{_CSS}</style></head><body>"
         # Same chrome as the marketing homepage (Nav.jsx / Footer.jsx): these
         # pages are served on the marketing domain, not the logged-in app, so

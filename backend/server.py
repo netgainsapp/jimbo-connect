@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+import analytics
 from database import (
     users,
     events,
@@ -176,14 +177,9 @@ async def _security_headers(request: Request, call_next):
     # (ld+json is data, never executed), all server-controlled and HTML-escaped.
     # script-src 'none' means an injected inline <script> would not run even if
     # escaping ever regressed. 'unsafe-inline' remains only under style-src.
+    # With CF_BEACON_TOKEN set, script-src admits only the Cloudflare beacon host.
     if request.url.path == "/blog" or request.url.path.startswith("/blog/"):
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; img-src 'self' data: https:; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "font-src 'self' https://fonts.gstatic.com; "
-            "script-src 'none'; object-src 'none'; "
-            "base-uri 'self'; frame-ancestors 'none'"
-        )
+        response.headers["Content-Security-Policy"] = analytics.blog_csp()
     return response
 
 
