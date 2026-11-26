@@ -24,6 +24,31 @@ images: OpenAI Images API.
 > rather than `failed`. `backend/tests/test_cron_targets.py` now asserts every
 > workflow's host matches `API_PUBLIC_URL` in `render.yaml`.
 
+## Site analytics and sitemaps (added 2026-11-26)
+
+The "Cloudflare" in front of `intro-connect.com` is Render's own edge (headers
+carry `rndr-id`; DNS is GoDaddy, A record 216.24.57.1). There is no Cloudflare
+zone on our account, so Cloudflare's automatic analytics cannot apply; the
+manual JS beacon is used instead, driven by one env var:
+
+- `CF_BEACON_TOKEN` on **jimbo-connect-api**: beacon on `/blog`, `/blog/*`,
+  `/agenda`, `/news` (`backend/analytics.py`, via `pageshell.page`), and the
+  `/blog` CSP admits only `static.cloudflareinsights.com` /
+  `cloudflareinsights.com`. Takes effect on restart.
+- The same `CF_BEACON_TOKEN` on **jimbo-connect-marketing**: beacon in the
+  homepage, `privacy.html`, `terms.html` (`marketing/scripts/beacon.mjs`).
+  Build time, so trigger a redeploy after setting it.
+- Unset or malformed = no beacon anywhere and the `/blog` CSP stays
+  `script-src 'none'`.
+
+Get the token: Cloudflare dashboard, Analytics and Logs, Web Analytics, Add a
+site, hostname `intro-connect.com`, choose the manual JS snippet, copy the
+`token` value from `data-cf-beacon`.
+
+Sitemaps: `/sitemap.xml` (static, `marketing/public/sitemap.xml`) lists the
+five stable pages; `/sitemap-content.xml` (rewrite to the API's `/sitemap.xml`)
+lists those plus every published blog post. Both are in `robots.txt`.
+
 ## Inbound email (added + verified 2026-08-01)
 
 `intro-connect.com` had **no MX records at all** until 2026-08-01, so every

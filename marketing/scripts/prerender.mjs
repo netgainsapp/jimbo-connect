@@ -21,6 +21,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer";
+import { injectIntoStaticPages } from "./beacon.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "..", "dist");
@@ -90,6 +91,12 @@ async function main() {
   try {
     const page = await browser.newPage();
     page.on("pageerror", (err) => console.error("[prerender] page error:", err.message));
+    // Never let the build fire the analytics beacon: it would log a fake
+    // pageview on every deploy and make the build depend on Cloudflare.
+    await page.setRequestInterception(true);
+    page.on("request", (req) =>
+      req.url().includes("cloudflareinsights.com") ? req.abort() : req.continue()
+    );
     await page.goto(url, { waitUntil: "networkidle0", timeout: 30_000 });
     // Confirm React actually mounted real content, not just the empty shell.
     await page.waitForSelector("h1", { timeout: 15_000 });
@@ -106,6 +113,8 @@ async function main() {
       fs.writeFile(indexPath, "<!doctype html>\n" + html, "utf-8")
     );
     console.log(`[prerender] wrote ${html.length} bytes to dist/index.html (${wordCount} words)`);
+    const tagged = await injectIntoStaticPages(distDir, process.env.CF_BEACON_TOKEN);
+    console.log(`[prerender] analytics beacon added to ${tagged} static page(s)`);
   } finally {
     await browser.close();
     server.close();
